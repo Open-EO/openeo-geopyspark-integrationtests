@@ -13,7 +13,7 @@ node("jenkinsslave1.vgt.vito.be") {
     '''
 
     sh '''
-      python3 -m virtualenv venv
+      python3 -m venv venv
       . venv/bin/activate
 
       pip install pytest
@@ -51,8 +51,11 @@ node("jenkinsslave1.vgt.vito.be") {
     sh '''
       . venv/bin/activate
 
-      pip install setuptools
-      python setup.py install test
+      pip install setuptools nose2
+      python setup.py install
+      nose2 --plugin nose2.plugins.junitxml --junit-xml
     '''
+
+    junit '**/nose2-junit.xml'
   }
 }
