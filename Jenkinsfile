@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-node {
+node("jenkinsslave1.vgt.vito.be") {
   deleteDir()
   checkout scm
 
