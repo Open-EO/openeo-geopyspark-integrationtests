@@ -13,7 +13,7 @@ node("jenkinsslave1.vgt.vito.be") {
     '''
 
     sh '''
-      virtualenv -p python3 venv
+      python3 -m virtualenv venv
       . venv/bin/activate
 
       pip install pytest
