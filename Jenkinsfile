@@ -47,6 +47,8 @@ node("jenkinsslave1.vgt.vito.be") {
     sh 'scripts/submit.sh'
   }
 
+  return
+
   stage('Run integration tests') {
     sh '''
       . venv/bin/activate
