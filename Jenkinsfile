@@ -1,6 +1,8 @@
 #!/usr/bin/env groovy
 
 node("jenkinsslave1.vgt.vito.be") {
+  properties([disableConcurrentBuilds()])
+
   deleteDir()
   checkout scm
 
@@ -45,7 +47,7 @@ node("jenkinsslave1.vgt.vito.be") {
     sh 'scripts/submit.sh'
   }
 
-  return
+  sleep 120
 
   stage('Run integration tests') {
     sh '''
@@ -53,7 +55,7 @@ node("jenkinsslave1.vgt.vito.be") {
 
       pip install setuptools nose2
       python setup.py install
-      nose2 --plugin nose2.plugins.junitxml --junit-xml
+      ENDPOINT=$(scripts/endpoint.sh) nose2 --plugin nose2.plugins.junitxml --junit-xml
     '''
 
     junit '**/nose2-junit.xml'

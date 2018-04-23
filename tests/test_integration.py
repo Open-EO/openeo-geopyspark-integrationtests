@@ -1,11 +1,12 @@
 from unittest import TestCase
 from openeo.rest import rest_session
 import requests
+import os
 
 
 class Test(TestCase):
 
-    _rest_base = "http://192.168.205.137:8080/openeo"
+    _rest_base = "%s/openeo" % os.environ['ENDPOINT']
 
     def test_health(self):
         r = requests.get(self._rest_base + "/health")
