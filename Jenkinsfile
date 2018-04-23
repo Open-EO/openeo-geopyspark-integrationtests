@@ -16,7 +16,7 @@ node("jenkinsslave1.vgt.vito.be") {
       python3 -m venv venv
       . venv/bin/activate
 
-      pip install pytest
+      pip install wheel pytest
 
       cd openeo-python-client
       pip install travis-sphinx==2.1.0 "sphinx<1.7"
@@ -31,9 +31,7 @@ node("jenkinsslave1.vgt.vito.be") {
       python setup.py install bdist_egg
 
       cd ../geopyspark
-      export PYTHONPATH=$VIRTUAL_ENV/lib/python3/site-packages
-      make build
-      pip install -e .
+      make virtual-install
 
       cd ../openeo-geopyspark-driver
       pip install $(cat requirements.txt | tr '\\n' ' ' | sed -e 's/\\+openeo1//' | sed -e 's/openeo-api==0.0.1/openeo-api/') --extra-index-url https://artifactory.vgt.vito.be/api/pypi/python-packages-public/simple
