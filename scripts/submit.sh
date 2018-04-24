@@ -8,7 +8,6 @@ export SPARK_HOME=/usr/hdp/current/spark2-client
 export PYSPARK_PYTHON="/usr/bin/python3.5"
 
 cd venv/lib/python*/site-packages && \
-ln -s geopyspark-0.3.0-*.egg/geopyspark && \
 zip -9 -r ../../../../libs.zip . -x \*pandas\* -x \*numpy\* && \
 cd ../../../..
 
