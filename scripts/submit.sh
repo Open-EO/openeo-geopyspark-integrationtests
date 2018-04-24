@@ -1,5 +1,7 @@
 #!/bin/sh
 
+jobName=$1
+
 export HDP_VERSION=2.5.3.0-37
 export SPARK_MAJOR_VERSION=2
 export SPARK_HOME=/usr/hdp/current/spark2-client
@@ -14,8 +16,6 @@ appId=$(yarn application -list 2>&1 | grep OpenEO-GeoPySpark-test | awk '{print 
 yarn application -kill ${appId}
 
 assembly="geopyspark/geopyspark/jars/geotrellis-backend-assembly-0.3.0.jar"
-
-jobName=OpenEO-GeoPySpark-${GIT_LOCAL_BRANCH}
 
 spark-submit \
  --master yarn --deploy-mode cluster \

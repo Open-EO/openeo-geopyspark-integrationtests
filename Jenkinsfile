@@ -3,6 +3,8 @@
 node("jenkinsslave1.vgt.vito.be") {
   properties([disableConcurrentBuilds()])
 
+  jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
+
   deleteDir()
   checkout scm
 
@@ -44,19 +46,19 @@ node("jenkinsslave1.vgt.vito.be") {
   }
 
   stage('Deploy on Spark') {
-    sh 'scripts/submit.sh'
+    sh "scripts/submit.sh ${jobName}"
   }
 
   sleep 120
 
   stage('Run integration tests') {
-    sh '''
+    sh """
       . venv/bin/activate
 
       pip install setuptools nose2
       python setup.py install
-      ENDPOINT=$(scripts/endpoint.sh) nose2 --plugin nose2.plugins.junitxml --junit-xml
-    '''
+      ENDPOINT=\$(scripts/endpoint.sh ${jobName}) nose2 --plugin nose2.plugins.junitxml --junit-xml
+    """
 
     junit '**/nose2-junit.xml'
   }

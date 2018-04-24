@@ -1,6 +1,7 @@
 #!/bin/bash
 
-jobName=OpenEO-GeoPySpark-${GIT_LOCAL_BRANCH}
+jobName=$1
+
 appId=$(yarn application -list 2>&1 | grep ${jobName} | awk '{print $1}')
 
 endpointLine=$(yarn logs -applicationId ${appId} -log_files stdout | grep 'Listening at')
