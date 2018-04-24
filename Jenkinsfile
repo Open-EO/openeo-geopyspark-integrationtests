@@ -13,7 +13,6 @@ node("jenkinsslave1.vgt.vito.be") {
       git clone https://github.com/Open-EO/openeo-python-client.git
       git clone https://github.com/Open-EO/openeo-python-driver.git
       git clone https://github.com/Open-EO/openeo-geopyspark-driver.git
-      git clone https://github.com/locationtech-labs/geopyspark.git
     '''
 
     sh '''
@@ -34,11 +33,8 @@ node("jenkinsslave1.vgt.vito.be") {
       pip install -r requirements.txt
       python setup.py install bdist_egg
 
-      cd ../geopyspark
-      make virtual-install
-
       cd ../openeo-geopyspark-driver
-      pip install $(cat requirements.txt | tr '\\n' ' ' | sed -e 's/\\+openeo1//' | sed -e 's/openeo-api==0.0.1/openeo-api/') --extra-index-url https://artifactory.vgt.vito.be/api/pypi/python-packages-public/simple
+      pip install $(cat requirements.txt | tr '\\n' ' ' | sed -e 's/openeo-api==0.0.1/openeo-api/') --extra-index-url https://artifactory.vgt.vito.be/api/pypi/python-packages-public/simple
       SPARK_HOME=$(find_spark_home.py) geopyspark install-jar
       echo SPARK_HOME=$(find_spark_home.py) pytest
       python setup.py install bdist_egg
