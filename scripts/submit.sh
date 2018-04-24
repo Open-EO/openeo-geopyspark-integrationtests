@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 jobName=$1
 
@@ -12,7 +12,7 @@ zip -9 -r ../../../../libs.zip . -x \*pandas\* -x \*numpy\* && \
 cd ../../../..
 
 appId=$(yarn application -list 2>&1 | grep OpenEO-GeoPySpark-test | awk '{print $1}')
-yarn application -kill ${appId}
+yarn application -kill ${appId} || true
 
 assembly="geopyspark/geopyspark/jars/geotrellis-backend-assembly-0.3.0.jar"
 
