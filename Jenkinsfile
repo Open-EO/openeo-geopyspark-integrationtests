@@ -31,6 +31,7 @@ node("jenkinsslave1.vgt.vito.be") {
       cd ../openeo-python-driver
       pip install -r requirements-dev.txt
       pip install -r requirements.txt
+      pytest
       python setup.py install bdist_egg
 
       cd ../openeo-geopyspark-driver
