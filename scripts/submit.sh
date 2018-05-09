@@ -14,7 +14,7 @@ cd ../../../..
 appId=$(yarn application -list 2>&1 | grep ${jobName} | awk '{print $1}')
 yarn application -kill ${appId} || true
 
-assembly="geopyspark/geopyspark/jars/geotrellis-backend-assembly-0.3.0.jar"
+assembly=$(find $VIRTUAL_ENV -name 'geotrellis-backend-assembly-*.jar')
 
 spark-submit \
  --master yarn --deploy-mode cluster \
