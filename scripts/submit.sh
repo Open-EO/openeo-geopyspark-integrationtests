@@ -18,6 +18,7 @@ assembly=$(find $VIRTUAL_ENV -name 'geotrellis-backend-assembly-*.jar')
 
 spark-submit \
  --master yarn --deploy-mode cluster \
+ --principal jenkins@VGT.VITO.BE --keytab ${HOME}/jenkins.keytab \
  --conf spark.speculation=true \
  --conf spark.speculation.quantile=0.4 --conf spark.speculation.multiplier=1.1 \
  --conf spark.dynamicAllocation.minExecutors=2 \
