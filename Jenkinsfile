@@ -15,30 +15,34 @@ node("jenkinsslave1.vgt.vito.be") {
       git clone https://github.com/Open-EO/openeo-geopyspark-driver.git
     '''
 
-    sh '''
-      python3 -m venv venv
-      . venv/bin/activate
+    try {
+      sh '''
+        python3 -m venv venv
+        . venv/bin/activate
 
-      pip install wheel pytest
+        pip install wheel pytest pytest-timeout
 
-      cd openeo-python-client
-      pip install travis-sphinx==2.1.0 "sphinx<1.7"
-      pip install -r requirements-dev.txt
-      pip install -r requirements.txt
-      pytest
-      python setup.py install bdist_egg
+        cd openeo-python-client
+        pip install travis-sphinx==2.1.0 "sphinx<1.7"
+        pip install -r requirements-dev.txt
+        pip install -r requirements.txt
+        pytest --junit-xml=pytest-junit.xml
+        python setup.py install bdist_egg
 
-      cd ../openeo-python-driver
-      pip install -r requirements-dev.txt
-      pip install -r requirements.txt
-      pytest
-      python setup.py install bdist_egg
+        cd ../openeo-python-driver
+        pip install -r requirements-dev.txt
+        pip install -r requirements.txt
+        pytest --junit-xml=pytest-junit.xml
+        python setup.py install bdist_egg
 
-      cd ../openeo-geopyspark-driver
-      pip install $(cat requirements.txt | tr '\\n' ' ' | sed -e 's/openeo-api==0.0.1/openeo-api/') --extra-index-url https://artifactory.vgt.vito.be/api/pypi/python-packages-public/simple
-      SPARK_HOME=$(find_spark_home.py) TRAVIS=1 pytest
-      python setup.py install bdist_egg
-    '''
+        cd ../openeo-geopyspark-driver
+        pip install $(cat requirements.txt | tr '\\n' ' ' | sed -e 's/openeo-api==0.0.1/openeo-api/') --extra-index-url https://artifactory.vgt.vito.be/api/pypi/python-packages-public/simple
+        SPARK_HOME=$(find_spark_home.py) TRAVIS=1 pytest --junit-xml=pytest-junit.xml
+        python setup.py install bdist_egg
+      '''
+    } finally {
+      junit '**/pytest-junit.xml'
+    }
   }
 
   stage('Deploy on Spark') {
@@ -48,14 +52,14 @@ node("jenkinsslave1.vgt.vito.be") {
   sleep 120
 
   stage('Run integration tests') {
-    sh """
-      . venv/bin/activate
-
-      pip install setuptools nose2
-      python setup.py install
-      ENDPOINT=\$(scripts/endpoint.sh ${jobName}) nose2 --plugin nose2.plugins.junitxml --junit-xml
-    """
-
-    junit '**/nose2-junit.xml'
+    try {
+      sh """
+        . venv/bin/activate
+        python setup.py install
+        ENDPOINT=\$(scripts/endpoint.sh ${jobName}) pytest tests --timeout 60 --junit-xml=pytest-junit.xml
+      """
+    } finally {
+      junit '**/pytest-junit.xml'
+    }
   }
 }
