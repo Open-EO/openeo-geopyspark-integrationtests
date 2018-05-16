@@ -20,9 +20,10 @@ yarn application -kill ${appId} || true
 spark-submit \
  --master yarn --deploy-mode cluster \
  --principal jenkins@VGT.VITO.BE --keytab ${HOME}/jenkins.keytab \
+ --conf spark.executor.memory=8G \
  --conf spark.speculation=true \
  --conf spark.speculation.quantile=0.4 --conf spark.speculation.multiplier=1.1 \
- --conf spark.dynamicAllocation.minExecutors=2 \
+ --conf spark.dynamicAllocation.minExecutors=20 \
  --conf spark.yarn.appMasterEnv.SPARK_HOME=/usr/hdp/current/spark2-client --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
  --conf spark.yarn.appMasterEnv.PYSPARK_DRIVER_PYTHON=/usr/bin/python3.5 --conf spark.executorEnv.PYSPARK_PYTHON=/usr/bin/python3.5 \
  --conf spark.locality.wait=300ms --conf spark.shuffle.service.enabled=true --conf spark.dynamicAllocation.enabled=true --conf spark.executor.extraClassPath=$(basename "${backend_assembly}") \
