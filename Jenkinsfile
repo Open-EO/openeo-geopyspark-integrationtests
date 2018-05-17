@@ -60,7 +60,7 @@ node("jenkinsslave1.vgt.vito.be") {
       sh """
         . venv/bin/activate
         python setup.py install
-        ENDPOINT=\$(scripts/endpoint.sh ${jobName}) pytest tests --timeout 60 --junit-xml=pytest-junit.xml
+        ENDPOINT=\$(scripts/endpoint.sh ${jobName}) pytest tests --timeout 120 --junit-xml=pytest-junit.xml
       """
     } finally {
       junit '**/pytest-junit.xml'
