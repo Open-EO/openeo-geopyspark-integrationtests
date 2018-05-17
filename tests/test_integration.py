@@ -17,7 +17,8 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
         image_collections = session.list_collections()
 
-        self.assertTrue(image_collections)
+        product_ids = [entry["product_id"] for entry in image_collections]
+        self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M", product_ids)
 
     def test_zonal_statistics(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
