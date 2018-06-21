@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase,skip
 from openeo.rest import rest_session
 import requests
 import os
@@ -42,3 +42,19 @@ class Test(TestCase):
 
         self.assertEqual(sorted(expected_dates), sorted(actual_dates))
         self.assertTrue(type(timeseries["2017-11-01T00:00:00"][0]) == float)
+
+    def test_ndvi_udf(self):
+        import os,openeo_udf
+        import openeo_udf.functions
+        dir = os.path.dirname(openeo_udf.functions.__file__)
+        file_name = os.path.join(dir, "raster_collections_ndvi.py")
+        with open(file_name, "r")  as f:
+            udf_code = f.read()
+            session = rest_session.session(userid=None, endpoint=self._rest_base)
+
+            image_collection = session \
+                .imagecollection('CGS_SENTINEL2_RADIOMETRY_V101') \
+                .date_range_filter(start_date="2017-10-15", end_date="2017-10-15") \
+                .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
+                .apply_tiles(udf_code) \
+                .download("/tmp/openeo-ndvi-udf.geotiff","geotiff")
