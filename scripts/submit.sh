@@ -8,7 +8,7 @@ export SPARK_HOME=/usr/hdp/current/spark2-client
 export PYSPARK_PYTHON="/usr/bin/python3.5"
 
 cd venv/lib/python*/site-packages && \
-zip -9 -r ../../../../libs.zip . -x \*pandas\* -x \*numpy\* -x \*matplotlib\* -x \*pyproj\* && \
+zip -9 -r ../../../../libs.zip . -x \*pandas\* -x \*numpy\* -x \*matplotlib\* -x \*pyproj\* -x \*fiona\* && \
 cd ../../../..
 
 extensions=$(ls GeoPySparkExtensions-*.jar)
