@@ -27,10 +27,9 @@ spark-submit \
  --conf spark.dynamicAllocation.minExecutors=20 \
  --conf spark.yarn.appMasterEnv.SPARK_HOME=/usr/hdp/current/spark2-client --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
  --conf spark.yarn.appMasterEnv.PYSPARK_DRIVER_PYTHON=/usr/bin/python3.5 --conf spark.executorEnv.PYSPARK_PYTHON=/usr/bin/python3.5 \
- --conf spark.locality.wait=300ms --conf spark.shuffle.service.enabled=true --conf spark.dynamicAllocation.enabled=true --conf spark.executor.extraClassPath=$(basename "${backend_assembly}") \
- --driver-class-path $(basename "${backend_assembly}") \
- --files ${backend_assembly},openeo-geopyspark-driver/layercatalog.json \
+ --conf spark.locality.wait=300ms --conf spark.shuffle.service.enabled=true --conf spark.dynamicAllocation.enabled=true \
+ --files openeo-geopyspark-driver/layercatalog.json,openeo-geopyspark-driver/scripts/submit_batch_job.sh,openeo-geopyspark-driver/openeogeotrellis/deploy/batch_job.py \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
- --jars ${extensions} \
+ --jars ${extensions},${backend_assembly} \
  --py-files $(find openeo-python-client/dist -name 'openeo_api-*.egg'),$(find openeo-python-driver/dist -name 'openeo_driver*.egg'),$(find openeo-geopyspark-driver/dist -name 'openeo_geopyspark*.egg'),libs.zip \
  --name ${jobName} openeo-geopyspark-driver/openeogeotrellis/deploy/probav-mep.py no-zookeeper 2>&1 > /dev/null &
