@@ -20,6 +20,7 @@ yarn application -kill ${appId} || true
 spark-submit \
  --master yarn --deploy-mode cluster \
  --principal jenkins@VGT.VITO.BE --keytab ${HOME}/jenkins.keytab \
+ --driver-memory 4G \
  --conf spark.executor.memory=8G \
  --conf spark.speculation=true \
  --conf spark.speculation.quantile=0.4 --conf spark.speculation.multiplier=1.1 \
