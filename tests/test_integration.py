@@ -3,6 +3,8 @@ from openeo.rest import rest_session
 import requests
 import os
 from shapely.geometry import Polygon
+import time
+import pytest
 
 
 class Test(TestCase):
@@ -58,3 +60,51 @@ class Test(TestCase):
                 .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
                 .apply_tiles(udf_code) \
                 .download("/tmp/openeo-ndvi-udf.geotiff","geotiff")
+
+    @pytest.mark.timeout(600)
+    def test_batch_job(self):
+        create_batch_job = requests.post(self._rest_base + "/jobs", json={
+            "process_graph": {
+                "process_id": "zonal_statistics",
+                "args": {
+                    "imagery": {
+                        "process_id": "filter_daterange",
+                        "args": {
+                            "imagery": {
+                                "product_id": "PROBAV_L3_S10_TOC_NDVI_333M"
+                            },
+                            "from": "2017-11-01",
+                            "to": "2017-11-21"
+                        }
+                    },
+                    "regions": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [7.022705078125007, 51.75432477678571], [7.659912109375007, 51.74333844866071],
+                            [7.659912109375007, 51.29289899553571], [7.044677734375007, 51.31487165178571],
+                            [7.022705078125007, 51.75432477678571]
+                        ]]
+                    }
+                }
+            },
+            "output": {}
+        })
+
+        self.assertEqual(201, create_batch_job.status_code)
+
+        job_url = create_batch_job.headers['Location']
+
+        self.assertIsNotNone(job_url)
+
+        job_in_progress = True
+        while job_in_progress:
+            time.sleep(60)
+
+            get_job_result = requests.get(job_url + "/results/out")
+            job_in_progress = get_job_result.status_code == 404
+
+        self.assertEqual(200, get_job_result.status_code)
+
+        zonal_statistics = get_job_result.json()
+
+        self.assertEqual(3, len(zonal_statistics))
