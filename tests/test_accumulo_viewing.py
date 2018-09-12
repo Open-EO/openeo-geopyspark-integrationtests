@@ -1,4 +1,4 @@
-from base_test_class import BaseTestClass
+from tests.base_test_class import BaseTestClass
 from unittest import TestCase,skip
 from openeo.rest import rest_session
 import requests
