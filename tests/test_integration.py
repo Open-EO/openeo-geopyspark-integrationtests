@@ -100,9 +100,20 @@ class Test(TestCase):
         while job_in_progress:
             time.sleep(60)
 
-            get_job_result = requests.get(job_url + "/results/out")
-            job_in_progress = get_job_result.status_code == 404
+            get_job_info = requests.get(job_url)
+            job_info = get_job_info.json()
 
+            job_in_progress = job_info['status'] not in ['canceled', 'finished', 'error']
+
+        self.assertEqual('finished', job_info['status'])
+
+        get_job_results = requests.get(job_url + "/results")
+        self.assertEqual(200, get_job_results.status_code)
+
+        job_result_links = get_job_results.json()["links"]
+        self.assertEqual(1, len(job_result_links))
+
+        get_job_result = requests.get(job_result_links[0])
         self.assertEqual(200, get_job_result.status_code)
 
         zonal_statistics = get_job_result.json()
