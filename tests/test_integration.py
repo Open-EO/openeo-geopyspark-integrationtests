@@ -93,8 +93,10 @@ class Test(TestCase):
         self.assertEqual(201, create_batch_job.status_code)
 
         job_url = create_batch_job.headers['Location']
-
         self.assertIsNotNone(job_url)
+
+        queue_job = requests.post(job_url + "/results")
+        self.assertEqual(202, queue_job.status_code)
 
         job_in_progress = True
         while job_in_progress:
