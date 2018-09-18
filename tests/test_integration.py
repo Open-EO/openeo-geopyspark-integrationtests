@@ -121,3 +121,25 @@ class Test(TestCase):
         zonal_statistics = get_job_result.json()
 
         self.assertEqual(3, len(zonal_statistics))
+
+    @pytest.mark.timeout(600)
+    def test_batch_client(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+
+        job = session \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+            .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
+            .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
+            .send_job('GTiff')
+
+        job.queue()
+
+        in_progress = True
+        while in_progress:
+            time.sleep(60)
+
+            status = job.status()
+            print("job %s has status %s" % (job.job_id, status))
+            in_progress = status not in ['canceled', 'finished', 'error']
+
+        self.assertEqual('finished', job.status())
