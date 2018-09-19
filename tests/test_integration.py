@@ -5,6 +5,8 @@ import os
 from shapely.geometry import Polygon
 import time
 import pytest
+import tempfile
+import imghdr
 
 
 class Test(TestCase):
@@ -61,6 +63,7 @@ class Test(TestCase):
                 .apply_tiles(udf_code) \
                 .download("/tmp/openeo-ndvi-udf.geotiff","geotiff")
 
+    @skip
     @pytest.mark.timeout(600)
     def test_batch_job(self):
         create_batch_job = requests.post(self._rest_base + "/jobs", json={
@@ -143,3 +146,13 @@ class Test(TestCase):
             in_progress = status not in ['canceled', 'finished', 'error']
 
         self.assertEqual('finished', job.status())
+
+        results = job.results()
+
+        self.assertEqual(1, len(results))
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_file = "%s/%s.geotiff" % (tempdir, job.job_id)
+
+            results[0].save_as(output_file)
+            self.assertEqual("tiff", imghdr.what(output_file))
