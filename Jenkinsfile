@@ -17,10 +17,10 @@ node("jenkinsslave1.vgt.vito.be") {
 
     try {
       sh '''
-        virtualenv -p python3.5 venv
-        . venv/bin/activate
-
         export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
+        python3.5 -m venv venv
+        . venv/bin/activate
 
         pip install --upgrade --force-reinstall pip
         pip download typing==3.6.6
@@ -58,11 +58,13 @@ node("jenkinsslave1.vgt.vito.be") {
     sh "scripts/submit.sh ${jobName}"
   }
 
-  sleep 120
+  sleep 180
 
   stage('Run integration tests') {
     try {
       sh """
+        export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
         . venv/bin/activate
         python setup.py install
         ENDPOINT=\$(scripts/endpoint.sh ${jobName}) pytest tests --timeout 120 --junit-xml=pytest-junit.xml
