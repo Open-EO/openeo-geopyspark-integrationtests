@@ -149,7 +149,7 @@ class Test(TestCase):
             .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
             .send_job('GTiff')
 
-        job.queue()
+        self.assertEqual(200, job.queue())  # FIXME: HTTP error should be translated to an exception
 
         in_progress = True
         while in_progress:
