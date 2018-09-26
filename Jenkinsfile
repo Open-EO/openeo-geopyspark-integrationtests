@@ -63,7 +63,7 @@ node("jenkinsslave1.vgt.vito.be") {
   stage('Run integration tests') {
     try {
       sh """
-        export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+        export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}
 
         . venv/bin/activate
         python setup.py install
