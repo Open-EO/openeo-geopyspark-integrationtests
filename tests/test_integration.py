@@ -125,6 +125,20 @@ class Test(TestCase):
 
         self.assertEqual(3, len(zonal_statistics))
 
+    def test_sync_cog(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_file = "%s/%s.geotiff" % (tempdir, "test_cog")
+
+            session \
+                .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+                .date_range_filter(start_date="2017-11-21", end_date="2017-11-21") \
+                .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
+                .download(output_file, parameters={"tiled": True})
+
+            self.assertEqual("tiff", imghdr.what(output_file))  # FIXME: check if actually a COG
+
     @pytest.mark.timeout(600)
     def test_batch_client(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
