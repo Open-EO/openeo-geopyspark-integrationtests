@@ -17,9 +17,14 @@ node("jenkinsslave1.vgt.vito.be") {
 
     try {
       sh '''
-        python3 -m venv venv
+        virtualenv -p python3.5 venv
         . venv/bin/activate
 
+        export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
+        pip install --upgrade --force-reinstall pip
+        pip download typing==3.6.6
+        pip download Fiona==1.7.13 && pip install Fiona-1.7.13-cp35-cp35m-manylinux1_x86_64.whl
         pip install wheel pytest pytest-timeout
 
         cd openeo-python-client

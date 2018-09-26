@@ -2,14 +2,13 @@
 
 jobName=$1
 
-export HDP_VERSION=2.5.3.0-37
-export SPARK_MAJOR_VERSION=2
 export SPARK_HOME=/usr/hdp/current/spark2-client
-export PYSPARK_PYTHON="/usr/bin/python3.5"
+export PYSPARK_PYTHON="./python"
+export PATH="$SPARK_HOME/bin:$PATH"
 
-cd venv/lib/python*/site-packages && \
-zip -9 -r ../../../../libs.zip . -x \*pandas\* -x \*numpy\* -x \*matplotlib\* -x \*pyproj\* -x \*fiona\* && \
-cd ../../../..
+pushd venv/
+zip -rq ../venv.zip *
+popd
 
 extensions=$(ls GeoPySparkExtensions-*.jar)
 backend_assembly=$(find $VIRTUAL_ENV -name 'geotrellis-backend-assembly-*.jar')
@@ -25,11 +24,11 @@ spark-submit \
  --conf spark.speculation=true \
  --conf spark.speculation.quantile=0.4 --conf spark.speculation.multiplier=1.1 \
  --conf spark.dynamicAllocation.minExecutors=20 \
- --conf spark.yarn.appMasterEnv.SPARK_HOME=/usr/hdp/current/spark2-client --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
- --conf spark.yarn.appMasterEnv.PYSPARK_DRIVER_PYTHON=/usr/bin/python3.5 --conf spark.executorEnv.PYSPARK_PYTHON=/usr/bin/python3.5 \
+ --conf "spark.yarn.appMasterEnv.SPARK_HOME=$SPARK_HOME" --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
+ --conf "spark.yarn.appMasterEnv.PYSPARK_PYTHON=$PYSPARK_PYTHON" \
  --conf spark.locality.wait=300ms --conf spark.shuffle.service.enabled=true --conf spark.dynamicAllocation.enabled=true \
- --files openeo-geopyspark-driver/layercatalog.json,openeo-geopyspark-driver/scripts/submit_batch_job.sh,openeo-geopyspark-driver/scripts/log4j.properties,openeo-geopyspark-driver/openeogeotrellis/deploy/batch_job.py \
+ --files python,$(ls typing-*-none-any.whl),openeo-geopyspark-driver/layercatalog.json,openeo-geopyspark-driver/scripts/submit_batch_job.sh,openeo-geopyspark-driver/scripts/log4j.properties,openeo-geopyspark-driver/openeogeotrellis/deploy/batch_job.py \
+ --archives "venv.zip#venv" \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
  --jars ${extensions},${backend_assembly} \
- --py-files $(find openeo-python-client/dist -name 'openeo_api-*.egg'),$(find openeo-python-driver/dist -name 'openeo_driver*.egg'),$(find openeo-geopyspark-driver/dist -name 'openeo_geopyspark*.egg'),libs.zip \
  --name ${jobName} openeo-geopyspark-driver/openeogeotrellis/deploy/probav-mep.py no-zookeeper 2>&1 > /dev/null &
