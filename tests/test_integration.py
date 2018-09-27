@@ -137,19 +137,19 @@ class Test(TestCase):
                 .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
                 .download(output_file, parameters={"tiled": True})
 
-            self.assertEqual("tiff", imghdr.what(output_file))  # FIXME: check if actually a COG
+            self._assert_geotiff(output_file)
 
     @pytest.mark.timeout(600)
-    def test_batch_client(self):
+    def test_batch_cog(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
         job = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
             .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
-            .send_job('GTiff')
+            .send_job('GTiff', tiled=True)
 
-        self.assertEqual(200, job.queue())  # FIXME: HTTP error should be translated to an exception
+        self.assertEqual(202, job.queue())  # FIXME: HTTP error should be translated to an exception
 
         in_progress = True
         while in_progress:
@@ -169,4 +169,8 @@ class Test(TestCase):
             output_file = "%s/%s.geotiff" % (tempdir, job.job_id)
 
             results[0].save_as(output_file)
-            self.assertEqual("tiff", imghdr.what(output_file))
+            self._assert_geotiff(output_file)
+
+    def _assert_geotiff(self, file, is_cog=None):
+        # FIXME: check if actually a COG
+        self.assertEqual("tiff", imghdr.what(file))
