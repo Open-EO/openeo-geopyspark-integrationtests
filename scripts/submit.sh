@@ -10,6 +10,13 @@ pushd venv/
 zip -rq ../venv.zip *
 popd
 
+hdfsVenvDir=${jobName}
+
+hadoop fs -mkdir -p ${hdfsVenvDir}
+hadoop fs -put -f venv.zip ${hdfsVenvDir}
+
+hdfsVenvZip=hdfs:/user/jenkins/${hdfsVenvDir}/venv.zip
+
 extensions=$(ls GeoPySparkExtensions-*.jar)
 backend_assembly=$(find $VIRTUAL_ENV -name 'geotrellis-backend-assembly-*.jar')
 
@@ -24,11 +31,12 @@ spark-submit \
  --conf spark.speculation=true \
  --conf spark.speculation.quantile=0.4 --conf spark.speculation.multiplier=1.1 \
  --conf spark.dynamicAllocation.minExecutors=20 \
+ --conf spark.locality.wait=300ms --conf spark.shuffle.service.enabled=true --conf spark.dynamicAllocation.enabled=true \
  --conf "spark.yarn.appMasterEnv.SPARK_HOME=$SPARK_HOME" --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
  --conf "spark.yarn.appMasterEnv.PYSPARK_PYTHON=$PYSPARK_PYTHON" \
- --conf spark.locality.wait=300ms --conf spark.shuffle.service.enabled=true --conf spark.dynamicAllocation.enabled=true \
+ --conf "spark.yarn.appMasterEnv.OPENEO_VENV_ZIP=$hdfsVenvZip" \
  --files python,$(ls typing-*-none-any.whl),openeo-geopyspark-driver/layercatalog.json,openeo-geopyspark-driver/scripts/submit_batch_job.sh,openeo-geopyspark-driver/scripts/log4j.properties,openeo-geopyspark-driver/openeogeotrellis/deploy/batch_job.py \
- --archives "venv.zip#venv" \
+ --archives "${hdfsVenvZip}#venv" \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
  --jars ${extensions},${backend_assembly} \
  --name ${jobName} openeo-geopyspark-driver/openeogeotrellis/deploy/probav-mep.py no-zookeeper 2>&1 > /dev/null &
