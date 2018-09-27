@@ -17,10 +17,10 @@ node("jenkinsslave1.vgt.vito.be") {
 
     try {
       sh '''
-        export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+        export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64:${LD_LIBRARY_PATH}
 
         python3.5 -m venv venv
-        . venv/bin/activate
+        source venv/bin/activate
 
         pip install --upgrade --force-reinstall pip
         pip download typing==3.6.6
