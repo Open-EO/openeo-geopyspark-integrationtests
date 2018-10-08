@@ -12,6 +12,7 @@ import imghdr
 class Test(TestCase):
 
     _rest_base = "%s/openeo" % os.environ['ENDPOINT']
+    #_rest_base = "%s/openeo" % "http://openeo.vgt.vito.be"
 
     def test_health(self):
         r = requests.get(self._rest_base + "/health")
@@ -62,6 +63,33 @@ class Test(TestCase):
                 .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
                 .apply_tiles(udf_code) \
                 .download("/tmp/openeo-ndvi-udf.geotiff","geotiff")
+
+    def test_mask(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+
+        bbox = {
+            "left": 7.0,
+            "top": 51.8,
+            "right": 7.7,
+            "bottom": 51.28,
+            "srs": "EPSG:4326"
+        }
+
+        image_collection = session \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+            .bbox_filter(left=bbox["left"], right=bbox["right"], bottom=bbox["bottom"], top=bbox["top"],
+                         srs=bbox["srs"]) \
+            .date_range_filter(start_date="2017-11-01", end_date="2017-11-01")
+
+        polygon = Polygon(shell=[
+            (7.022705078125007, 51.75432477678571),
+            (7.659912109375007, 51.74333844866071),
+            (7.659912109375007, 51.29289899553571),
+            (7.044677734375007, 51.31487165178571),
+            (7.022705078125007, 51.75432477678571)
+        ])
+
+        geotiff = image_collection.mask(polygon).download("out.tiff")
 
     @skip
     @pytest.mark.timeout(600)
