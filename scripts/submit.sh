@@ -17,7 +17,7 @@ hadoop fs -put -f venv.zip ${hdfsVenvDir}
 
 hdfsVenvZip=hdfs:/user/jenkins/${hdfsVenvDir}/venv.zip
 
-extensions=$(ls GeoPySparkExtensions-*.jar)
+extensions=$(ls geotrellis-extensions-*.jar)
 backend_assembly=$(find $VIRTUAL_ENV -name 'geotrellis-backend-assembly-*.jar')
 
 appId=$(yarn application -list 2>&1 | grep ${jobName} | awk '{print $1}')
