@@ -52,7 +52,7 @@ node("jenkinsslave1.vgt.vito.be") {
 
   stage('Deploy on Spark') {
     withMavenEnv() {
-      sh "mvn dependency:copy -Dartifact=be.vito.eodata:GeoPySparkExtensions:2.7.0-SNAPSHOT -DoutputDirectory=."
+      sh "mvn dependency:copy -Dartifact=org.openeo:geotrellis-extensions:1.0.0-SNAPSHOT -DoutputDirectory=."
     }
 
     sh "scripts/submit.sh ${jobName}"
