@@ -25,6 +25,34 @@ class Test(TestCase):
         product_ids = [entry["product_id"] for entry in image_collections]
         self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M", product_ids)
 
+    def testS2FAPAR_download_latlon(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        s2_fapar = session.imagecollection("S2_FAPAR_V102_WEBMERCATOR2")
+        s2_fapar = s2_fapar.date_range_filter("2018-08-06T00:00:00Z","2018-08-06T00:00:00Z") \
+            .bbox_filter(left=5.027, right=5.0438, bottom=51.1974, top=51.2213, srs="EPSG:4326")
+
+        tempfile = "/tmp/s2_fapar_latlon.geotiff"
+        try:
+            os.remove(tempfile)
+        except OSError:
+            pass
+        s2_fapar.download(tempfile, format="geotiff")
+        self.assertTrue(os.path.exists(tempfile))
+
+    def testS2FAPAR_download_webmerc(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        s2_fapar = session.imagecollection("S2_FAPAR_V102_WEBMERCATOR2")
+        s2_fapar = s2_fapar.date_range_filter("2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z") \
+            .bbox_filter(left=561864.7084, right=568853, bottom=6657846, top=6661080, srs="EPSG:3857")
+
+        tempfile = "/tmp/s2_fapar_webmerc.geotiff"
+        try:
+            os.remove(tempfile)
+        except OSError:
+            pass
+        s2_fapar.download(tempfile, format="geotiff")
+        self.assertTrue(os.path.exists(tempfile))
+
     def test_zonal_statistics(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
