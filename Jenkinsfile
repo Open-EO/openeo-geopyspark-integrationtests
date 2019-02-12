@@ -42,6 +42,8 @@ node("jenkinsslave1.vgt.vito.be") {
 
         cd ../openeo-geopyspark-driver
         pip install $(cat requirements.txt | tr '\\n' ' ' | sed -e 's/openeo-api==0.0.1/openeo-api/') --extra-index-url https://artifactory.vgt.vito.be/api/pypi/python-openeo/simple
+        SPARK_HOME=$(find_spark_home.py) geopyspark install-jar
+        mkdir -p jars && curl -sSf https://artifactory.vgt.vito.be/libs-snapshot-public/org/openeo/geotrellis-extensions/1.0.0-SNAPSHOT/geotrellis-extensions-1.0.0-SNAPSHOT.jar -o jars/geotrellis-extensions-1.0.0-SNAPSHOT.jar
         SPARK_HOME=$(find_spark_home.py) TRAVIS=1 pytest --junit-xml=pytest-junit.xml
         python setup.py install bdist_egg
       '''
