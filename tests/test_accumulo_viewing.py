@@ -1,13 +1,15 @@
-from tests.base_test_class import BaseTestClass
+from base_test_class import BaseTestClass
+BaseTestClass.setup_local_spark()
+
 from unittest import TestCase,skip
-from openeo.rest import rest_session
+
 import requests
 import os
 from shapely.geometry import Polygon
 from openeogeotrellis.GeotrellisCatalogImageCollection import GeotrellisCatalogImageCollection
 
 
-class Test(BaseTestClass):
+class Test(TestCase):
 
     @skip
     def test_wmts_from_accumulo(self):

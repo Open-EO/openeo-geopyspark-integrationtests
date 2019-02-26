@@ -1,5 +1,5 @@
 from unittest import TestCase,skip
-from openeo.rest import rest_session
+from openeo.rest import rest_connection as rest_session
 import requests
 import os
 from shapely.geometry import Polygon
