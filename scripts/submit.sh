@@ -2,7 +2,6 @@
 
 jobName=$1
 
-export HDP_VERSION=2.5.3.0-37
 export SPARK_MAJOR_VERSION=2
 export SPARK_HOME=/usr/hdp/current/spark2-client
 export PYSPARK_PYTHON="/usr/bin/python3.5"
@@ -14,9 +13,16 @@ cd ../../../..
 extensions=$(ls GeoPySparkExtensions-*.jar)
 backend_assembly=$(find $VIRTUAL_ENV -name 'geotrellis-backend-assembly-*.jar')
 
-appId=$(yarn application -list 2>&1 | grep ${jobName} | awk '{print $1}')
-yarn application -kill ${appId} || true
+echo "Found backend assembly: ${backend_assembly}"
 
+appId=$(yarn application -list 2>&1 | grep ${jobName} | awk '{print $1}')
+if [ ! -z "$var" ]
+then
+    echo "Killing running intergration test service: ${appId}"
+    yarn application -kill ${appId} || true
+fi
+
+echo "Submitting: ${jobName}"
 spark-submit \
  --master yarn --deploy-mode cluster \
  --principal jenkins@VGT.VITO.BE --keytab ${HOME}/jenkins.keytab \
