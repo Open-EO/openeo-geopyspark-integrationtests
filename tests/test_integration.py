@@ -1,5 +1,6 @@
 from unittest import TestCase,skip
 from openeo.rest import rest_connection as rest_session
+from openeo.connection import Connection
 import requests
 import os
 from shapely.geometry import Polygon
@@ -91,6 +92,45 @@ class Test(TestCase):
                 .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
                 .apply_tiles(udf_code) \
                 .download("/tmp/openeo-ndvi-udf.geotiff","geotiff")
+
+
+    def test_ndwi(self):
+        import os,openeo_udf
+        import openeo_udf.functions
+
+        product = "CGS_SENTINEL2_RADIOMETRY_V102_001"
+        bbox = {
+            "left": 6.8371137,
+            "top": 50.5647147,
+            "right": 6.8566699,
+            "bottom": 50.560007,
+            "srs": "EPSG:4326"
+        }
+        time = {
+            "start": "2017-10-10",
+            "end": "2017-10-30"
+        }
+        ndvi = {
+            "red": "red",
+            "nir": "nir"
+        }
+        stretch = {
+            "min": -1,
+            "max": 1
+        }
+        out_format = "GTIFF"
+
+        connection: Connection = rest_session.connection(self._rest_base)
+
+        image_collection = connection.imagecollection(product) \
+            .date_range_filter(start_date=time["start"], end_date=time["end"]) \
+            .bbox_filter(left=bbox["left"],right=bbox["right"],bottom=bbox["bottom"],top=bbox["top"],srs=bbox["srs"]) \
+
+        red = image_collection.band("4")
+        nir = image_collection.band("8")
+        ndwi = (red-nir)/(red+nir)
+
+        ndwi.download("/tmp/openeo-ndwi-udf2.geotiff",out_format)
 
     def test_mask(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
