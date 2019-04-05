@@ -3,11 +3,11 @@
 set -eo pipefail
 
 jobName=$1
+pysparkPython="venv/bin/python"
 
 export HDP_VERSION=3.0.0.0-1634
 export SPARK_MAJOR_VERSION=2
 export SPARK_HOME=/usr/hdp/$HDP_VERSION/spark2/
-export PYSPARK_PYTHON="./python"
 export PATH="$SPARK_HOME/bin:$PATH"
 
 pushd venv/
@@ -45,11 +45,12 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.locality.wait=300ms --conf spark.shuffle.service.enabled=true --conf spark.dynamicAllocation.enabled=true \
  --conf spark.yarn.submit.waitAppCompletion=false \
  --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
- --conf "spark.yarn.appMasterEnv.PYSPARK_PYTHON=$PYSPARK_PYTHON" \
+ --conf "spark.yarn.appMasterEnv.PYSPARK_PYTHON=$pysparkPython" \
+ --conf "spark.yarn.appMasterEnv.PYSPARK_DRIVER_PYTHON=$pysparkPython" \
  --conf "spark.yarn.appMasterEnv.OPENEO_VENV_ZIP=$hdfsVenvZip" \
  --conf spark.executorEnv.DRIVER_IMPLEMENTATION_PACKAGE=openeogeotrellis --conf spark.yarn.appMasterEnv.DRIVER_IMPLEMENTATION_PACKAGE=openeogeotrellis \
  --conf spark.executorEnv.LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64 --conf spark.yarn.appMasterEnv.LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64 \
- --files python,$(ls typing-*-none-any.whl),openeo-geopyspark-driver/layercatalog.json,openeo-geopyspark-driver/scripts/submit_batch_job.sh,openeo-geopyspark-driver/scripts/log4j.properties,openeo-geopyspark-driver/openeogeotrellis/deploy/batch_job.py \
+ --files $(ls typing-*-none-any.whl),openeo-geopyspark-driver/layercatalog.json,openeo-geopyspark-driver/scripts/submit_batch_job.sh,openeo-geopyspark-driver/scripts/log4j.properties,openeo-geopyspark-driver/openeogeotrellis/deploy/batch_job.py \
  --archives "${hdfsVenvZip}#venv" \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
  --jars ${extensions},${backend_assembly} \
