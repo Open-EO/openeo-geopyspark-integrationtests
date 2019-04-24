@@ -270,3 +270,18 @@ class Test(TestCase):
     def _assert_geotiff(self, file, is_cog=None):
         # FIXME: check if actually a COG
         self.assertEqual("tiff", imghdr.what(file))
+
+    def test_create_wtms_service(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+
+        s2_fapar = session \
+            .imagecollection('S2_FAPAR_V102_WEBMERCATOR2') \
+            .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
+            .date_range_filter(start_date="2019-04-01", end_date="2019-04-01") \
+
+        wmts_url = s2_fapar.tiled_viewing_service(type='WMTS')['url']
+
+        time.sleep(5)  # seems to take a while before the service is proxied
+        get_capabilities = requests.get(wmts_url + '?REQUEST=getcapabilities').text
+
+        self.assertIn(wmts_url, get_capabilities)  # the capabilities document should advertise the proxied URL
