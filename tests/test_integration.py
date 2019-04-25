@@ -1,6 +1,5 @@
 from unittest import TestCase,skip
 from openeo.rest import rest_connection as rest_session
-from openeo.connection import Connection
 import requests
 import os
 from shapely.geometry import Polygon
@@ -266,6 +265,82 @@ class Test(TestCase):
 
             results[0].save_as(output_file)
             self._assert_geotiff(output_file)
+
+    @pytest.mark.timeout(600)
+    def test_cancel_batch_job(self):
+        create_batch_job = requests.post(self._rest_base + "/jobs", json={
+            "process_graph": {
+                "process_id": "zonal_statistics",
+                "args": {
+                    "imagery": {
+                        "process_id": "filter_daterange",
+                        "args": {
+                            "imagery": {
+                                "product_id": "PROBAV_L3_S10_TOC_NDVI_333M_V2"
+                            },
+                            "from": "2017-11-01",
+                            "to": "2017-11-21"
+                        }
+                    },
+                    "regions": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [7.022705078125007, 51.75432477678571], [7.659912109375007, 51.74333844866071],
+                            [7.659912109375007, 51.29289899553571], [7.044677734375007, 51.31487165178571],
+                            [7.022705078125007, 51.75432477678571]
+                        ]]
+                    }
+                }
+            },
+            "output": {
+                "format": "GTiff",
+                "parameters": {
+                    "tiled": True
+                }
+            }
+        }
+                                         )
+
+        self.assertEqual(201, create_batch_job.status_code)
+
+        job_url = create_batch_job.headers['Location']
+        self.assertIsNotNone(job_url)
+
+        queue_job = requests.post(job_url + "/results")
+        self.assertEqual(202, queue_job.status_code)
+
+        # await job running
+        job_running = False
+        while not job_running:
+            time.sleep(10)
+
+            get_job_info = requests.get(job_url)
+            job_info = get_job_info.json()
+            status = job_info['status']
+
+            if status in ['canceled', 'finished', 'error']:
+                self.fail(status)
+
+            job_running = status == 'running'
+
+        # cancel it
+        requests.delete(job_url)
+
+        # await job canceled
+        job_canceled = False
+        while not job_canceled:
+            time.sleep(10)
+
+            get_job_info = requests.get(job_url)
+            job_info = get_job_info.json()
+            status = job_info['status']
+
+            if status in ['finished', 'error']:
+                self.fail(status)
+
+            job_canceled = status == 'canceled'
+
+        # success
 
     def _assert_geotiff(self, file, is_cog=None):
         # FIXME: check if actually a COG
