@@ -268,55 +268,30 @@ class Test(TestCase):
 
     @pytest.mark.timeout(600)
     def test_cancel_batch_job(self):
-        create_batch_job = requests.post(self._rest_base + "/jobs", json={
-            "process_graph": {
-                "process_id": "zonal_statistics",
-                "args": {
-                    "imagery": {
-                        "process_id": "filter_daterange",
-                        "args": {
-                            "imagery": {
-                                "product_id": "PROBAV_L3_S10_TOC_NDVI_333M_V2"
-                            },
-                            "from": "2017-11-01",
-                            "to": "2017-11-21"
-                        }
-                    },
-                    "regions": {
-                        "type": "Polygon",
-                        "coordinates": [[
-                            [7.022705078125007, 51.75432477678571], [7.659912109375007, 51.74333844866071],
-                            [7.659912109375007, 51.29289899553571], [7.044677734375007, 51.31487165178571],
-                            [7.022705078125007, 51.75432477678571]
-                        ]]
-                    }
-                }
-            },
-            "output": {
-                "format": "GTiff",
-                "parameters": {
-                    "tiled": True
-                }
-            }
-        }
-                                         )
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
 
-        self.assertEqual(201, create_batch_job.status_code)
+        job = session \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
+            .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
+            .zonal_statistics(regions={
+                "type": "Polygon",
+                "coordinates": [[
+                    [7.022705078125007, 51.75432477678571], [7.659912109375007, 51.74333844866071],
+                    [7.659912109375007, 51.29289899553571], [7.044677734375007, 51.31487165178571],
+                    [7.022705078125007, 51.75432477678571]
+                ]]
+            }, func='mean') \
+            .send_job()
 
-        job_url = create_batch_job.headers['Location']
-        self.assertIsNotNone(job_url)
-
-        queue_job = requests.post(job_url + "/results")
-        self.assertEqual(202, queue_job.status_code)
+        self.assertEqual(202, job.start_job())
 
         # await job running
         job_running = False
         while not job_running:
             time.sleep(10)
 
-            get_job_info = requests.get(job_url)
-            job_info = get_job_info.json()
-            status = job_info['status']
+            status = job.describe_job()['status']
+            print("job status %s" % status)
 
             if status in ['canceled', 'finished', 'error']:
                 self.fail(status)
@@ -324,23 +299,23 @@ class Test(TestCase):
             job_running = status == 'running'
 
         # cancel it
-        requests.delete(job_url)
+        job.stop_job()
+        print("stopped job")
 
         # await job canceled
         job_canceled = False
         while not job_canceled:
             time.sleep(10)
 
-            get_job_info = requests.get(job_url)
-            job_info = get_job_info.json()
-            status = job_info['status']
+            status = job.describe_job()['status']
+            print("job status %s" % status)
 
             if status in ['finished', 'error']:
                 self.fail(status)
 
             job_canceled = status == 'canceled'
 
-        # success
+        pass  # success
 
     def _assert_geotiff(self, file, is_cog=None):
         # FIXME: check if actually a COG
