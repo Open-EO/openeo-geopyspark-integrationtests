@@ -239,22 +239,22 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
         job = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
             .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
             .send_job('GTiff', tiled=True)
 
-        self.assertEqual(202, job.queue())  # FIXME: HTTP error should be translated to an exception
+        self.assertEqual(202, job.start_job())  # FIXME: HTTP error should be translated to an exception
 
         in_progress = True
         while in_progress:
             time.sleep(60)
 
-            status = job.status()
+            status = job.describe_job()['status']
             print("job %s has status %s" % (job.job_id, status))
             in_progress = status not in ['canceled', 'finished', 'error']
 
-        self.assertEqual('finished', job.status())
+        self.assertEqual('finished', job.describe_job()['status'])
 
         results = job.results()
 
