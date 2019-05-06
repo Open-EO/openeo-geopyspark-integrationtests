@@ -16,47 +16,45 @@ node("jenkinsslave1.vgt.vito.be") {
     '''
 
     try {
-      sh '''
-        export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64:${LD_LIBRARY_PATH}
+      withMavenEnv() {
+        sh '''
+          export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64:${LD_LIBRARY_PATH}
 
-        python3.5 -m venv venv
-        source venv/bin/activate
+          python3.5 -m venv venv
+          source venv/bin/activate
 
-        pip install --upgrade --force-reinstall pip
-        pip download typing==3.6.6
-        pip download Fiona==1.7.13 && pip install Fiona-1.7.13-cp35-cp35m-manylinux1_x86_64.whl
-        pip install wheel pytest pytest-timeout
+          pip install --upgrade --force-reinstall pip
+          pip download typing==3.6.6
+          pip download Fiona==1.7.13 && pip install Fiona-1.7.13-cp35-cp35m-manylinux1_x86_64.whl
+          pip install wheel pytest pytest-timeout
 
-        cd openeo-python-client
-        pip install travis-sphinx==2.1.0 "sphinx<1.7"
-        pip install -r requirements-dev.txt
-        pip install -r requirements.txt
-        pytest --junit-xml=pytest-junit.xml
-        python setup.py install bdist_egg
+          cd openeo-python-client
+          pip install travis-sphinx==2.1.0 "sphinx<1.7"
+          pip install -r requirements-dev.txt
+          pip install -r requirements.txt
+          pytest --junit-xml=pytest-junit.xml
+          python setup.py install bdist_egg
 
-        cd ../openeo-python-driver
-        pip install -r requirements-dev.txt
-        pip install -r requirements.txt
-        pytest --junit-xml=pytest-junit.xml
-        python setup.py install bdist_egg
+          cd ../openeo-python-driver
+          pip install -r requirements-dev.txt
+          pip install -r requirements.txt
+          pytest --junit-xml=pytest-junit.xml
+          python setup.py install bdist_egg
 
-        cd ../openeo-geopyspark-driver
-        pip install $(cat requirements.txt | tr '\\n' ' ' | sed -e 's/openeo-api==0.0.1/openeo-api/') --extra-index-url https://artifactory.vgt.vito.be/api/pypi/python-openeo/simple
-        SPARK_HOME=$(find_spark_home.py) geopyspark install-jar
-        mkdir -p jars && curl -sSf https://artifactory.vgt.vito.be/libs-snapshot-public/org/openeo/geotrellis-extensions/1.0.1-SNAPSHOT/geotrellis-extensions-1.0.1-SNAPSHOT.jar -o jars/geotrellis-extensions-1.0.1-SNAPSHOT.jar
-        SPARK_HOME=$(find_spark_home.py) TRAVIS=1 pytest --junit-xml=pytest-junit.xml
-        python setup.py install bdist_egg
-      '''
+          cd ../openeo-geopyspark-driver
+          pip install $(cat requirements.txt | tr '\\n' ' ' | sed -e 's/openeo-api==0.0.1/openeo-api/') --extra-index-url https://artifactory.vgt.vito.be/api/pypi/python-openeo/simple
+          SPARK_HOME=$(find_spark_home.py) geopyspark install-jar
+          mkdir -p jars && mvn dependency:copy -Dartifact=org.openeo:geotrellis-extensions:1.1.0-SNAPSHOT -DoutputDirectory=jars
+          SPARK_HOME=$(find_spark_home.py) TRAVIS=1 pytest --junit-xml=pytest-junit.xml
+          python setup.py install bdist_egg
+        '''
+      }
     } finally {
       junit '**/pytest-junit.xml'
     }
   }
 
   stage('Deploy on Spark') {
-    withMavenEnv() {
-      sh "mvn dependency:copy -Dartifact=org.openeo:geotrellis-extensions:1.0.1-SNAPSHOT -DoutputDirectory=."
-    }
-
     sh "scripts/submit.sh ${jobName}"
   }
 
