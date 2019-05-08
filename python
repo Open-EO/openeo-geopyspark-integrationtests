@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64:${LD_LIBRARY_PATH}
-export PYTHONPATH=$(ls typing-*-none-any.whl):${PYTHONPATH}
-
-venv/bin/python "$@"

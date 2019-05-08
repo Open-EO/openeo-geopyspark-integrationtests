@@ -1,6 +1,5 @@
 from unittest import TestCase,skip
 from openeo.rest import rest_connection as rest_session
-from openeo.connection import Connection
 import requests
 import os
 from shapely.geometry import Polygon
@@ -120,7 +119,7 @@ class Test(TestCase):
         }
         out_format = "GTIFF"
 
-        connection: Connection = rest_session.connection(self._rest_base)
+        connection = rest_session.connection(self._rest_base)
 
         image_collection = connection.imagecollection(product) \
             .date_range_filter(start_date=time["start"], end_date=time["end"]) \
@@ -240,22 +239,22 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
         job = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
             .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
             .send_job('GTiff', tiled=True)
 
-        self.assertEqual(202, job.queue())  # FIXME: HTTP error should be translated to an exception
+        self.assertEqual(202, job.start_job())  # FIXME: HTTP error should be translated to an exception
 
         in_progress = True
         while in_progress:
             time.sleep(60)
 
-            status = job.status()
+            status = job.describe_job()['status']
             print("job %s has status %s" % (job.job_id, status))
             in_progress = status not in ['canceled', 'finished', 'error']
 
-        self.assertEqual('finished', job.status())
+        self.assertEqual('finished', job.describe_job()['status'])
 
         results = job.results()
 
@@ -267,6 +266,72 @@ class Test(TestCase):
             results[0].save_as(output_file)
             self._assert_geotiff(output_file)
 
+    @pytest.mark.timeout(600)
+    def test_cancel_batch_job(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+
+        job = session \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
+            .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
+            .zonal_statistics(regions={
+                "type": "Polygon",
+                "coordinates": [[
+                    [7.022705078125007, 51.75432477678571], [7.659912109375007, 51.74333844866071],
+                    [7.659912109375007, 51.29289899553571], [7.044677734375007, 51.31487165178571],
+                    [7.022705078125007, 51.75432477678571]
+                ]]
+            }, func='mean') \
+            .send_job()
+
+        self.assertEqual(202, job.start_job())
+
+        # await job running
+        job_running = False
+        while not job_running:
+            time.sleep(10)
+
+            status = job.describe_job()['status']
+            print("job status %s" % status)
+
+            if status in ['canceled', 'finished', 'error']:
+                self.fail(status)
+
+            job_running = status == 'running'
+
+        # cancel it
+        job.stop_job()
+        print("stopped job")
+
+        # await job canceled
+        job_canceled = False
+        while not job_canceled:
+            time.sleep(10)
+
+            status = job.describe_job()['status']
+            print("job status %s" % status)
+
+            if status in ['finished', 'error']:
+                self.fail(status)
+
+            job_canceled = status == 'canceled'
+
+        pass  # success
+
     def _assert_geotiff(self, file, is_cog=None):
         # FIXME: check if actually a COG
         self.assertEqual("tiff", imghdr.what(file))
+
+    def test_create_wtms_service(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+
+        s2_fapar = session \
+            .imagecollection('S2_FAPAR_V102_WEBMERCATOR2') \
+            .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
+            .date_range_filter(start_date="2019-04-01", end_date="2019-04-01") \
+
+        wmts_url = s2_fapar.tiled_viewing_service(type='WMTS')['url']
+
+        time.sleep(5)  # seems to take a while before the service is proxied
+        get_capabilities = requests.get(wmts_url + '?REQUEST=getcapabilities').text
+
+        self.assertIn(wmts_url, get_capabilities)  # the capabilities document should advertise the proxied URL
