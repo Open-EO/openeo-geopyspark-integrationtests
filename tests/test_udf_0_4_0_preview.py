@@ -57,4 +57,4 @@ class Test(TestCase):
 
         trend = image_collection.reduce_tiles_over_time(udf_code,runtime="Python",version="latest")
 
-        trend.download("/tmp/openeo-trend-udf.geotiff", out_format)
+        trend.download("/tmp/openeo-trend-udf.geotiff", format =  out_format)
