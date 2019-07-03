@@ -1,5 +1,7 @@
 #!/usr/bin/env groovy
 
+@Library('lib')_
+
 def config = [:]
 def docker_registry = config.docker_registry ?: 'vito-docker-private.artifactory.vgt.vito.be'
 def python_version = config.python_version ?: '3.5'
@@ -57,7 +59,7 @@ pipeline {
       }
     }
   }
-  
+
 
 node("jenkinsslave1.vgt.vito.be") {
   properties([disableConcurrentBuilds()])
