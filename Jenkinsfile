@@ -46,6 +46,13 @@ pipeline {
           prepareVenv(docker_registry, python_version)
         }
       }
+      stage('Package & Publish virtualenv'){
+        steps{
+            cd venv35
+            sh 'zip -r ../venv.zip *'
+            cd ..
+        }
+      }
       // Run the tests
       stage('Execute Tests') {
         when {
