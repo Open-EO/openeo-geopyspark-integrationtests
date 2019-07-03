@@ -10,7 +10,7 @@ node("jenkinsslave1.vgt.vito.be") {
 
   stage('Build and test') {
     sh '''
-      git clone https://github.com/Open-EO/openeo-python-client.git
+      #git clone https://github.com/Open-EO/openeo-python-client.git
       git clone https://github.com/Open-EO/openeo-python-driver.git
       git clone https://github.com/Open-EO/openeo-geopyspark-driver.git
     '''
@@ -28,12 +28,7 @@ node("jenkinsslave1.vgt.vito.be") {
           pip download Fiona==1.7.13 && pip install Fiona-1.7.13-cp35-cp35m-manylinux1_x86_64.whl
           pip install wheel pytest pytest-timeout
 
-          cd openeo-python-client
-          pip install travis-sphinx==2.1.0 "sphinx<1.7"
-          pip install -r requirements-dev.txt
-          pip install -r requirements.txt
-          pytest --junit-xml=pytest-junit.xml
-          python setup.py install bdist_egg
+          pip install --upgrade --force-reinstall openeo_api
 
           cd ../openeo-python-driver
           pip install -r requirements-dev.txt
