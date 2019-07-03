@@ -47,10 +47,10 @@ pipeline {
         }
       }
       stage('Package & Publish virtualenv'){
-        steps{
-            cd venv35
+        steps {
+            dir 'venv35'
             sh 'zip -r ../venv.zip *'
-            cd ..
+            dir '..'
         }
       }
       // Run the tests
