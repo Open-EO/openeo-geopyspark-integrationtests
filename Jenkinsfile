@@ -10,6 +10,25 @@ def extra_container_volumes = config.extra_container_volumes ?: ''
 def extra_env_variables = config.extra_env_variables ?: ''
 def pre_test_script = config.pre_test_script ?: ''
 
+def uploadvenv() {
+  def artifactory_server = Artifactory.server 'vitoartifactory'
+
+    uploadSpec = """
+      {
+         "files": [
+           {
+             "pattern": "venv.zip",
+             "target": "auxdata-public/openeo/",
+             "regexp": "true"
+           }
+         ]
+      }
+    """.stripIndent()
+
+
+  buildInfo = artifactory_server.upload(uploadSpec)
+}
+
 pipeline {
     // Run job on any node with this label
     agent {
@@ -48,9 +67,8 @@ pipeline {
       }
       stage('Package & Publish virtualenv'){
         steps {
-            dir 'venv35'
-            sh 'zip -r ../venv.zip *'
-            dir '..'
+            sh 'cd venv3.5 && zip -r ../venv.zip *'
+            uploadvenv()
         }
       }
       // Run the tests
