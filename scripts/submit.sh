@@ -3,7 +3,7 @@
 set -eo pipefail
 
 jobName=$1
-pysparkPython="venv/bin/python"
+pysparkPython="venv.zip/bin/python"
 
 export HDP_VERSION=2.6.5.0-292
 export SPARK_MAJOR_VERSION=2
