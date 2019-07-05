@@ -1,0 +1,331 @@
+[
+  {
+    "name":"BIOPAR_FAPAR_V1_GLOBAL",
+    "title": "Copernicus Global Land FAPAR product V1",
+    "description": "The FAPAR quantifies the fraction of the solar radiation absorbed by live leaves for the photosynthesis activity. Then, it refers only to the green and alive elements of the canopy. The FAPAR depends on the canopy structure, vegetation element optical properties, atmospheric conditions, and angular configuration. To overcome this latter dependency, a daily integrated FAPAR value is assessed.\n\nFAPAR is recognized as an Essential Climate Variable (ECV) by the Global Climate Observing System (GCOS).",
+    "data_id":"BIOPAR_FAPAR_V1_GLOBAL",
+    "product_id":"BIOPAR_FAPAR_V1_GLOBAL",
+    "id":"BIOPAR_FAPAR_V1_GLOBAL",
+    "license": "free",
+    "bands":[],
+    "extent": {
+      "crs": "EPSG:4326",
+      "spatial":[180,-56,-180,83],
+      "temporal": [
+        "2014-01-01",
+        null
+      ]
+    },
+    "links": [
+      {
+        "rel": "alternate",
+        "href": "https://land.copernicus.eu/global/products/fapar",
+        "title": "Product web page."
+      }
+    ]
+
+  },
+  {
+    "name": "S1_GRD_SIGMA0_ASCENDING",
+    "title": "Sentinel 1 GRD Sigma0 product, VV, VH and angle.",
+    "data_id": "S1_GRD_SIGMA0_ASCENDING_V110_ALL",
+    "product_id": "S1_GRD_SIGMA0_ASCENDING",
+    "id": "S1_GRD_SIGMA0_ASCENDING",
+    "description": "Sentinel 1 GRD Sigma0, mosaic of all ascending relative orbits. Provided by Terrascope.",
+    "source": "Terrascope - VITO",
+    "license": "free",
+    "extent": {
+      "crs": "EPSG:3857",
+      "spatial":[180,-56,-180,83],
+      "temporal": [
+        "2015-07-06",
+        null
+      ]
+    },
+    "links": [
+      {
+        "rel": "alternate",
+        "href": "https://terrascope.be/en/products",
+        "title": "Product web page."
+      }
+    ],
+    "bands": [
+      {
+        "band_id": "VV",
+        "name": "VV",
+        "type": "float",
+        "unit": "1"
+      },
+      {
+        "band_id": "VH",
+        "name": "VH",
+        "type": "float",
+        "unit": "1"
+      },
+      {
+        "band_id": "angle",
+        "name": "angle",
+        "type": "int16",
+        "unit": "1"
+      }
+    ]
+  },
+  {
+    "name": "S1_GRD_SIGMA0_DESCENDING",
+    "title": "Sentinel 1 GRD Sigma0 product, VV, VH and angle.",
+    "data_id": "S1_GRD_SIGMA0_DESCENDING_V110_ALL-1548102680728_BACKUP",
+    "product_id": "S1_GRD_SIGMA0_DESCENDING",
+    "id": "S1_GRD_SIGMA0_DESCENDING",
+    "description": "Sentinel 1 GRD Sigma0, mosaic of all descending relative orbits. Provided by Terrascope.",
+    "source": "Terrascope - VITO",
+    "license": "free",
+    "extent": {
+      "crs": "EPSG:3857",
+      "spatial":[180,-56,-180,83],
+      "temporal": [
+        "2015-07-06",
+        null
+      ]
+    },
+    "links": [
+      {
+        "rel": "alternate",
+        "href": "https://terrascope.be/en/products",
+        "title": "Product web page."
+      }
+    ],
+    "bands": [
+      {
+        "band_id": "VV",
+        "name": "VV",
+        "type": "float",
+        "unit": "1"
+      },
+      {
+        "band_id": "VH",
+        "name": "VH",
+        "type": "float",
+        "unit": "1"
+      },
+      {
+        "band_id": "angle",
+        "name": "angle",
+        "type": "int16",
+        "unit": "1"
+      }
+    ]
+  },
+
+  {
+    "name": "CGS_SENTINEL2_RADIOMETRY_V102_001",
+    "title": "Sentinel 2 Bottom-of-atmosphere reflectances.",
+    "data_id": "CGS_SENTINEL2_RADIOMETRY_V102_EARLY",
+    "product_id": "CGS_SENTINEL2_RADIOMETRY_V102_001",
+    "id": "CGS_SENTINEL2_RADIOMETRY_V102_001",
+    "description": "Sentinel 2 Level-2: Bottom-of-atmosphere reflectances in cartographic geometry, provided by Terrascope.",
+    "source": "Terrascope - VITO",
+    "license": "free",
+    "extent": {
+      "crs": "EPSG:3857",
+      "spatial":[180,-56,-180,83],
+      "temporal": [
+        "2015-07-06",
+        null
+      ]
+    },
+    "links": [
+      {
+        "rel": "alternate",
+        "href": "https://terrascope.be/en/products",
+        "title": "Product web page."
+      }
+    ],
+    "bands": [
+      {
+        "band_id": "2",
+        "name": "blue",
+        "wavelength_nm": 496.6,
+        "res_m": 10,
+        "scale": 0.0001,
+        "offset": 0,
+        "type": "int16",
+        "unit": "1"
+      },
+      {
+        "band_id": "3",
+        "name": "green",
+        "wavelength_nm": 560,
+        "res_m": 10,
+        "scale": 0.0001,
+        "offset": 0,
+        "type": "int16",
+        "unit": "1"
+      },
+      {
+        "band_id": "4",
+        "name": "red",
+        "wavelength_nm": 664.5,
+        "res_m": 10,
+        "scale": 0.0001,
+        "offset": 0,
+        "type": "int16",
+        "unit": "1"
+      },
+      {
+        "band_id": "8",
+        "name": "nir",
+        "wavelength_nm": 835.1,
+        "res_m": 10,
+        "scale": 0.0001,
+        "offset": 0,
+        "type": "int16",
+        "unit": "1"
+      }
+    ]
+  },
+  {
+    "name":"S2_FAPAR_V102_WEBMERCATOR2",
+    "title": "10m fAPAR product based on Sentinel-2",
+    "data_id":"S2_FAPAR_PYRAMID_EARLY",
+    "product_id":"S2_FAPAR_V102_WEBMERCATOR2",
+    "id":"S2_FAPAR_V102_WEBMERCATOR2",
+    "description": "Sentinel 2 Level-3: fAPAR in Web Mercator projection, with overviews.",
+    "source": "Terrascope - VITO",
+    "license": "free",
+    "extent": {
+      "crs": "EPSG:3857",
+      "spatial":[180,-56,-180,83],
+      "temporal": [
+        "2015-07-06",
+        null
+      ]
+    },
+    "bands":[],
+     "links": [
+      {
+        "rel": "alternate",
+        "href": "https://terrascope.be/en/products",
+        "title": "Product web page."
+      }
+    ]
+  },
+  {
+    "name":"S2_FCOVER_PYRAMID",
+    "title": "Sentinel 2 based fCover",
+    "data_id":"S2_FCOVER_PYRAMID_EARLY",
+    "product_id":"S2_FCOVER_PYRAMID",
+    "id":"S2_FCOVER_PYRAMID",
+    "description": "Sentinel 2 Level-3: fCOVER, web mercator projection, with overviews.",
+    "source": "Terrascope - VITO",
+    "license": "free",
+    "extent": {
+      "crs": "EPSG:3857",
+      "spatial":[180,-56,-180,83],
+      "temporal": [
+        "2015-07-06",
+        null
+      ]
+    },
+    "bands":[],
+    "links":[]
+  },
+  {
+    "name": "S2_NDVI_PYRAMID",
+    "data_id": "S2_NDVI_PYRAMID_EARLY"
+  },
+  {
+    "name": "S2_LAI_PYRAMID",
+    "data_id": "S2_LAI_PYRAMID_20190625"
+  },
+
+  {
+    "name":"PROBAV_L3_S10_TOC_NDVI_333M_V2",
+    "title": "300m NDVI, 10-daily cloud-free composite",
+    "description": "300m NDVI, 10-daily cloud-free composite derived from PROBA-V data.",
+    "data_id":"PROBAV_L3_S10_TOC_NDVI_333M_V2",
+    "product_id":"PROBAV_L3_S10_TOC_NDVI_333M_V2",
+    "id":"PROBAV_L3_S10_TOC_NDVI_333M_V2",
+    "license": "free",
+    "extent": {
+      "crs": "EPSG:4326",
+      "spatial":[180,-56,-180,83],
+      "temporal": [
+        "2014-01-01",
+        null
+      ]
+    },
+    "bands":[],
+    "links": [
+      {
+        "rel": "alternate",
+        "href": "http://proba-v.vgt.vito.be/en/product-types",
+        "title": "Product web page."
+      },
+      {
+        "rel": "alternate",
+        "href": "http://proba-v.vgt.vito.be/en/data-policy",
+        "title": "Data policy"
+      }
+    ]
+  },
+  {
+    "name":"S2_FAPAR_SCENECLASSIFICATION_V102_PYRAMID",
+    "title": "Sen2Cor Scene Classification layer",
+    "description": "Sen2Cor Scene Classification layer, from Sentinel 2 data.",
+    "data_id":"S2_SCENECLASSIFICATION_PYRAMID_20190624",
+    "product_id": "S2_FAPAR_SCENECLASSIFICATION_V102_PYRAMID",
+    "id": "S2_FAPAR_SCENECLASSIFICATION_V102_PYRAMID",
+    "source": "Terrascope - VITO",
+    "license": "free",
+    "extent": {
+      "crs": "EPSG:3857",
+      "spatial":[180,-56,-180,83],
+      "temporal": [
+        "2015-07-06",
+        null
+      ]
+    },
+    "bands":[ {
+        "band_id": "classification",
+        "name": "classification",
+        "res_m": 20,
+        "type": "int8",
+        "unit": "1"
+      }],
+    "links": [
+      {
+        "rel": "alternate",
+        "href": "https://terrascope.be/en/products",
+        "title": "Product web page."
+      }
+    ]
+  },
+  {
+    "name": "S2_NDVI_S3",
+    "data_source": {
+      "type": "S3",
+      "endpoint": "http://oss.eu-west-0.prod-cloud-ocb.orange-business.com",
+      "region": "eu-west-0",
+      "bucket_name": "s2-ndvi"
+    }
+  },
+  {
+    "name": "CGS_SENTINEL2_RADIOMETRY_V102_FILE",
+    "data_source": {
+      "type": "file"
+    },
+    "bands": [
+      { "band_id": "1" },
+      { "band_id": "2" },
+      { "band_id": "3" },
+      { "band_id": "4" },
+      { "band_id": "5" },
+      { "band_id": "6" },
+      { "band_id": "7" },
+      { "band_id": "8" },
+      { "band_id": "11" },
+      { "band_id": "12" },
+      { "band_id": "8A" }
+    ]
+  }
+]

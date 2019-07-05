@@ -5,33 +5,17 @@ set -eo pipefail
 jobName=$1
 pysparkPython="venv/bin/python"
 
-export HDP_VERSION=3.0.0.0-1634
+export HDP_VERSION=2.6.5.0-292
 export SPARK_MAJOR_VERSION=2
 export SPARK_HOME=/usr/hdp/$HDP_VERSION/spark2/
 export PATH="$SPARK_HOME/bin:$PATH"
 
-pushd venv/
-zip -r ../venv.zip *
-popd
-
-hdfsVenvDir=${jobName}
-
-hadoop fs -mkdir -p ${hdfsVenvDir}
-hadoop fs -put -f venv.zip ${hdfsVenvDir}
-
-hdfsVenvZip=hdfs:/user/jenkins/${hdfsVenvDir}/venv.zip
-
-extensions=$(ls openeo-geopyspark-driver/jars/geotrellis-extensions-*.jar)
-backend_assembly=$(find $VIRTUAL_ENV -name 'geotrellis-backend-assembly-*.jar')
+hdfsVenvZip=https://artifactory.vgt.vito.be/auxdata-public/openeo/venv.zip
+extensions=https://artifactory.vgt.vito.be/libs-release-public/org/openeo/geotrellis-extensions/1.1.0/geotrellis-extensions-1.1.0.jar
+backend_assembly=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrellis-backend-assembly-0.4.2.jar
 
 echo "Found backend assembly: ${backend_assembly}"
 
-appId=$(yarn application -list 2>&1 | grep ${jobName} | awk '{print $1}' || true)
-if [ ! -z "$appId" ]
-then
-    echo "Killing running intergration test service: ${appId}"
-    yarn application -kill ${appId}
-fi
 
 echo "Submitting: ${jobName}"
 ${SPARK_HOME}/bin/spark-submit \
@@ -53,8 +37,8 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.executorEnv.AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} --conf spark.yarn.appMasterEnv.AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
  --conf spark.executorEnv.AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} --conf spark.yarn.appMasterEnv.AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
  --conf spark.executorEnv.LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64 --conf spark.yarn.appMasterEnv.LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64 \
- --files $(ls typing-*-none-any.whl),openeo-geopyspark-driver/layercatalog.json,openeo-geopyspark-driver/scripts/submit_batch_job.sh,openeo-geopyspark-driver/scripts/log4j.properties,openeo-geopyspark-driver/openeogeotrellis/deploy/batch_job.py \
+ --files layercatalog.json,log4j.properties \
  --archives "${hdfsVenvZip}#venv" \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
  --jars ${extensions},${backend_assembly} \
- --name ${jobName} openeo-geopyspark-driver/openeogeotrellis/deploy/probav-mep.py no-zookeeper
+ --name ${jobName} openeogeotrellis.deploy.probav-mep.py no-zookeeper
