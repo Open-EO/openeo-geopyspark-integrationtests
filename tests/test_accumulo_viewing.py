@@ -1,5 +1,5 @@
 from .base_test_class import BaseTestClass
-BaseTestClass.setup_local_spark()
+#BaseTestClass.setup_local_spark()
 
 from unittest import TestCase,skip
 

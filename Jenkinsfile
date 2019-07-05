@@ -87,7 +87,7 @@ pipeline {
           }
         }
         steps {
-          executePythonTests(docker_registry, python_version, 'tests', true, extra_container_volumes, extra_env_variables, pre_test_script)
+          executePythonTests(docker_registry, python_version, 'tests', true, extra_container_volumes, "ENDPOINT=\$(scripts/endpoint.sh ${jobName})", pre_test_script)
         }
       }
     }
