@@ -58,7 +58,7 @@ pipeline {
       // Checkout the project code
       stage('Checkout') {
         steps {
-          checkOut(false)
+          checkOut(true)
         }
       }
       // Prepare the virtual environment where the package will be built and tested
