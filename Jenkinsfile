@@ -74,10 +74,14 @@ pipeline {
         }
       }
       stage('Deploy on Spark') {
-        sh "scripts/submit.sh ${jobName}"
+        steps{
+            sh "scripts/submit.sh ${jobName}"
+        }
       }
       stage('Wait for Spark job'){
-        sleep 180
+        steps{
+            sleep 180
+        }
       }
       // Run the tests
       stage('Execute Tests') {
