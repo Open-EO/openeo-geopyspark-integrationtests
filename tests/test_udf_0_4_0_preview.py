@@ -46,7 +46,7 @@ class Test(TestCase):
 
         out_format = "GTIFF"
 
-        connection: Connection = rest_session.connection(self._rest_base)
+        connection = rest_session.connection(self._rest_base)
 
         image_collection = connection.imagecollection(product) \
             .date_range_filter(start_date=time["start"], end_date=time["end"]) \
