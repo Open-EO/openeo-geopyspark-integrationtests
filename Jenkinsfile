@@ -99,6 +99,16 @@ pipeline {
         }
       }
     }
+    post {
+      // Record the test results in Jenkins
+      always {
+        recordTestResults(run_tests)
+      }
+      // Send a mail notification on failure
+      failure {
+        sendNotification('fail', mail_address)
+      }
+    }
   }
 
 
