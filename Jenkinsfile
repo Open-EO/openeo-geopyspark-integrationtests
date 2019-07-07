@@ -31,6 +31,12 @@ def uploadvenv() {
 
 jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
 
+def runTests(){    
+      endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
+      echo "${endpoint}"
+      executePythonTests(docker_registry, python_version, 'tests', true, extra_container_volumes, "ENDPOINT=${endpoint}", pre_test_script)
+}
+
 pipeline {
     // Run job on any node with this label
     agent {
@@ -91,7 +97,7 @@ pipeline {
           }
         }
         steps {
-          executePythonTests(docker_registry, python_version, 'tests', true, extra_container_volumes, "ENDPOINT=\$(scripts/endpoint.sh ${jobName})", pre_test_script)
+          runTests()
         }
       }
     }
