@@ -95,7 +95,7 @@ pipeline {
             endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
           }
           echo "ENDPOINT=${endpoint}"
-          executePythonTests(docker_registry, python_version, 'tests', true, extra_container_volumes, "ENDPOINT=${endpoint}", pre_test_script)
+          executePythonTests(docker_registry, python_version, 'tests', true, extra_container_volumes, ["ENDPOINT=${endpoint}"], pre_test_script)
         }
       }
     }
