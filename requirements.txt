@@ -2,3 +2,4 @@ openeo_api
 openeo_driver
 openeo_geopyspark
 openeo-udf
+typing==3.6.6

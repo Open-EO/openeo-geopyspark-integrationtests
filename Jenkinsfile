@@ -58,7 +58,7 @@ pipeline {
       // Checkout the project code
       stage('Checkout') {
         steps {
-          checkOut(false)
+          checkOut(true)
         }
       }
       // Prepare the virtual environment where the package will be built and tested
@@ -91,8 +91,22 @@ pipeline {
           }
         }
         steps {
-          executePythonTests(docker_registry, python_version, 'tests', true, extra_container_volumes, "ENDPOINT=\$(scripts/endpoint.sh ${jobName})", pre_test_script)
+          script{
+            endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
+          }
+          echo "ENDPOINT=${endpoint}"
+          executePythonTests(docker_registry, python_version, 'tests', true, extra_container_volumes, ["ENDPOINT=${endpoint}"], pre_test_script)
         }
+      }
+    }
+    post {
+      // Record the test results in Jenkins
+      always {
+        recordTestResults(run_tests)
+      }
+      // Send a mail notification on failure
+      failure {
+        sendNotification('fail', mail_address)
       }
     }
   }
@@ -154,7 +168,9 @@ node("jenkinsslave1.vgt.vito.be") {
 
         . venv/bin/activate
         python setup.py install
-        ENDPOINT=\$(scripts/endpoint.sh ${jobName}) pytest tests --timeout 120 --junit-xml=pytest-junit.xml
+        export ENDPOINT=\$(scripts/endpoint.sh ${jobName})
+        echo $ENDPOINT 
+        pytest tests --timeout 120 --junit-xml=pytest-junit.xml
       """
     } finally {
       junit '**/pytest-junit.xml'
