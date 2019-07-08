@@ -11,8 +11,9 @@ import imghdr
 
 class Test(TestCase):
 
-    _rest_base = "%s/openeo" % os.environ['ENDPOINT']
-    #_rest_base = "%s/openeo" % "http://openeo.vgt.vito.be"
+    _rest_base = "%s/openeo/0.4.0" % os.environ['ENDPOINT']
+    #_rest_base =  "http://openeo.vgt.vito.be/openeo/0.4.0"
+    #_rest_base = "%s/openeo/0.4.0" % "http://localhost:8080"
 
     def test_health(self):
         r = requests.get(self._rest_base + "/health")
@@ -22,8 +23,8 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
         image_collections = session.list_collections()
 
-        product_ids = [entry["product_id"] for entry in image_collections]
-        self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M", product_ids)
+        product_ids = [entry.get("id") for entry in image_collections]
+        self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M_V2", product_ids)
 
     def testS2FAPAR_download_latlon(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
@@ -143,7 +144,7 @@ class Test(TestCase):
         }
 
         image_collection = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
             .bbox_filter(left=bbox["left"], right=bbox["right"], bottom=bbox["bottom"], top=bbox["top"],
                          srs=bbox["srs"]) \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-01")

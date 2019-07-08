@@ -23,7 +23,7 @@ def load_udf(relative_path):
 
 class Test(TestCase):
 
-    _rest_base = "%s/openeo" % os.environ['ENDPOINT']
+    _rest_base = "%s/openeo/0.4.0" % os.environ['ENDPOINT']
     #_rest_base = "%s/openeo/0.4.0" % "http://openeo.vgt.vito.be"
     #_rest_base = "%s/openeo/0.4.0" % "http://localhost:5000"
 
