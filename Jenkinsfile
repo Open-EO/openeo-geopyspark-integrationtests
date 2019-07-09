@@ -79,7 +79,10 @@ pipeline {
         steps{
             sh "scripts/submit.sh ${jobName}"
             script{
-              appId = sh( returnStdout:true, script: "yarn application -list 2>&1 | grep ${jobName} | awk '{print $1}' || true")
+              appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
+              echo appList
+              appId = appList.split("\n").collect { it.split(" ")[0]}[0]
+
             }
             echo "Spark Job started: ${appId}"
         }
