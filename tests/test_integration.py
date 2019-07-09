@@ -28,16 +28,18 @@ class Test(TestCase):
 
     def testS2FAPAR_download_latlon(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
-        s2_fapar = session.imagecollection("S2_FAPAR_V102_WEBMERCATOR2")
-        s2_fapar = s2_fapar.date_range_filter("2018-08-06T00:00:00Z","2018-08-06T00:00:00Z") \
-            .bbox_filter(left=5.027, right=5.0438, bottom=51.1974, top=51.2213, srs="EPSG:4326")
+        s2_fapar = session.imagecollection("S2_NDVI_PYRAMID")
+        #bounding box:
+        #http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
+        s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z","2018-08-06T00:00:00Z"]) \
+            .filter_bbox(west=5.027, east=5.0438, south=51.1974, north=51.2213, crs="EPSG:4326")
 
         tempfile = "/tmp/s2_fapar_latlon.geotiff"
         try:
             os.remove(tempfile)
         except OSError:
             pass
-        s2_fapar.download(tempfile, format="geotiff")
+        s2_fapar.download(tempfile, format="GTIFF")
         self.assertTrue(os.path.exists(tempfile))
 
     def testS2FAPAR_download_webmerc(self):
