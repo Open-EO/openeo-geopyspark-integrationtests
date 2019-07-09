@@ -3,15 +3,15 @@
 set -eo pipefail
 
 jobName=$1
-pysparkPython="venv.zip/bin/python"
+pysparkPython="venv/bin/python"
 
-export HDP_VERSION=2.6.5.0-292
+export HDP_VERSION=3.1.0.0-78
 export SPARK_MAJOR_VERSION=2
 export SPARK_HOME=/usr/hdp/$HDP_VERSION/spark2/
 export PATH="$SPARK_HOME/bin:$PATH"
 
 hdfsVenvZip=https://artifactory.vgt.vito.be/auxdata-public/openeo/venv.zip
-extensions=https://artifactory.vgt.vito.be/libs-release-public/org/openeo/geotrellis-extensions/1.1.0/geotrellis-extensions-1.1.0.jar
+extensions=https://artifactory.vgt.vito.be/libs-snapshot-public/org/openeo/geotrellis-extensions/1.2.0-SNAPSHOT/geotrellis-extensions-1.2.0-SNAPSHOT.jar
 backend_assembly=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrellis-backend-assembly-0.4.2.jar
 
 echo "Found backend assembly: ${backend_assembly}"

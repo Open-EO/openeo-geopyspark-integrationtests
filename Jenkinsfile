@@ -30,6 +30,7 @@ def uploadvenv() {
 }
 
 jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
+appId = ""
 
 pipeline {
     // Run job on any node with this label
@@ -51,6 +52,7 @@ pipeline {
     }
     // Disable default checkout to have more control over checkout step
     options {
+      disableConcurrentBuilds()
       skipDefaultCheckout(true)
     }
     // Start of the pipeline
@@ -76,6 +78,13 @@ pipeline {
       stage('Deploy on Spark') {
         steps{
             sh "scripts/submit.sh ${jobName}"
+            script{
+              appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
+              echo appList
+              appId = appList.split("\n").collect { it.split()[0]}[0]
+
+            }
+            echo "Spark Job started: ${appId}"
         }
       }
       stage('Wait for Spark job'){
@@ -102,6 +111,12 @@ pipeline {
     post {
       // Record the test results in Jenkins
       always {
+        script{
+            if( appId != "" ) {
+                echo "Killing running Spark application: ${appId}"
+                sh "yarn application -kill ${appId} || true"
+            }
+        }
         recordTestResults(run_tests)
       }
       // Send a mail notification on failure
@@ -111,81 +126,3 @@ pipeline {
     }
   }
 
-
-node("jenkinsslave1.vgt.vito.be") {
-  properties([disableConcurrentBuilds()])
-
-  jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
-
-  deleteDir()
-  checkout scm
-
-  stage('Build and test') {
-    sh '''
-      #git clone https://github.com/Open-EO/openeo-python-client.git
-      #git clone https://github.com/Open-EO/openeo-python-driver.git
-      git clone https://github.com/Open-EO/openeo-geopyspark-driver.git
-    '''
-
-    try {
-      withMavenEnv() {
-        sh '''
-          export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64:${LD_LIBRARY_PATH}
-
-          python3.5 -m venv venv
-          source venv/bin/activate
-
-          pip install --upgrade --force-reinstall pip
-          pip download typing==3.6.6
-          pip download Fiona==1.7.13 && pip install Fiona-1.7.13-cp35-cp35m-manylinux1_x86_64.whl
-          pip install wheel pytest pytest-timeout
-
-          pip install --upgrade --force-reinstall openeo_api openeo_driver
-
-          cd openeo-geopyspark-driver
-          pip install $(cat requirements.txt | tr '\\n' ' ' | sed -e 's/openeo-api==0.0.1/openeo-api/') --extra-index-url https://artifactory.vgt.vito.be/api/pypi/python-openeo/simple
-          SPARK_HOME=$(find_spark_home.py) geopyspark install-jar
-          mkdir -p jars && mvn dependency:copy -Dartifact=org.openeo:geotrellis-extensions:1.1.0-SNAPSHOT -DoutputDirectory=jars
-          SPARK_HOME=$(find_spark_home.py) TRAVIS=1 pytest --junit-xml=pytest-junit.xml
-          python setup.py install bdist_egg
-        '''
-      }
-    } finally {
-      junit '**/pytest-junit.xml'
-    }
-  }
-
-  stage('Deploy on Spark') {
-    sh "scripts/submit.sh ${jobName}"
-  }
-
-  sleep 180
-
-  stage('Run integration tests') {
-    try {
-      sh """
-        export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}
-
-        . venv/bin/activate
-        python setup.py install
-        export ENDPOINT=\$(scripts/endpoint.sh ${jobName})
-        echo $ENDPOINT 
-        pytest tests --timeout 120 --junit-xml=pytest-junit.xml
-      """
-    } finally {
-      junit '**/pytest-junit.xml'
-    }
-  }
-}
-
-void withMavenEnv(List envVars = [], def body) {
-    String mvntool = tool name: "Maven 3.5.0", type: 'hudson.tasks.Maven$MavenInstallation'
-    String jdktool = tool name: "OpenJDK 8 Centos7", type: 'hudson.model.JDK'
-
-    List mvnEnv = ["PATH+MVN=${mvntool}/bin", "PATH+JDK=${jdktool}/bin", "JAVA_HOME=${jdktool}", "MAVEN_HOME=${mvntool}"]
-
-    mvnEnv.addAll(envVars)
-    withEnv(mvnEnv) {
-        body.call()
-    }
-}

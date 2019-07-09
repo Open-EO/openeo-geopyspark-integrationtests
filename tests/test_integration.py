@@ -11,8 +11,9 @@ import imghdr
 
 class Test(TestCase):
 
-    _rest_base = "%s/openeo" % os.environ['ENDPOINT']
-    #_rest_base = "%s/openeo" % "http://openeo.vgt.vito.be"
+    _rest_base = "%s/openeo/0.4.0" % os.environ['ENDPOINT']
+    #_rest_base =  "http://openeo.vgt.vito.be/openeo/0.4.0"
+    #_rest_base = "%s/openeo/0.4.0" % "http://localhost:8080"
 
     def test_health(self):
         r = requests.get(self._rest_base + "/health")
@@ -22,28 +23,30 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
         image_collections = session.list_collections()
 
-        product_ids = [entry["product_id"] for entry in image_collections]
-        self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M", product_ids)
+        product_ids = [entry.get("id") for entry in image_collections]
+        self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M_V2", product_ids)
 
     def testS2FAPAR_download_latlon(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
-        s2_fapar = session.imagecollection("S2_FAPAR_V102_WEBMERCATOR2")
-        s2_fapar = s2_fapar.date_range_filter("2018-08-06T00:00:00Z","2018-08-06T00:00:00Z") \
-            .bbox_filter(left=5.027, right=5.0438, bottom=51.1974, top=51.2213, srs="EPSG:4326")
+        s2_fapar = session.imagecollection("S2_NDVI_PYRAMID")
+        #bounding box:
+        #http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
+        s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z","2018-08-06T00:00:00Z"]) \
+            .filter_bbox(west=5.027, east=5.0438, south=51.1974, north=51.2213, crs="EPSG:4326")
 
         tempfile = "/tmp/s2_fapar_latlon.geotiff"
         try:
             os.remove(tempfile)
         except OSError:
             pass
-        s2_fapar.download(tempfile, format="geotiff")
+        s2_fapar.download(tempfile, format="GTIFF")
         self.assertTrue(os.path.exists(tempfile))
 
     def testS2FAPAR_download_webmerc(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
-        s2_fapar = session.imagecollection("S2_FAPAR_V102_WEBMERCATOR2")
-        s2_fapar = s2_fapar.date_range_filter("2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z") \
-            .bbox_filter(left=561864.7084, right=568853, bottom=6657846, top=6661080, srs="EPSG:3857")
+        s2_fapar = session.imagecollection("S2_NDVI_PYRAMID")
+        s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"]) \
+            .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
 
         tempfile = "/tmp/s2_fapar_webmerc.geotiff"
         try:
@@ -57,7 +60,7 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
         image_collection = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-21")
 
         polygon = Polygon(shell=[
@@ -86,7 +89,7 @@ class Test(TestCase):
             session = rest_session.session(userid=None, endpoint=self._rest_base)
 
             image_collection = session \
-                .imagecollection('CGS_SENTINEL2_RADIOMETRY_V101') \
+                .imagecollection('CGS_SENTINEL2_RADIOMETRY_V102_001') \
                 .date_range_filter(start_date="2017-10-15", end_date="2017-10-15") \
                 .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
                 .apply_tiles(udf_code) \
@@ -129,7 +132,7 @@ class Test(TestCase):
         nir = image_collection.band("8")
         ndwi = (red-nir)/(red+nir)
 
-        ndwi.download("/tmp/openeo-ndwi-udf2.geotiff",out_format)
+        ndwi.download("/tmp/openeo-ndwi-udf2.geotiff",format=out_format)
 
     def test_mask(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
@@ -143,7 +146,7 @@ class Test(TestCase):
         }
 
         image_collection = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
             .bbox_filter(left=bbox["left"], right=bbox["right"], bottom=bbox["bottom"], top=bbox["top"],
                          srs=bbox["srs"]) \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-01")
@@ -156,7 +159,7 @@ class Test(TestCase):
             (7.022705078125007, 51.75432477678571)
         ])
 
-        geotiff = image_collection.mask(polygon).download("out.tiff")
+        geotiff = image_collection.mask(polygon).download("out.tiff",format="GTIFF")
 
     @skip
     @pytest.mark.timeout(600)
@@ -227,10 +230,10 @@ class Test(TestCase):
             output_file = "%s/%s.geotiff" % (tempdir, "test_cog")
 
             session \
-                .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+                .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
                 .date_range_filter(start_date="2017-11-21", end_date="2017-11-21") \
                 .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
-                .download(output_file, parameters={"tiled": True})
+                .download(output_file, parameters={"tiled": True},format="GTIFF")
 
             self._assert_geotiff(output_file)
 

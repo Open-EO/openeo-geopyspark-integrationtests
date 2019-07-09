@@ -18,12 +18,12 @@ def get_test_resource(relative_path):
 
 def load_udf(relative_path):
     import json
-    with open(get_test_resource(relative_path), 'r+') as f:
+    with open(str(get_test_resource(relative_path)), 'r+') as f:
         return f.read()
 
 class Test(TestCase):
 
-    _rest_base = "%s/openeo" % os.environ['ENDPOINT']
+    _rest_base = "%s/openeo/0.4.0" % os.environ['ENDPOINT']
     #_rest_base = "%s/openeo/0.4.0" % "http://openeo.vgt.vito.be"
     #_rest_base = "%s/openeo/0.4.0" % "http://localhost:5000"
 
