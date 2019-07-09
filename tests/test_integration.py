@@ -87,7 +87,7 @@ class Test(TestCase):
             session = rest_session.session(userid=None, endpoint=self._rest_base)
 
             image_collection = session \
-                .imagecollection('CGS_SENTINEL2_RADIOMETRY_V101') \
+                .imagecollection('CGS_SENTINEL2_RADIOMETRY_V102_001') \
                 .date_range_filter(start_date="2017-10-15", end_date="2017-10-15") \
                 .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
                 .apply_tiles(udf_code) \
@@ -130,7 +130,7 @@ class Test(TestCase):
         nir = image_collection.band("8")
         ndwi = (red-nir)/(red+nir)
 
-        ndwi.download("/tmp/openeo-ndwi-udf2.geotiff",out_format)
+        ndwi.download("/tmp/openeo-ndwi-udf2.geotiff",format=out_format)
 
     def test_mask(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
@@ -157,7 +157,7 @@ class Test(TestCase):
             (7.022705078125007, 51.75432477678571)
         ])
 
-        geotiff = image_collection.mask(polygon).download("out.tiff")
+        geotiff = image_collection.mask(polygon).download("out.tiff",format="GTIFF")
 
     @skip
     @pytest.mark.timeout(600)
@@ -228,10 +228,10 @@ class Test(TestCase):
             output_file = "%s/%s.geotiff" % (tempdir, "test_cog")
 
             session \
-                .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+                .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
                 .date_range_filter(start_date="2017-11-21", end_date="2017-11-21") \
                 .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
-                .download(output_file, parameters={"tiled": True})
+                .download(output_file, parameters={"tiled": True},format="GTIFF")
 
             self._assert_geotiff(output_file)
 
