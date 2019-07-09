@@ -42,9 +42,9 @@ class Test(TestCase):
 
     def testS2FAPAR_download_webmerc(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
-        s2_fapar = session.imagecollection("S2_FAPAR_V102_WEBMERCATOR2")
-        s2_fapar = s2_fapar.date_range_filter("2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z") \
-            .bbox_filter(left=561864.7084, right=568853, bottom=6657846, top=6661080, srs="EPSG:3857")
+        s2_fapar = session.imagecollection("S2_NDVI_PYRAMID")
+        s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"]) \
+            .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
 
         tempfile = "/tmp/s2_fapar_webmerc.geotiff"
         try:
@@ -58,7 +58,7 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
         image_collection = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-21")
 
         polygon = Polygon(shell=[
