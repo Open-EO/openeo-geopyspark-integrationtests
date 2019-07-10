@@ -275,7 +275,7 @@ class Test(TestCase):
 
         job = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
-            .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
+            .date_range_filter(start_date="2017-01-01", end_date="2017-11-21") \
             .zonal_statistics(regions={
                 "type": "Polygon",
                 "coordinates": [[
@@ -291,7 +291,7 @@ class Test(TestCase):
         # await job running
         job_running = False
         while not job_running:
-            time.sleep(10)
+            time.sleep(3)
 
             status = job.describe_job()['status']
             print("job status %s" % status)
