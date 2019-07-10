@@ -284,7 +284,7 @@ class Test(TestCase):
                     [7.022705078125007, 51.75432477678571]
                 ]]
             }, func='mean') \
-            .send_job()
+            .send_job(out_format="GTIFF")
 
         self.assertEqual(202, job.start_job())
 
