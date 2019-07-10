@@ -93,7 +93,7 @@ class Test(TestCase):
                 .date_range_filter(start_date="2017-10-15", end_date="2017-10-15") \
                 .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
                 .apply_tiles(udf_code) \
-                .download("/tmp/openeo-ndvi-udf.geotiff","geotiff")
+                .download("/tmp/openeo-ndvi-udf.geotiff",format="geotiff")
 
 
     def test_ndwi(self):

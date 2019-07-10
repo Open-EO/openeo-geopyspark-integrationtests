@@ -63,6 +63,11 @@ pipeline {
           checkOut(true)
         }
       }
+      stage('Sleep while artifactory refreshes'){
+        steps{
+            sleep 60
+        }
+      }
       // Prepare the virtual environment where the package will be built and tested
       stage('Prepare virtualenv') {
         steps {
