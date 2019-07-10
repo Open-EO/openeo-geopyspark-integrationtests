@@ -324,6 +324,8 @@ class Test(TestCase):
         # FIXME: check if actually a COG
         self.assertEqual("tiff", imghdr.what(file))
 
+    # this test requires proxying to work properly
+    @skip
     def test_create_wtms_service(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
@@ -333,6 +335,7 @@ class Test(TestCase):
             .date_range_filter(start_date="2019-04-01", end_date="2019-04-01") \
 
         wmts_url = s2_fapar.tiled_viewing_service(type='WMTS')['url']
+        #returns a url like: http://tsviewer-rest-test.vgt.vito.be/openeo/services/6d6f0dbc-d3e6-4606-9768-2130ad96b01d/service/wmts
 
         time.sleep(5)  # seems to take a while before the service is proxied
         get_capabilities = requests.get(wmts_url + '?REQUEST=getcapabilities').text
