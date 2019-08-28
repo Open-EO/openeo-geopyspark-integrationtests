@@ -2,7 +2,7 @@ from unittest import TestCase,skip
 from openeo.rest import rest_connection as rest_session
 import requests
 import os
-from shapely.geometry import Polygon
+from shapely.geometry import shape, Polygon
 import time
 import pytest
 import tempfile
@@ -341,3 +341,45 @@ class Test(TestCase):
         get_capabilities = requests.get(wmts_url + '?REQUEST=getcapabilities').text
 
         self.assertIn(wmts_url, get_capabilities)  # the capabilities document should advertise the proxied URL
+
+    def test_histogram_timeseries(self):
+        import openeo
+
+        session = openeo.connect(self._rest_base)
+
+        probav = session \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
+            .filter_bbox(5, 6, 52, 51, 'EPSG:4326') \
+            .filter_temporal(['2017-11-21', '2017-12-21'])
+
+        histograms = probav.polygonal_histogram_timeseries(polygon=shape({
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                5.0761587693484875,
+                51.21222494794898
+              ],
+              [
+                5.166854684377381,
+                51.21222494794898
+              ],
+              [
+                5.166854684377381,
+                51.268936260927404
+              ],
+              [
+                5.0761587693484875,
+                51.268936260927404
+              ],
+              [
+                5.0761587693484875,
+                51.21222494794898
+              ]
+            ]
+          ]
+        })).execute()
+
+        buckets = [bucket for histogram in histograms.values() for bucket in histogram.items()]
+
+        self.assertIsNotNone(buckets)
