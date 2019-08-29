@@ -60,7 +60,9 @@ pipeline {
       // Checkout the project code
       stage('Checkout') {
         steps {
-          checkOut(true)
+        script {
+            git.checkoutDefault(true)
+          }
         }
       }
       stage('Sleep while artifactory refreshes'){
@@ -71,7 +73,9 @@ pipeline {
       // Prepare the virtual environment where the package will be built and tested
       stage('Prepare virtualenv') {
         steps {
-          prepareVenv(docker_registry, python_version)
+          script{
+            python.createVenv(docker_registry, python_version)
+          }
         }
       }
       stage('Package & Publish virtualenv'){
@@ -107,9 +111,10 @@ pipeline {
         steps {
           script{
             endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
+            echo "ENDPOINT=${endpoint}"
+            python.test(docker_registry, python_version, 'tests', true, extra_container_volumes, ["ENDPOINT=${endpoint}"], pre_test_script)
           }
-          echo "ENDPOINT=${endpoint}"
-          executePythonTests(docker_registry, python_version, 'tests', true, extra_container_volumes, ["ENDPOINT=${endpoint}"], pre_test_script)
+
         }
       }
     }
