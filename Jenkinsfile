@@ -121,12 +121,14 @@ pipeline {
                 echo "Killing running Spark application: ${appId}"
                 sh "yarn application -kill ${appId} || true"
             }
+            python.recordTestResults(run_tests)
         }
-        recordTestResults(run_tests)
       }
       // Send a mail notification on failure
       failure {
-        sendNotification('fail', mail_address)
+       script {
+          notification.fail(mail_address)
+        }
       }
     }
   }
