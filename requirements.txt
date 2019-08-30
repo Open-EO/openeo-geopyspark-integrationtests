@@ -1,3 +1,4 @@
+openeo==0.0.7a1
 openeo_driver
 openeo_geopyspark
 openeo-udf
