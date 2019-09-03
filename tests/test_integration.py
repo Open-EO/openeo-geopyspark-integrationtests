@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase,skip
 from openeo.rest import rest_connection as rest_session
 import requests
@@ -383,3 +384,22 @@ class Test(TestCase):
         buckets = [bucket for histogram in histograms.values() for bucket in histogram.items()]
 
         self.assertIsNotNone(buckets)
+
+    def test_ep3048_sentinel1_udf(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        N, E, S, W = (-4.740, -55.695, -4.745, -55.7)
+        with (Path(__file__).parent / 'data/udfs/smooth_savitsky_golay.py').open('r') as f:
+            udf_code = f.read()
+
+        polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
+        ts = (
+            session.imagecollection("S1_IW")
+                .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
+                .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
+                .band_filter([0])
+                .apply_dimension(udf_code, runtime="Python")
+                .polygonal_mean_timeseries(polygon)
+                .execute()
+        )
+        assert isinstance(ts, dict)
+        assert all(k.startswith('2019-05-') for k in ts.keys())
