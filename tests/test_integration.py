@@ -25,11 +25,11 @@ class Test(TestCase):
         image_collections = session.list_collections()
 
         product_ids = [entry.get("id") for entry in image_collections]
-        self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M_V2", product_ids)
+        self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M", product_ids)
 
     def testS2FAPAR_download_latlon(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
-        s2_fapar = session.imagecollection("S2_NDVI_PYRAMID")
+        s2_fapar = session.imagecollection("SENTINEL2_NDVI_TERRASCOPE")
         #bounding box:
         #http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
         s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z","2018-08-06T00:00:00Z"]) \
@@ -45,7 +45,7 @@ class Test(TestCase):
 
     def testS2FAPAR_download_webmerc(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
-        s2_fapar = session.imagecollection("S2_NDVI_PYRAMID")
+        s2_fapar = session.imagecollection("SENTINEL2_NDVI_TERRASCOPE")
         s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"]) \
             .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
 
@@ -61,7 +61,7 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
         image_collection = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-21")
 
         polygon = Polygon(shell=[
@@ -147,7 +147,7 @@ class Test(TestCase):
         }
 
         image_collection = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
             .bbox_filter(left=bbox["left"], right=bbox["right"], bottom=bbox["bottom"], top=bbox["top"],
                          srs=bbox["srs"]) \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-01")
@@ -231,7 +231,7 @@ class Test(TestCase):
             output_file = "%s/%s.geotiff" % (tempdir, "test_cog")
 
             session \
-                .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
+                .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
                 .date_range_filter(start_date="2017-11-21", end_date="2017-11-21") \
                 .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
                 .download(output_file, parameters={"tiled": True},format="GTIFF")
@@ -243,7 +243,7 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
         job = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
             .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
             .send_job('GTiff', tiled=True)
@@ -275,7 +275,7 @@ class Test(TestCase):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
 
         job = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
             .date_range_filter(start_date="2017-01-01", end_date="2017-11-21") \
             .zonal_statistics(regions={
                 "type": "Polygon",
@@ -349,7 +349,7 @@ class Test(TestCase):
         session = openeo.connect(self._rest_base)
 
         probav = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M_V2') \
+            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
             .filter_bbox(5, 6, 52, 51, 'EPSG:4326') \
             .filter_temporal(['2017-11-21', '2017-12-21'])
 
@@ -393,7 +393,7 @@ class Test(TestCase):
 
         polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
         ts = (
-            session.imagecollection("S1_IW")
+            session.imagecollection("SENTINEL1_GAMMA0_SENTINELHUB")
                 .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
                 .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
                 .band_filter([0])
