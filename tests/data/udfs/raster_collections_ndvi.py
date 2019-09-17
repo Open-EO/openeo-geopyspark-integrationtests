@@ -7,6 +7,7 @@
 #import tensorflow
 #import tensorboard
 from openeo_udf.api.base import RasterCollectionTile
+
 #from openeo_udf.api.raster_collection_tile import RasterCollectionTile
 #from openeo_udf.api.udf_data import UdfData
 
@@ -34,16 +35,19 @@ def rct_ndvi(udf_data):
     red = None
     nir = None
 
+    ids = set()
+
     # Iterate over each tile
     for tile in udf_data.raster_collection_tiles:
-        if "B04" in tile.id.lower():
+        if "4" in tile.id.lower():
             red = tile
-        if "B08" in tile.id.lower():
+        if "8" in tile.id.lower():
             nir = tile
+        ids.add(tile.id)
     if red is None:
-        raise Exception("B04 raster collection tile is missing in input")
+        raise Exception("B04 raster collection tile is missing in input, found: " + str(ids))
     if nir is None:
-        raise Exception("B08 raster collection tile is missing in input")
+        raise Exception("B08 raster collection tile is missing in input, found: " + str(ids))
     if red.start_times is None or red.start_times.tolist() == nir.start_times.tolist():
         # Compute the NDVI
         ndvi = (nir.data - red.data) / (nir.data + red.data)
