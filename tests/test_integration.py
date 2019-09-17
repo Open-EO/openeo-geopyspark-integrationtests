@@ -84,17 +84,17 @@ class Test(TestCase):
         import os,openeo_udf
         import openeo_udf.functions
         dir = os.path.dirname(openeo_udf.functions.__file__)
-        file_name = os.path.join(dir, "raster_collections_ndvi.py")
-        with open(file_name, "r")  as f:
+        with (Path(__file__).parent / 'data/udfs/raster_collections_ndvi.py').open('r') as f:
             udf_code = f.read()
-            session = rest_session.session(userid=None, endpoint=self._rest_base)
 
-            image_collection = session \
-                .imagecollection('CGS_SENTINEL2_RADIOMETRY_V102_001') \
-                .date_range_filter(start_date="2017-10-15", end_date="2017-10-15") \
-                .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
-                .apply_tiles(udf_code) \
-                .download("/tmp/openeo-ndvi-udf.geotiff",format="geotiff")
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+
+        image_collection = session \
+            .imagecollection('CGS_SENTINEL2_RADIOMETRY_V102_001') \
+            .date_range_filter(start_date="2017-10-15", end_date="2017-10-15") \
+            .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
+            .apply_tiles(udf_code) \
+            .download("/tmp/openeo-ndvi-udf.geotiff",format="geotiff")
 
 
     def test_ndwi(self):
@@ -346,7 +346,7 @@ class Test(TestCase):
     def test_histogram_timeseries(self):
         import openeo
 
-        session = openeo.connect(self._rest_base)
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
 
         probav = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
