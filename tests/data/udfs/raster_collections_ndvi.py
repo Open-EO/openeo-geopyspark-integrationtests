@@ -6,8 +6,9 @@
 #import torchvision
 #import tensorflow
 #import tensorboard
-from openeo_udf.api.raster_collection_tile import RasterCollectionTile
-from openeo_udf.api.udf_data import UdfData
+from openeo_udf.api.base import RasterCollectionTile
+#from openeo_udf.api.raster_collection_tile import RasterCollectionTile
+#from openeo_udf.api.udf_data import UdfData
 
 __license__ = "Apache License, Version 2.0"
 __author__ = "Soeren Gebbert"
@@ -16,7 +17,7 @@ __maintainer__ = "Soeren Gebbert"
 __email__ = "soerengebbert@googlemail.com"
 
 
-def rct_ndvi(udf_data: UdfData):
+def rct_ndvi(udf_data):
     """Compute the NDVI based on sentinel2 tiles
 
     Tiles with ids "red" and "nir" are required. The NDVI computation will be applied
