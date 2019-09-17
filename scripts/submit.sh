@@ -10,6 +10,8 @@ export SPARK_MAJOR_VERSION=2
 export SPARK_HOME=/usr/hdp/$HDP_VERSION/spark2/
 export PATH="$SPARK_HOME/bin:$PATH"
 
+export PYTHONPATH="venv/lib64/python3.6/site-packages:venv/lib/python3.6/site-packages"
+
 hdfsVenvZip=https://artifactory.vgt.vito.be/auxdata-public/openeo/venv36.zip
 extensions=https://artifactory.vgt.vito.be/libs-snapshot-public/org/openeo/geotrellis-extensions/1.2.0-SNAPSHOT/geotrellis-extensions-1.2.0-SNAPSHOT.jar
 backend_assembly=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrellis-backend-assembly-0.4.2.jar
@@ -31,6 +33,7 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
  --conf "spark.yarn.appMasterEnv.PYSPARK_PYTHON=$pysparkPython" \
  --conf "spark.yarn.appMasterEnv.PYSPARK_DRIVER_PYTHON=$pysparkPython" \
+ --conf spark.executorEnv.LD_LIBRARY_PATH=venv/lib64 --conf spark.yarn.appMasterEnv.LD_LIBRARY_PATH=venv/lib64 \
  --conf "spark.yarn.appMasterEnv.OPENEO_VENV_ZIP=$hdfsVenvZip" \
  --conf spark.executorEnv.DRIVER_IMPLEMENTATION_PACKAGE=openeogeotrellis --conf spark.yarn.appMasterEnv.DRIVER_IMPLEMENTATION_PACKAGE=openeogeotrellis \
  --conf spark.yarn.appMasterEnv.WMTS_BASE_URL_PATTERN=http://tsviewer-rest-test.vgt.vito.be/openeo/services/%s \
