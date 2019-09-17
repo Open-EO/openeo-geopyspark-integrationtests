@@ -4,7 +4,7 @@
 
 def config = [:]
 def docker_registry = config.docker_registry ?: 'vito-docker-private.artifactory.vgt.vito.be'
-def python_version = config.python_version ?: '3.5'
+def python_version = config.python_version ?: '3.6'
 def run_tests = (config.run_tests == false) ? config.run_tests : true
 def extra_container_volumes = config.extra_container_volumes ?: ''
 def extra_env_variables = config.extra_env_variables ?: ''
@@ -17,7 +17,7 @@ def uploadvenv() {
       {
          "files": [
            {
-             "pattern": "venv.zip",
+             "pattern": "venv36.zip",
              "target": "auxdata-public/openeo/",
              "regexp": "true"
            }
@@ -80,7 +80,7 @@ pipeline {
       }
       stage('Package & Publish virtualenv'){
         steps {
-            sh 'cd venv3.5 && zip -r ../venv.zip *'
+            sh 'cd venv3.6 && zip -r ../venv36.zip *'
             uploadvenv()
         }
       }
