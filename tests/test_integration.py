@@ -387,6 +387,8 @@ class Test(TestCase):
 
         self.assertIsNotNone(buckets)
 
+    #This test depends on a secret uuid that we can not check in EP-3050
+    @skip
     def test_ep3048_sentinel1_udf(self):
         session = rest_session.session(userid=None, endpoint=self._rest_base)
         N, E, S, W = (-4.740, -55.695, -4.745, -55.7)
