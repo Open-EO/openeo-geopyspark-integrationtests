@@ -407,3 +407,19 @@ class Test(TestCase):
         )
         assert isinstance(ts, dict)
         assert all(k.startswith('2019-05-') for k in ts.keys())
+
+    def test_mask_out_all_data(self):
+        session = rest_session.session(userid=None, endpoint=self._rest_base)
+
+        date = "2017-12-21"
+
+        data = session.imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+            .filter_bbox(west=5, east=6, south=51, north=52) \
+            .filter_temporal(date, date)  # all DATA
+
+        opaque_mask = data != 255  # all ones
+
+        masked_data = data.mask(rastermask=opaque_mask)
+        masked_data.download("masked_data_empty.geotiff", format='GTiff')
+
+        # FIXME: check that we get a rectangular geotiff that only consists of NO_DATA (nan)
