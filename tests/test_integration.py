@@ -413,13 +413,32 @@ class Test(TestCase):
 
         date = "2017-12-21"
 
-        data = session.imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
+        probav = session.imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
             .filter_bbox(west=5, east=6, south=51, north=52) \
-            .filter_temporal(date, date)  # all DATA
+            .filter_temporal(date, date)
 
-        opaque_mask = data != 255  # all ones
+        opaque_mask = probav != 255  # all ones
 
-        masked_data = data.mask(rastermask=opaque_mask)
-        masked_data.download("masked_data_empty.geotiff", format='GTiff')
+        probav_masked = probav.mask(rastermask=opaque_mask)
 
-        # FIXME: check that we get a rectangular geotiff that only consists of NO_DATA (nan)
+        probav.download("probav.geotiff", format='GTiff')
+        probav_masked.download("probav_masked.geotiff", format='GTiff')
+
+        import rasterio as rio
+        from numpy import all, isnan
+
+        with rio.open("probav.geotiff") as probav_geotiff, \
+                rio.open("probav_masked.geotiff") as probav_masked_geotiff:
+            self.assertTrue(probav_geotiff.width > 0)
+            self.assertEqual(probav_geotiff.width, probav_geotiff.height)
+            self.assertEqual(1, probav_geotiff.count)
+
+            probav_is_all_data = all(probav_geotiff.read(1) != 255)
+            self.assertTrue(probav_is_all_data)
+
+            self.assertEqual(probav_geotiff.width, probav_masked_geotiff.width)
+            self.assertEqual(probav_geotiff.height, probav_masked_geotiff.height)
+            self.assertEqual(1, probav_masked_geotiff.count)
+
+            probav_masked_is_all_nodata = all(isnan(probav_masked_geotiff.read(1)))
+            self.assertTrue(probav_masked_is_all_nodata)
