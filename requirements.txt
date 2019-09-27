@@ -2,3 +2,4 @@ openeo>=0.0.8
 openeo_driver
 openeo_geopyspark
 openeo-udf
+rasterio
