@@ -1,12 +1,14 @@
-from pathlib import Path
-from unittest import TestCase,skip
-from openeo.rest import rest_connection as rest_session
-from shapely.geometry import shape, Polygon
+from unittest import TestCase
+import openeo
 import os
+from unittest import TestCase
 
-import rasterio
 import numpy as np
+import rasterio
 from numpy.testing import assert_allclose
+from shapely.geometry import Polygon
+
+import openeo
 
 
 class Test(TestCase):
@@ -15,7 +17,7 @@ class Test(TestCase):
 
 
     def test_zonal_statistics(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         image_collection = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \

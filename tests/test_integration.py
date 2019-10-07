@@ -1,6 +1,6 @@
 from pathlib import Path
 from unittest import TestCase,skip
-from openeo.rest import rest_connection as rest_session
+import openeo
 import requests
 import os
 from shapely.geometry import shape, Polygon
@@ -21,14 +21,14 @@ class Test(TestCase):
         self.assertEqual(200, r.status_code)
 
     def test_imagecollections(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
         image_collections = session.list_collections()
 
         product_ids = [entry.get("id") for entry in image_collections]
         self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M", product_ids)
 
     def testS2FAPAR_download_latlon(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
         s2_fapar = session.imagecollection("SENTINEL2_NDVI_TERRASCOPE")
         #bounding box:
         #http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
@@ -44,7 +44,7 @@ class Test(TestCase):
         self.assertTrue(os.path.exists(tempfile))
 
     def testS2FAPAR_download_webmerc(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
         s2_fapar = session.imagecollection("SENTINEL2_NDVI_TERRASCOPE")
         s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"]) \
             .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
@@ -58,7 +58,7 @@ class Test(TestCase):
         self.assertTrue(os.path.exists(tempfile))
 
     def test_zonal_statistics(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         image_collection = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
@@ -87,7 +87,7 @@ class Test(TestCase):
         with (Path(__file__).parent / 'data/udfs/raster_collections_ndvi.py').open('r') as f:
             udf_code = f.read()
 
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         image_collection = session \
             .imagecollection('CGS_SENTINEL2_RADIOMETRY_V102_001') \
@@ -123,7 +123,7 @@ class Test(TestCase):
         }
         out_format = "GTIFF"
 
-        connection = rest_session.connection(self._rest_base)
+        connection = openeo.connect(self._rest_base)
 
         image_collection = connection.imagecollection(product) \
             .date_range_filter(start_date=time["start"], end_date=time["end"]) \
@@ -136,7 +136,7 @@ class Test(TestCase):
         ndwi.download("/tmp/openeo-ndwi-udf2.geotiff",format=out_format)
 
     def test_mask(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         bbox = {
             "left": 7.0,
@@ -225,7 +225,7 @@ class Test(TestCase):
         self.assertEqual(3, len(zonal_statistics))
 
     def test_sync_cog(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_file = "%s/%s.geotiff" % (tempdir, "test_cog")
@@ -240,7 +240,7 @@ class Test(TestCase):
 
     @pytest.mark.timeout(600)
     def test_batch_cog(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         job = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
@@ -272,7 +272,7 @@ class Test(TestCase):
 
     @pytest.mark.timeout(600)
     def test_cancel_batch_job(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         job = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
@@ -328,7 +328,7 @@ class Test(TestCase):
     # this test requires proxying to work properly
     @skip
     def test_create_wtms_service(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         s2_fapar = session \
             .imagecollection('S2_FAPAR_V102_WEBMERCATOR2') \
@@ -346,9 +346,8 @@ class Test(TestCase):
     #TODO fix EP-3080 and reenable test
     @skip
     def test_histogram_timeseries(self):
-        import openeo
 
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         probav = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
@@ -390,7 +389,7 @@ class Test(TestCase):
     #This test depends on a secret uuid that we can not check in EP-3050
     @skip
     def test_ep3048_sentinel1_udf(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
         N, E, S, W = (-4.740, -55.695, -4.745, -55.7)
         with (Path(__file__).parent / 'data/udfs/smooth_savitsky_golay.py').open('r') as f:
             udf_code = f.read()
@@ -409,7 +408,7 @@ class Test(TestCase):
         assert all(k.startswith('2019-05-') for k in ts.keys())
 
     def test_mask_out_all_data(self):
-        session = rest_session.session(userid=None, endpoint=self._rest_base)
+        session = openeo.connect(self._rest_base)
 
         date = "2017-12-21"
 

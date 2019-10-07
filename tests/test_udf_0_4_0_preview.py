@@ -1,15 +1,9 @@
-from unittest import TestCase,skip
-
-from pathlib import Path
-
-from openeo.rest import rest_connection as rest_session
-from openeo.connection import Connection
-import requests
 import os
-from shapely.geometry import Polygon
-import time
-import pytest
-import tempfile
+from pathlib import Path
+from unittest import TestCase
+
+import openeo
+
 
 def get_test_resource(relative_path):
     dir = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -17,7 +11,6 @@ def get_test_resource(relative_path):
 
 
 def load_udf(relative_path):
-    import json
     with open(str(get_test_resource(relative_path)), 'r+') as f:
         return f.read()
 
@@ -28,9 +21,6 @@ class Test(TestCase):
     #_rest_base = "%s/openeo/0.4.0" % "http://localhost:5000"
 
     def test_reduce_time(self):
-        import os, openeo_udf
-        import openeo_udf.functions
-
         product = "CGS_SENTINEL2_RADIOMETRY_V102_001"
         bbox = {
             "left": 6.8371137,
@@ -46,7 +36,7 @@ class Test(TestCase):
 
         out_format = "GTIFF"
 
-        connection = rest_session.connection(self._rest_base)
+        connection = openeo.connect(self._rest_base)
 
         image_collection = connection.imagecollection(product) \
             .date_range_filter(start_date=time["start"], end_date=time["end"]) \
