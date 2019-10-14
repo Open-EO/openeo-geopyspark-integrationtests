@@ -441,3 +441,24 @@ class Test(TestCase):
 
             probav_masked_is_all_nodata = all(isnan(probav_masked_geotiff.read(1)))
             self.assertTrue(probav_masked_is_all_nodata)
+
+    def test_load_collection_from_disk(self):
+        session = openeo.connect(self._rest_base)
+
+        date = "2019-04-24"
+
+        fapar = session.load_disk_collection(
+            format='GTiff',
+            glob_pattern='file:/data/MTDA/CGS_S2/CGS_S2_FAPAR/2019/04/24/*/*/10M/*_FAPAR_10M_V102.tif',
+            options={
+                'date_regex': r"_(\d{4})(\d{2})(\d{2})T"
+            }
+        ) \
+            .filter_bbox(west=2.59003, south=51.069, east=2.8949, north=51.2206, crs="EPSG:4326") \
+            .filter_temporal(date, date)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_file = "%s/%s.geotiff" % (tempdir, "fapar_from_disk")
+            fapar.download(output_file, format="GTiff")
+
+            self._assert_geotiff(output_file)
