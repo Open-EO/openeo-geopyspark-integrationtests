@@ -449,9 +449,9 @@ class Test(TestCase):
 
         fapar = session.load_disk_collection(
             format='GTiff',
-            glob_pattern='file:/data/MTDA/CGS_S2/CGS_S2_FAPAR/2019/04/24/*/*/10M/*_FAPAR_10M_V102.tif',
+            glob_pattern='/data/MTDA/CGS_S2/CGS_S2_FAPAR/2019/04/24/*/*/10M/*_FAPAR_10M_V102.tif',
             options={
-                'date_regex': r"_(\d{4})(\d{2})(\d{2})T"
+                'date_regex': r".*\/S2._(\d{4})(\d{2})(\d{2})T.*"
             }
         ) \
             .filter_bbox(west=2.59003, south=51.069, east=2.8949, north=51.2206, crs="EPSG:4326") \
