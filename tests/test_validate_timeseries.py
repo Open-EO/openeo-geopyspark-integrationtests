@@ -82,8 +82,8 @@ class Test(TestCase):
             with rasterio.open(filename) as f:
                 data = f.read(masked=True)
                 values_per_band = data[None, ~data.mask]
-                if(values_per_band.count() == 0):
-                    self.assertEqual(0,len([v for v in timeseries[date] if v is not None]))
+                if values_per_band.count() == 0:
+                    assert [v for v in timeseries[date][0] if v is not None] == []
                     continue
                 mean = values_per_band.mean(axis=1)
                 print(mean)
