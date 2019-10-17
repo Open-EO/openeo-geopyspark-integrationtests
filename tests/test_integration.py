@@ -78,7 +78,9 @@ class Test(TestCase):
         actual_dates = timeseries.keys()
 
         self.assertEqual(sorted(expected_dates), sorted(actual_dates))
-        self.assertTrue(type(timeseries["2017-11-01T00:00:00"][0]) == float)
+        assert isinstance(timeseries["2017-11-01T00:00:00"], list)
+        assert isinstance(timeseries["2017-11-01T00:00:00"][0], list)
+        assert isinstance(timeseries["2017-11-01T00:00:00"][0][0], float)
 
     def test_ndvi_udf(self):
         import os,openeo_udf

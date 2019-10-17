@@ -88,7 +88,7 @@ class Test(TestCase):
                 mean = values_per_band.mean(axis=1)
                 print(mean)
                 print(timeseries[date])
-                assert_allclose(mean, timeseries[date], atol=0.6)
+                assert_allclose(mean, timeseries[date][0], atol=0.6)
                 median = np.median(values_per_band, axis=1)
 
                 print(median)
