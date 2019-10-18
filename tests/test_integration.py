@@ -242,7 +242,7 @@ class Test(TestCase):
 
     @pytest.mark.timeout(600)
     def test_batch_cog(self):
-        session = openeo.connect(self._rest_base)
+        session = openeo.connect(self._rest_base).authenticate_basic(username='dummy', password='dummy123')
 
         job = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
@@ -274,7 +274,7 @@ class Test(TestCase):
 
     @pytest.mark.timeout(600)
     def test_cancel_batch_job(self):
-        session = openeo.connect(self._rest_base)
+        session = openeo.connect(self._rest_base).authenticate_basic(username='dummy', password='dummy123')
 
         job = session \
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
