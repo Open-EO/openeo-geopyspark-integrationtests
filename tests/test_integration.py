@@ -262,14 +262,10 @@ class Test(TestCase):
 
         self.assertEqual('finished', job.describe_job()['status'])
 
-        results = job.results()
-
-        self.assertEqual(1, len(results))
-
         with tempfile.TemporaryDirectory() as tempdir:
             output_file = "%s/%s.geotiff" % (tempdir, job.job_id)
 
-            results[0].save_as(output_file)
+            job.download_results(output_file)
             self._assert_geotiff(output_file)
 
     @pytest.mark.timeout(600)
