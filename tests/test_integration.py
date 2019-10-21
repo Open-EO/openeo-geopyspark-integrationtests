@@ -268,6 +268,9 @@ class Test(TestCase):
             job.download_results(output_file)
             self._assert_geotiff(output_file)
 
+        this_job = [job for job in session.list_jobs() if job['job_id'] == job.job_id][0]
+        self.assertEqual('finished', this_job['status'])
+
     @pytest.mark.timeout(600)
     def test_cancel_batch_job(self):
         session = openeo.connect(self._rest_base).authenticate_basic(username='dummy', password='dummy123')
