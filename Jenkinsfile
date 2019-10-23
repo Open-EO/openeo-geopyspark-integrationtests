@@ -70,7 +70,7 @@ pipeline {
                   {
                      "files": [
                        {
-                         "pattern": "venv36.zip",
+                         "pattern": "../venv36.zip",
                          "target": "auxdata-public/openeo/",
                          "regexp": "true"
                        }
