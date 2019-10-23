@@ -65,14 +65,14 @@ pipeline {
       stage('Package & Publish virtualenv'){
         steps {
             script{
-              sh 'cd venv36 && zip -r ../venv36.zip *'
+              sh 'cd venv36 && zip -r ../venv36.zip * && cd ..'
               artifactory.uploadSpec("""
                   {
                      "files": [
                        {
-                         "pattern": "../venv36.zip",
+                         "pattern": "*36.zip",
                          "target": "auxdata-public/openeo/",
-                         "regexp": "true"
+                         "regexp": "false"
                        }
                      ]
                   }
