@@ -9,6 +9,7 @@ def run_tests = (config.run_tests == false) ? config.run_tests : true
 def extra_container_volumes = config.extra_container_volumes ?: ''
 def extra_env_variables = config.extra_env_variables ?: ''
 def pre_test_script = config.pre_test_script ?: ''
+def pytest_results = 'pytest/pytest_results.xml'
 
 def uploadvenv() {
   def artifactory_server = Artifactory.server 'vitoartifactory'
@@ -45,6 +46,7 @@ pipeline {
       JOB_NAME     = "${env.JOB_NAME}"
       JOB_URL      = "${env.JOB_URL}"
       WORKSPACE    = "${env.WORKSPACE}"
+      PYTEST_RESULTS= "${pytest_results}"
     }
     // Placeholder to be able to pass an email address to the job
     parameters {
