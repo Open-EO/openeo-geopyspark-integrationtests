@@ -64,6 +64,7 @@ pipeline {
       }
       stage('Package & Publish virtualenv'){
         steps {
+            script{
               sh 'cd venv36 && zip -r ../venv36.zip *'
               artifactory.uploadSpec("""
                   {
@@ -76,6 +77,7 @@ pipeline {
                      ]
                   }
                 """.stripIndent(), null)
+            }
         }
       }
       stage('Deploy on Spark') {
