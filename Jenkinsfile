@@ -11,24 +11,6 @@ def extra_env_variables = config.extra_env_variables ?: ''
 def pre_test_script = config.pre_test_script ?: ''
 def pytest_results = 'pytest/pytest_results.xml'
 
-def uploadvenv() {
-  def artifactory_server = Artifactory.server 'vitoartifactory'
-
-    uploadSpec = """
-      {
-         "files": [
-           {
-             "pattern": "venv36.zip",
-             "target": "auxdata-public/openeo/",
-             "regexp": "true"
-           }
-         ]
-      }
-    """.stripIndent()
-
-
-  buildInfo = artifactory_server.upload(uploadSpec)
-}
 
 jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
 appId = ""
@@ -82,8 +64,18 @@ pipeline {
       }
       stage('Package & Publish virtualenv'){
         steps {
-            sh 'cd venv36 && zip -r ../venv36.zip *'
-            uploadvenv()
+              sh 'cd venv36 && zip -r ../venv36.zip *'
+              artifactory.uploadSpec("""
+                  {
+                     "files": [
+                       {
+                         "pattern": "venv36.zip",
+                         "target": "auxdata-public/openeo/",
+                         "regexp": "true"
+                       }
+                     ]
+                  }
+                """.stripIndent(), null)
         }
       }
       stage('Deploy on Spark') {
