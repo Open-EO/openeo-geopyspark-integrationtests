@@ -80,7 +80,7 @@ pipeline {
       }
       stage('Package & Publish virtualenv'){
         steps {
-            sh 'cd venv3.6 && zip -r ../venv36.zip *'
+            sh 'cd venv36 && zip -r ../venv36.zip *'
             uploadvenv()
         }
       }
