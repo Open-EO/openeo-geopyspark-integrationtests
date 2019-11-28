@@ -344,8 +344,6 @@ class Test(TestCase):
 
         self.assertIn(wmts_url, get_capabilities)  # the capabilities document should advertise the proxied URL
 
-    #TODO fix EP-3080 and reenable test
-    @skip
     def test_histogram_timeseries(self):
 
         session = openeo.connect(self._rest_base)
@@ -383,7 +381,8 @@ class Test(TestCase):
           ]
         })).execute()
 
-        buckets = [bucket for histogram in histograms.values() for bucket in histogram.items()]
+        single_band_index = 0
+        buckets = [bucket for bands in histograms.values() for bucket in bands[single_band_index].items()]
 
         self.assertIsNotNone(buckets)
 
