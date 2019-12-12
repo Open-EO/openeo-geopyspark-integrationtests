@@ -13,7 +13,7 @@ export PATH="$SPARK_HOME/bin:$PATH"
 export PYTHONPATH="venv/lib64/python3.6/site-packages:venv/lib/python3.6/site-packages"
 
 hdfsVenvZip=https://artifactory.vgt.vito.be/auxdata-public/openeo/venv36.zip
-extensions=https://artifactory.vgt.vito.be/libs-snapshot-public/org/openeo/geotrellis-extensions/1.2.0-SNAPSHOT/geotrellis-extensions-1.2.0-SNAPSHOT.jar
+extensions=https://artifactory.vgt.vito.be/libs-release-public/org/openeo/geotrellis-extensions/1.2.0/geotrellis-extensions-1.2.0.jar
 backend_assembly=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrellis-backend-assembly-0.4.2.jar
 
 echo "Found backend assembly: ${backend_assembly}"
