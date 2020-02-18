@@ -25,6 +25,7 @@ pipeline {
       BRANCH_NAME  = "${env.BRANCH_NAME}"
       BUILD_NUMBER = "${env.BUILD_NUMBER}"
       BUILD_URL    = "${env.BUILD_URL}"
+      DATE         = utils.getDate()
       JOB_NAME     = "${env.JOB_NAME}"
       JOB_URL      = "${env.JOB_URL}"
       WORKSPACE    = "${env.WORKSPACE}"
@@ -65,14 +66,14 @@ pipeline {
       stage('Package & Publish virtualenv'){
         steps {
             script{
-              sh 'cd venv36 && zip -r ../venv36.zip * && cd ..'
+              sh 'cd venv36 && zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip * && cd ..'
               artifactory.uploadSpec("""
                   {
                      "files": [
                        {
-                         "pattern": "*36.zip",
-                         "target": "auxdata-public/openeo/",
-                         "regexp": "false"
+                         "pattern": "openeo(.*).zip",
+                         "target": "auxdata-local/openeo/",
+                         "regexp": "true"
                        }
                      ]
                   }
@@ -80,39 +81,39 @@ pipeline {
             }
         }
       }
-      stage('Deploy on Spark') {
-        steps{
-            sh "scripts/submit.sh ${jobName}"
-            script{
-              appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
-              echo appList
-              appId = appList.split("\n").collect { it.split()[0]}[0]
-
-            }
-            echo "Spark Job started: ${appId}"
-        }
-      }
-      stage('Wait for Spark job'){
-        steps{
-            sleep 180
-        }
-      }
-      // Run the tests
-      stage('Execute Tests') {
-        when {
-          expression {
-            run_tests == true
-          }
-        }
-        steps {
-          script{
-            endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
-            echo "ENDPOINT=${endpoint}"
-            python.test(docker_registry, python_version, 'tests', true, extra_container_volumes, ["ENDPOINT=${endpoint}"], pre_test_script)
-          }
-
-        }
-      }
+//      stage('Deploy on Spark') {
+//        steps{
+//            sh "scripts/submit.sh ${jobName}"
+//            script{
+//              appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
+//              echo appList
+//              appId = appList.split("\n").collect { it.split()[0]}[0]
+//
+//            }
+//            echo "Spark Job started: ${appId}"
+//        }
+//      }
+//      stage('Wait for Spark job'){
+//        steps{
+//            sleep 180
+//        }
+//      }
+//      // Run the tests
+//      stage('Execute Tests') {
+//        when {
+//          expression {
+//            run_tests == true
+//          }
+//        }
+//        steps {
+//          script{
+//            endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
+//            echo "ENDPOINT=${endpoint}"
+//            python.test(docker_registry, python_version, 'tests', true, extra_container_volumes, ["ENDPOINT=${endpoint}"], pre_test_script)
+//          }
+//
+//        }
+//      }
     }
     post {
       // Record the test results in Jenkins
