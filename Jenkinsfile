@@ -81,9 +81,9 @@ pipeline {
             }
         }
       }
-//      stage('Deploy on Spark') {
-//        steps{
-//            sh "scripts/submit.sh ${jobName}"
+      stage('Deploy on Spark') {
+        steps{
+            sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
 //            script{
 //              appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
 //              echo appList
@@ -91,8 +91,8 @@ pipeline {
 //
 //            }
 //            echo "Spark Job started: ${appId}"
-//        }
-//      }
+        }
+      }
 //      stage('Wait for Spark job'){
 //        steps{
 //            sleep 180
@@ -117,15 +117,15 @@ pipeline {
     }
     post {
       // Record the test results in Jenkins
-      always {
-        script{
-            if( appId != "" ) {
-                echo "Killing running Spark application: ${appId}"
-                sh "yarn application -kill ${appId} || true"
-            }
-            python.recordTestResults(run_tests)
-        }
-      }
+//      always {
+//        script{
+//            if( appId != "" ) {
+//                echo "Killing running Spark application: ${appId}"
+//                sh "yarn application -kill ${appId} || true"
+//            }
+//            python.recordTestResults(run_tests)
+//        }
+//      }
       // Send a mail notification on failure
       failure {
        script {
