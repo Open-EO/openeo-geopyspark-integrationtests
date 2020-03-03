@@ -27,6 +27,6 @@ def apply_hypercube(cube: DataCube, context: Dict) -> DataCube:
     array: xarray.DataArray = cube.get_array()
 
     result = xarray.concat([array.min(dim='t'), array.max(dim='t'), array.sum(dim='t'), array.mean(dim='t')], dim='bands')
-    return result
+    return DataCube(result)
 
 
