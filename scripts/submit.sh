@@ -44,4 +44,4 @@ echo "Submitting: ${jobName} with version ${version}"
 # --archives "${hdfsVenvZip}#venv" \
 # --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
 # --jars ${extensions},${backend_assembly} \
-# --name ${jobName} openeogeotrellis.deploy.probav-mep.py no-zookeeper
+# --name ${jobName} openeogeotrellis.deploy.probav-mep.py
