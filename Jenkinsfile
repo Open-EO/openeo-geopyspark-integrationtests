@@ -115,6 +115,7 @@ pipeline {
 //        }
 //      }
       stage('Create deploy job') {
+        agent { node 'master' }
         steps {
           script {
             jjb.createPromotionJob('jenkinsjobbuilder/custom_jobs/promotions:jenkinsjobbuilder/templates.yaml', 'prm.promotion_job/prm.openo', ['version': "${DATE}-${BUILD_NUMBER}"])
