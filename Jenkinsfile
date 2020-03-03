@@ -50,37 +50,37 @@ pipeline {
           }
         }
       }
-      stage('Sleep while artifactory refreshes'){
-        steps{
-            sleep 60
-        }
-      }
+      //stage('Sleep while artifactory refreshes'){
+      //  steps{
+      //      sleep 60
+      //  }
+      //}
       // Prepare the virtual environment where the package will be built and tested
-      stage('Prepare virtualenv') {
-        steps {
-          script{
-            python.createVenv(docker_registry, python_version, '')
-          }
-        }
-      }
-      stage('Package & Publish virtualenv'){
-        steps {
-            script{
-              sh 'cd venv36 && zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip * && cd ..'
-              artifactory.uploadSpec("""
-                  {
-                     "files": [
-                       {
-                         "pattern": "openeo(.*).zip",
-                         "target": "auxdata-local/openeo/",
-                         "regexp": "true"
-                       }
-                     ]
-                  }
-                """.stripIndent(), null)
-            }
-        }
-      }
+      //stage('Prepare virtualenv') {
+      //  steps {
+      //    script{
+      //      python.createVenv(docker_registry, python_version, '')
+      //    }
+      //  }
+      //}
+      //stage('Package & Publish virtualenv'){
+      //  steps {
+      //      script{
+      //        sh 'cd venv36 && zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip * && cd ..'
+      //        artifactory.uploadSpec("""
+      //            {
+      //               "files": [
+      //                 {
+      //                   "pattern": "openeo(.*).zip",
+      //                   "target": "auxdata-local/openeo/",
+      //                   "regexp": "true"
+      //                 }
+      //               ]
+      //            }
+      //          """.stripIndent(), null)
+      //      }
+      //  }
+      //}
       stage('Deploy on Spark') {
         steps{
             sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
