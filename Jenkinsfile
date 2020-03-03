@@ -58,7 +58,7 @@ pipeline {
       stage('Prepare virtualenv') {
         steps {
           script{
-            python.createVenv(docker_registry, python_version)
+            python.createVenv(docker_registry, python_version, '')
           }
         }
       }

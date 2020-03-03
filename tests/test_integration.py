@@ -236,7 +236,7 @@ class Test(TestCase):
                 .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
                 .date_range_filter(start_date="2017-11-21", end_date="2017-11-21") \
                 .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
-                .download(output_file, parameters={"tiled": True},format="GTIFF")
+                .download(output_file, format="GTIFF", options={"tiled": True})
 
             self._assert_geotiff(output_file)
 
@@ -250,11 +250,11 @@ class Test(TestCase):
             .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
             .send_job('GTiff', tiled=True)
 
-        self.assertEqual(202, job.start_job())  # FIXME: HTTP error should be translated to an exception
+        job.start_job()
 
         in_progress = True
         while in_progress:
-            time.sleep(60)
+            time.sleep(10)
 
             status = job.describe_job()['status']
             print("job %s has status %s" % (job.job_id, status))
@@ -288,7 +288,7 @@ class Test(TestCase):
             }, func='mean') \
             .send_job(out_format="GTIFF")
 
-        self.assertEqual(202, job.start_job())
+        job.start_job()
 
         # await job running
         job_running = False
@@ -344,8 +344,6 @@ class Test(TestCase):
 
         self.assertIn(wmts_url, get_capabilities)  # the capabilities document should advertise the proxied URL
 
-    #TODO fix EP-3080 and reenable test
-    @skip
     def test_histogram_timeseries(self):
 
         session = openeo.connect(self._rest_base)
@@ -383,7 +381,8 @@ class Test(TestCase):
           ]
         })).execute()
 
-        buckets = [bucket for histogram in histograms.values() for bucket in histogram.items()]
+        single_band_index = 0
+        buckets = [bucket for bands in histograms.values() for bucket in bands[single_band_index].items()]
 
         self.assertIsNotNone(buckets)
 
