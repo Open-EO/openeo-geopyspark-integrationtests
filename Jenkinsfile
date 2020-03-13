@@ -91,7 +91,7 @@ pipeline {
           script{
             endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
             echo "ENDPOINT=${endpoint}"
-            python.test(docker_registry, python_version, 'tests', true, extra_container_volumes, ["ENDPOINT=${endpoint}"], pre_test_script)
+            python.test(docker_registry, python_version, 'tests', true, '', ["ENDPOINT=${endpoint}"], pre_test_script)
           }
         }
       }
@@ -140,4 +140,17 @@ pipeline {
       }
     }
   }
+
+def waitForNewInstance() {
+  sh """
+    until [ \$(yarn application -list -appStates RUNNING 2>&1 | grep OpenEO-GeoPySpark-${BRANCH_NAME} ]; do
+      if [ \$SECONDS -gt 300 ]; then
+        echo "Haven't found a new instance after 5 minutes, exiting..."
+        exit 1
+      else
+        sleep 5
+      fi
+    done
+  """
+}
 
