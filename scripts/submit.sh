@@ -42,4 +42,4 @@ ${SPARK_HOME}/bin/spark-submit \
  --archives "openeo-${version}.zip#venv" \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
  --jars ${extensions},${backend_assembly} \
- --name ${jobName} openeogeotrellis.deploy.probav-mep.py
+ --name ${jobName} openeogeotrellis.deploy.probav-mep.py no-zookeeper
