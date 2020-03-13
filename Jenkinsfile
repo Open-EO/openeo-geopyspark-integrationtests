@@ -135,22 +135,8 @@ pipeline {
       // Send a mail notification on failure
       failure {
        script {
-          notification.fail(mail_address)
+          notification.fail()
         }
       }
     }
   }
-
-def waitForNewInstance() {
-  sh """
-    until [ \$(yarn application -list -appStates RUNNING 2>&1 | grep OpenEO-GeoPySpark-${BRANCH_NAME} ]; do
-      if [ \$SECONDS -gt 300 ]; then
-        echo "Haven't found a new instance after 5 minutes, exiting..."
-        exit 1
-      else
-        sleep 5
-      fi
-    done
-  """
-}
-
