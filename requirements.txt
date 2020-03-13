@@ -1,5 +1,5 @@
 openeo>=0.0.8
 openeo_driver
 openeo_geopyspark
-openeo-udf
+openeo-udf>=0.0.9.post0
 rasterio
