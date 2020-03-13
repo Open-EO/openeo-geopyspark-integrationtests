@@ -41,28 +41,28 @@ pipeline {
           }
         }
       }
-      stage('Sleep while artifactory refreshes'){
-        steps{
-            sleep 60
-        }
-      }
+    //  stage('Sleep while artifactory refreshes'){
+    //    steps{
+    //        sleep 60
+    //    }
+    //  }
       // Prepare the virtual environment where the package will be built and tested
-      stage('Prepare virtualenv') {
-        steps {
-          script{
-            python.createVenv(docker_registry, python_version, '')
-          }
-        }
-      }
-      stage('Package virtualenv'){
-        steps {
-          script{
-            dir('venv36') {
-              sh "zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *"
-            }
-          }
-        }
-      }
+    //  stage('Prepare virtualenv') {
+    //    steps {
+    //      script{
+    //        python.createVenv(docker_registry, python_version, '')
+    //      }
+    //    }
+    //  }
+    //  stage('Package virtualenv'){
+    //    steps {
+    //      script{
+    //        dir('venv36') {
+    //          sh "zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *"
+    //        }
+    //      }
+    //    }
+    //  }
 //      stage('Deploy on Spark') {
 //        steps{
 //            sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
