@@ -3,6 +3,7 @@
 set -eo pipefail
 
 jobName=$1
+version=$2
 pysparkPython="venv/bin/python"
 
 export HDP_VERSION=3.1.0.0-78
@@ -12,12 +13,11 @@ export PATH="$SPARK_HOME/bin:$PATH"
 
 export PYTHONPATH="venv/lib64/python3.6/site-packages:venv/lib/python3.6/site-packages"
 
-hdfsVenvZip=https://artifactory.vgt.vito.be/auxdata-public/openeo/venv36.zip
+hdfsVenvZip=https://artifactory.vgt.vito.be/auxdata-public/openeo/openeo-"${version}".zip
 extensions=https://artifactory.vgt.vito.be/libs-snapshot-public/org/openeo/geotrellis-extensions/1.3.0-SNAPSHOT/geotrellis-extensions-1.3.0-SNAPSHOT.jar
 backend_assembly=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrellis-backend-assembly-0.4.5-openeo.jar
 
 echo "Found backend assembly: ${backend_assembly}"
-
 
 echo "Submitting: ${jobName}"
 ${SPARK_HOME}/bin/spark-submit \
@@ -40,7 +40,7 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.executorEnv.AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} --conf spark.yarn.appMasterEnv.AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
  --conf spark.executorEnv.AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} --conf spark.yarn.appMasterEnv.AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
  --files venv36/layercatalog.json,venv36/log4j.properties \
- --archives "${hdfsVenvZip}#venv" \
+ --archives "openeo-${version}.zip#venv" \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
  --jars ${extensions},${backend_assembly} \
  --name ${jobName} openeogeotrellis.deploy.probav-mep.py no-zookeeper

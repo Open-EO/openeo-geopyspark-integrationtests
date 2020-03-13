@@ -2,18 +2,13 @@
 
 @Library('lib')_
 
-def config = [:]
-def docker_registry = config.docker_registry ?: 'vito-docker-private.artifactory.vgt.vito.be'
-def python_version = config.python_version ?: '3.6'
-def run_tests = (config.run_tests == false) ? config.run_tests : true
-def extra_container_volumes = config.extra_container_volumes ?: ''
-def extra_env_variables = config.extra_env_variables ?: ''
-def pre_test_script = config.pre_test_script ?: ''
+def docker_registry = globalDefaults.docker_registry_prod()
+def python_version = '3.6'
+def run_tests = true
+def pre_test_script = ''
 def pytest_results = 'pytest/pytest_results.xml'
-
-
-jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
-appId = ""
+def jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
+def appId = ""
 
 pipeline {
     // Run job on any node with this label
@@ -22,17 +17,14 @@ pipeline {
     }
     // Set built-in environment variables
     environment {
-      BRANCH_NAME  = "${env.BRANCH_NAME}"
-      BUILD_NUMBER = "${env.BUILD_NUMBER}"
-      BUILD_URL    = "${env.BUILD_URL}"
-      JOB_NAME     = "${env.JOB_NAME}"
-      JOB_URL      = "${env.JOB_URL}"
-      WORKSPACE    = "${env.WORKSPACE}"
-      PYTEST_RESULTS= "${pytest_results}"
-    }
-    // Placeholder to be able to pass an email address to the job
-    parameters {
-      string(name: 'mail_address', defaultValue: 'Dummy')
+      BRANCH_NAME    = "${env.BRANCH_NAME}"
+      BUILD_NUMBER   = "${env.BUILD_NUMBER}"
+      BUILD_URL      = "${env.BUILD_URL}"
+      DATE           = utils.getDate()
+      JOB_NAME       = "${env.JOB_NAME}"
+      JOB_URL        = "${env.JOB_URL}"
+      WORKSPACE      = "${env.WORKSPACE}"
+      PYTEST_RESULTS = "${pytest_results}"
     }
     // Disable default checkout to have more control over checkout step
     options {
@@ -54,7 +46,7 @@ pipeline {
             sleep 60
         }
       }
-      // Prepare the virtual environment where the package will be built and tested
+    // Prepare the virtual environment where the package will be built and tested
       stage('Prepare virtualenv') {
         steps {
           script{
@@ -62,27 +54,18 @@ pipeline {
           }
         }
       }
-      stage('Package & Publish virtualenv'){
+      stage('Package virtualenv'){
         steps {
-            script{
-              sh 'cd venv36 && zip -r ../venv36.zip * && cd ..'
-              artifactory.uploadSpec("""
-                  {
-                     "files": [
-                       {
-                         "pattern": "*36.zip",
-                         "target": "auxdata-public/openeo/",
-                         "regexp": "false"
-                       }
-                     ]
-                  }
-                """.stripIndent(), null)
+          script{
+            dir('venv36') {
+              sh "zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *"
             }
+          }
         }
       }
       stage('Deploy on Spark') {
         steps{
-            sh "scripts/submit.sh ${jobName}"
+            sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
             script{
               appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
               echo appList
@@ -108,9 +91,33 @@ pipeline {
           script{
             endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
             echo "ENDPOINT=${endpoint}"
-            python.test(docker_registry, python_version, 'tests', true, extra_container_volumes, ["ENDPOINT=${endpoint}"], pre_test_script)
+            python.test(docker_registry, python_version, 'tests', true, '', ["ENDPOINT=${endpoint}"], pre_test_script)
           }
-
+        }
+      }
+      stage('Upload archive') {
+        steps {
+          script {
+            artifactory.uploadSpec(
+            """
+              {
+                "files": [
+                  {
+                    "pattern": "openeo(.*).zip",
+                    "target": "auxdata-local/openeo/",
+                    "regexp": "true"
+                  }
+                ]
+              }
+            """.stripIndent(), null)
+          }
+        }
+      }
+      stage('Trigger deploy job') {
+        steps {
+          script {
+            utils.triggerJob('geo.openeo_deploy', ['version': "${DATE}-${BUILD_NUMBER}", 'openeo_env': 'dev'])
+          }
         }
       }
     }
@@ -128,9 +135,8 @@ pipeline {
       // Send a mail notification on failure
       failure {
        script {
-          notification.fail(mail_address)
+          notification.fail()
         }
       }
     }
   }
-
