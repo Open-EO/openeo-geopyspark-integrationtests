@@ -63,56 +63,56 @@ pipeline {
           }
         }
       }
-      stage('Deploy on Spark') {
-        steps{
-            sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
-            script{
-              appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
-              echo appList
-              appId = appList.split("\n").collect { it.split()[0]}[0]
-
-            }
-            echo "Spark Job started: ${appId}"
-        }
-      }
-      stage('Wait for Spark job'){
-        steps{
-            sleep 180
-        }
-      }
-      // Run the tests
-      stage('Execute Tests') {
-        when {
-          expression {
-            run_tests == true
-          }
-        }
-        steps {
-          script{
-            endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
-            echo "ENDPOINT=${endpoint}"
-            python.test(docker_registry, python_version, 'tests', true, '', ["ENDPOINT=${endpoint}"], pre_test_script)
-          }
-        }
-      }
-      stage('Upload archive') {
-        steps {
-          script {
-            artifactory.uploadSpec(
-            """
-              {
-                "files": [
-                  {
-                    "pattern": "openeo(.*).zip",
-                    "target": "auxdata-local/openeo/",
-                    "regexp": "true"
-                  }
-                ]
-              }
-            """.stripIndent(), null)
-          }
-        }
-      }
+//      stage('Deploy on Spark') {
+//        steps{
+//            sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
+//            script{
+//              appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
+//              echo appList
+//              appId = appList.split("\n").collect { it.split()[0]}[0]
+//
+//            }
+//            echo "Spark Job started: ${appId}"
+//        }
+//      }
+//      stage('Wait for Spark job'){
+//        steps{
+//            sleep 180
+//        }
+//      }
+//      // Run the tests
+//      stage('Execute Tests') {
+//        when {
+//          expression {
+//            run_tests == true
+//          }
+//        }
+//        steps {
+//          script{
+//            endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
+//            echo "ENDPOINT=${endpoint}"
+//            python.test(docker_registry, python_version, 'tests', true, '', ["ENDPOINT=${endpoint}"], pre_test_script)
+//          }
+//        }
+//      }
+//      stage('Upload archive') {
+//        steps {
+//          script {
+//            artifactory.uploadSpec(
+//            """
+//              {
+//                "files": [
+//                  {
+//                    "pattern": "openeo(.*).zip",
+//                    "target": "auxdata-local/openeo/",
+//                    "regexp": "true"
+//                  }
+//                ]
+//              }
+//            """.stripIndent(), null)
+//          }
+//        }
+//      }
       stage('Trigger deploy job') {
         steps {
           script {
