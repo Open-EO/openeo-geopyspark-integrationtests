@@ -2,16 +2,13 @@
 
 @Library('lib')_
 
-def docker_registry = config.docker_registry ?: 'vito-docker-private.artifactory.vgt.vito.be'
-def python_version = config.python_version ?: '3.6'
-def run_tests = (config.run_tests == false) ? config.run_tests : true
-def extra_container_volumes = config.extra_container_volumes ?: ''
-def extra_env_variables = config.extra_env_variables ?: ''
-def pre_test_script = config.pre_test_script ?: ''
+def docker_registry = globalDefaults.docker_registry_prod()
+def python_version = '3.6'
+def run_tests = true
+def pre_test_script = ''
 def pytest_results = 'pytest/pytest_results.xml'
-
-jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
-appId = ""
+def jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
+def appId = ""
 
 pipeline {
     // Run job on any node with this label
@@ -20,14 +17,14 @@ pipeline {
     }
     // Set built-in environment variables
     environment {
-      BRANCH_NAME  = "${env.BRANCH_NAME}"
-      BUILD_NUMBER = "${env.BUILD_NUMBER}"
-      BUILD_URL    = "${env.BUILD_URL}"
-      DATE         = utils.getDate()
-      JOB_NAME     = "${env.JOB_NAME}"
-      JOB_URL      = "${env.JOB_URL}"
-      WORKSPACE    = "${env.WORKSPACE}"
-      PYTEST_RESULTS= "${pytest_results}"
+      BRANCH_NAME    = "${env.BRANCH_NAME}"
+      BUILD_NUMBER   = "${env.BUILD_NUMBER}"
+      BUILD_URL      = "${env.BUILD_URL}"
+      DATE           = utils.getDate()
+      JOB_NAME       = "${env.JOB_NAME}"
+      JOB_URL        = "${env.JOB_URL}"
+      WORKSPACE      = "${env.WORKSPACE}"
+      PYTEST_RESULTS = "${pytest_results}"
     }
     // Disable default checkout to have more control over checkout step
     options {
