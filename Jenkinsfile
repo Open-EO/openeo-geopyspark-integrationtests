@@ -60,17 +60,6 @@ pipeline {
             dir('venv36') {
               sh "zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *"
             }
-            artifactory.uploadSpec("""
-                {
-                   "files": [
-                     {
-                       "pattern": "openeo(.*).zip",
-                       "target": "auxdata-local/openeo/",
-                       "regexp": "true"
-                     }
-                   ]
-                }
-              """.stripIndent(), null)
           }
         }
       }
@@ -103,6 +92,24 @@ pipeline {
             endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
             echo "ENDPOINT=${endpoint}"
             python.test(docker_registry, python_version, 'tests', true, extra_container_volumes, ["ENDPOINT=${endpoint}"], pre_test_script)
+          }
+        }
+      }
+      stage('Upload archive') {
+        steps {
+          script {
+            artifactory.uploadSpec(
+            """
+              {
+                "files": [
+                  {
+                    "pattern": "openeo(.*).zip",
+                    "target": "auxdata-local/openeo/",
+                    "regexp": "true"
+                  }
+                ]
+              }
+            """.stripIndent(), null)
           }
         }
       }
