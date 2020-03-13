@@ -54,7 +54,7 @@ pipeline {
           }
         }
       }
-      stage('Package & Publish virtualenv'){
+      stage('Package virtualenv'){
         steps {
           script{
             dir('venv36') {
