@@ -49,7 +49,7 @@ pipeline {
             sleep 60
         }
       }
-       Prepare the virtual environment where the package will be built and tested
+      // Prepare the virtual environment where the package will be built and tested
       stage('Prepare virtualenv') {
         steps {
           script{
@@ -61,7 +61,7 @@ pipeline {
         steps {
           script{
             dir('venv36') {
-              sh 'zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *'
+              sh "zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *"
             }
             artifactory.uploadSpec("""
                 {
