@@ -41,78 +41,71 @@ pipeline {
           }
         }
       }
-    //  stage('Sleep while artifactory refreshes'){
-    //    steps{
-    //        sleep 60
-    //    }
-    //  }
-      // Prepare the virtual environment where the package will be built and tested
-    //  stage('Prepare virtualenv') {
-    //    steps {
-    //      script{
-    //        python.createVenv(docker_registry, python_version, '')
-    //      }
-    //    }
-    //  }
-    //  stage('Package virtualenv'){
-    //    steps {
-    //      script{
-    //        dir('venv36') {
-    //          sh "zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *"
-    //        }
-    //      }
-    //    }
-    //  }
-//      stage('Deploy on Spark') {
-//        steps{
-//            sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
-//            script{
-//              appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
-//              echo appList
-//              appId = appList.split("\n").collect { it.split()[0]}[0]
-//
-//            }
-//            echo "Spark Job started: ${appId}"
-//        }
-//      }
-//      stage('Wait for Spark job'){
-//        steps{
-//            sleep 180
-//        }
-//      }
-//      // Run the tests
-//      stage('Execute Tests') {
-//        when {
-//          expression {
-//            run_tests == true
-//          }
-//        }
-//        steps {
-//          script{
-//            endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
-//            echo "ENDPOINT=${endpoint}"
-//            python.test(docker_registry, python_version, 'tests', true, '', ["ENDPOINT=${endpoint}"], pre_test_script)
-//          }
-//        }
-//      }
-//      stage('Upload archive') {
-//        steps {
-//          script {
-//            artifactory.uploadSpec(
-//            """
-//              {
-//                "files": [
-//                  {
-//                    "pattern": "openeo(.*).zip",
-//                    "target": "auxdata-local/openeo/",
-//                    "regexp": "true"
-//                  }
-//                ]
-//              }
-//            """.stripIndent(), null)
-//          }
-//        }
-//      }
+      stage('Sleep while artifactory refreshes'){
+        steps{
+            sleep 60
+        }
+      }
+    // Prepare the virtual environment where the package will be built and tested
+      stage('Prepare virtualenv') {
+        steps {
+          script{
+            dir('venv36') {
+              sh "zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *"
+            }
+          }
+        }
+      }
+      stage('Deploy on Spark') {
+        steps{
+            sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
+            script{
+              appList = sh( returnStdout:true, script: "yarn application -list -appStates RUNNING,ACCEPTED 2>&1 | grep ${jobName}  || true")
+              echo appList
+              appId = appList.split("\n").collect { it.split()[0]}[0]
+
+            }
+            echo "Spark Job started: ${appId}"
+        }
+      }
+      stage('Wait for Spark job'){
+        steps{
+            sleep 180
+        }
+      }
+      // Run the tests
+      stage('Execute Tests') {
+        when {
+          expression {
+            run_tests == true
+          }
+        }
+        steps {
+          script{
+            endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
+            echo "ENDPOINT=${endpoint}"
+            python.test(docker_registry, python_version, 'tests', true, '', ["ENDPOINT=${endpoint}"], pre_test_script)
+          }
+        }
+      }
+      stage('Upload archive') {
+        steps {
+          script {
+            artifactory.uploadSpec(
+            """
+              {
+                "files": [
+                  {
+                    "pattern": "openeo(.*).zip",
+                    "target": "auxdata-local/openeo/",
+                    "regexp": "true"
+                  }
+                ]
+              }
+            """.stripIndent(), null)
+          }
+        }
+      }
       stage('Trigger deploy job') {
         steps {
           script {
