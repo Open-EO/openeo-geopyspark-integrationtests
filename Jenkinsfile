@@ -72,7 +72,7 @@ pipeline {
                 "files": [
                   {
                     "pattern": "openeo(.*).zip",
-                    "target": "auxdata-local/openeo/dev/",
+                    "target": "auxdata-public/openeo/dev/",
                     "regexp": "true"
                   }
                 ]
