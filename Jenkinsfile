@@ -63,6 +63,24 @@ pipeline {
           }
         }
       }
+      stage('Upload archive') {
+        steps {
+          script {
+            artifactory.uploadSpec(
+            """
+              {
+                "files": [
+                  {
+                    "pattern": "openeo(.*).zip",
+                    "target": "auxdata-local/openeo/dev/",
+                    "regexp": "true"
+                  }
+                ]
+              }
+            """.stripIndent(), null)
+          }
+        }
+      }
       stage('Deploy on Spark') {
         steps{
             sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
@@ -92,24 +110,6 @@ pipeline {
             endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
             echo "ENDPOINT=${endpoint}"
             python.test(docker_registry, python_version, 'tests', true, '', ["ENDPOINT=${endpoint}"], pre_test_script)
-          }
-        }
-      }
-      stage('Upload archive') {
-        steps {
-          script {
-            artifactory.uploadSpec(
-            """
-              {
-                "files": [
-                  {
-                    "pattern": "openeo(.*).zip",
-                    "target": "auxdata-local/openeo/",
-                    "regexp": "true"
-                  }
-                ]
-              }
-            """.stripIndent(), null)
           }
         }
       }
