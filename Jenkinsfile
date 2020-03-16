@@ -50,6 +50,13 @@ pipeline {
       stage('Prepare virtualenv') {
         steps {
           script{
+            python.createVenv(docker_registry, python_version, '')
+          }
+        }
+      }
+      stage('Package virtualenv'){
+        steps {
+          script{
             dir('venv36') {
               sh "zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *"
             }
