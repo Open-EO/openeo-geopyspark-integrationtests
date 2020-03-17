@@ -114,6 +114,11 @@ pipeline {
         }
       }
       stage('Trigger deploy job') {
+        when {
+          expression {
+            "${BRANCH_NAME}" == 'master'
+          }
+        }
         steps {
           script {
             utils.triggerJob('geo.openeo_deploy', ['version': "${DATE}-${BUILD_NUMBER}", 'openeo_env': 'dev'])
