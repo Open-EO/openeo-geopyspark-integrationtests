@@ -9,6 +9,7 @@ def pre_test_script = ''
 def pytest_results = 'pytest/pytest_results.xml'
 def jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
 def appId = ""
+def deploy = ("${BRANCH_NAME}" == 'master') ? true : false
 
 pipeline {
     // Run job on any node with this label
@@ -116,7 +117,7 @@ pipeline {
       stage('Trigger deploy job') {
         when {
           expression {
-            "${BRANCH_NAME}" == 'master'
+            deploy
           }
         }
         steps {
