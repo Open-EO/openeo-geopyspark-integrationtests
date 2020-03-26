@@ -27,6 +27,9 @@ pipeline {
       WORKSPACE      = "${env.WORKSPACE}"
       PYTEST_RESULTS = "${pytest_results}"
     }
+    parameters {
+      string(name: 'mail_address')
+    }
     // Disable default checkout to have more control over checkout step
     options {
       disableConcurrentBuilds()
@@ -39,6 +42,7 @@ pipeline {
         steps {
         script {
             git.checkoutDefault(true)
+            sh "echo ${mail_address}"
           }
         }
       }
@@ -122,7 +126,7 @@ pipeline {
         }
         steps {
           script {
-            utils.triggerJob('geo.openeo_deploy', ['version': "${DATE}-${BUILD_NUMBER}", 'openeo_env': 'dev'])
+            utils.triggerJob('geo.openeo_deploy', ['version': "${DATE}-${BUILD_NUMBER}", 'openeo_env': 'dev', 'mail_address': mail_address])
           }
         }
       }
@@ -141,7 +145,7 @@ pipeline {
       // Send a mail notification on failure
       failure {
        script {
-          notification.fail()
+          notification.fail(mail_address)
         }
       }
     }
