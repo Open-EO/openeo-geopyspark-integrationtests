@@ -42,7 +42,6 @@ pipeline {
         steps {
         script {
             git.checkoutDefault(true)
-            sh "echo ${mail_address}"
           }
         }
       }
