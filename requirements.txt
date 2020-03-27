@@ -3,3 +3,4 @@ openeo_driver>=0.1.0a1.*
 openeo_geopyspark>=0.0.3a1.*
 openeo-udf>=0.0.9.post0
 rasterio
+scipy
