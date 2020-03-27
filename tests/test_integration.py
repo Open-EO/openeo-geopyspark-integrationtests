@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest import TestCase,skip
 import openeo
+import rasterio
 import requests
 import os
 from shapely.geometry import shape, Polygon
@@ -462,3 +463,24 @@ class Test(TestCase):
             fapar.download(output_file, format="GTiff")
 
             self._assert_geotiff(output_file)
+
+    def test_advanced_cloud_masking(self):
+        from .cloudmask import create_mask
+        # RETIE
+        minx, miny, maxx, maxy = (4.996033, 51.258922, 5.091603, 51.282696)
+        date = "2018-08-14"
+
+        session = openeo.connect(self._rest_base)
+        mask = create_mask(date, date, session) \
+            .filter_bbox(west=minx, east=maxx, north=maxy, south=miny, crs="EPSG:4326")
+
+        s2_radiometry = session.imagecollection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"]) \
+            .filter_bbox(west=minx, east=maxx, north=maxy, south=miny, crs="EPSG:4326").filter_temporal(date, date) \
+            .mask(rastermask=mask)
+
+        s2_radiometry.download("masked_result.tiff", format='GTIFF')
+        from numpy.testing import assert_array_equal
+        with rasterio.open("masked_result.tiff") as result_ds:
+            with rasterio.open(Path(__file__).parent /'data'/ 'reference' / 'cloud_masked.tiff') as ref_ds:
+                assert_array_equal(ref_ds.read(),result_ds.read())
+
