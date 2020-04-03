@@ -5,12 +5,13 @@
 def docker_registry = globalDefaults.docker_registry_prod()
 def python_version = '3.6'
 def pre_test_script = ''
-def pylint_results = 'pytest/pylint.out'
-def pytest_results = 'pytest/pytest_results.xml'
+def pylint_results = 'test_results/pylint.out'
+def pytest_results = 'test_results/pytest_results.xml'
 def jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
 def appId = ""
 def deploy = ("${BRANCH_NAME}" == 'master') ? true : false
-def pylint = true
+def pylint = false
+def run_tests = true
 def test_coverage = false
 
 pipeline {
