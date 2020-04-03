@@ -4,12 +4,14 @@
 
 def docker_registry = globalDefaults.docker_registry_prod()
 def python_version = '3.6'
-def run_tests = true
 def pre_test_script = ''
+def pylint_results = 'pytest/pylint.out'
 def pytest_results = 'pytest/pytest_results.xml'
 def jobName = "OpenEO-GeoPySpark-${env.BRANCH_NAME}"
 def appId = ""
 def deploy = ("${BRANCH_NAME}" == 'master') ? true : false
+def pylint = true
+def test_coverage = false
 
 pipeline {
     // Run job on any node with this label
@@ -26,6 +28,8 @@ pipeline {
       JOB_URL        = "${env.JOB_URL}"
       WORKSPACE      = "${env.WORKSPACE}"
       PYTEST_RESULTS = "${pytest_results}"
+      PYLINT         = "${pylint}"
+      TEST_COVERAGE  = "${test_coverage}"
     }
     parameters {
       string(name: 'mail_address')
@@ -138,7 +142,7 @@ pipeline {
                 echo "Killing running Spark application: ${appId}"
                 sh "yarn application -kill ${appId} || true"
             }
-            python.recordTestResults(run_tests)
+            python.recordTestResults()
         }
       }
       // Send a mail notification on failure
