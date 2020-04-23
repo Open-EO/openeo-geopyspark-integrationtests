@@ -33,7 +33,7 @@ pipeline {
       TEST_COVERAGE  = "${test_coverage}"
     }
     parameters {
-      string(name: 'mail_address')
+      string(name: 'mail_address', defaultValue: 'dummy@vito.be')
     }
     // Disable default checkout to have more control over checkout step
     options {
