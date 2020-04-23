@@ -266,7 +266,7 @@ class Test(TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             output_file = "%s/%s.geotiff" % (tempdir, job.job_id)
 
-            job.download_results(output_file)
+            job.download_result(output_file)
             self._assert_geotiff(output_file)
 
         this_job = [user_job for user_job in session.list_jobs() if user_job['job_id'] == job.job_id][0]
