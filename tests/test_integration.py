@@ -269,7 +269,7 @@ class Test(TestCase):
             job.download_result(output_file)
             self._assert_geotiff(output_file)
 
-        this_job = [user_job for user_job in session.list_jobs() if user_job['job_id'] == job.job_id][0]
+        this_job = [user_job for user_job in session.list_jobs() if user_job['id'] == job.job_id][0]
         self.assertEqual('finished', this_job['status'])
 
     @pytest.mark.timeout(600)
