@@ -1,6 +1,6 @@
 from pathlib import Path
+from typing import Callable
 from unittest import TestCase,skip
-import openeo
 import rasterio
 import requests
 import os
@@ -9,6 +9,9 @@ import time
 import pytest
 import tempfile
 import imghdr
+import openeo
+from openeo.rest.job import RESTJob
+
 
 
 class Test(TestCase):
@@ -203,16 +206,12 @@ class Test(TestCase):
         queue_job = requests.post(job_url + "/results")
         self.assertEqual(202, queue_job.status_code)
 
-        job_in_progress = True
-        while job_in_progress:
-            time.sleep(60)
-
-            get_job_info = requests.get(job_url)
-            job_info = get_job_info.json()
-
-            job_in_progress = job_info['status'] not in ['canceled', 'finished', 'error']
-
-        self.assertEqual('finished', job_info['status'])
+        job_id = job_url.split('/')[-1]
+        status = self.poll_job_status(
+            RESTJob(job_id=job_id, connection=openeo.connect(self._rest_base)),
+            until=lambda s: s in ['canceled', 'finished', 'error']
+        )
+        assert status == "finished"
 
         get_job_results = requests.get(job_url + "/results")
         self.assertEqual(200, get_job_results.status_code)
@@ -241,6 +240,28 @@ class Test(TestCase):
 
             self._assert_geotiff(output_file)
 
+    def poll_job_status(
+            self, job: RESTJob, until: Callable = lambda s: s == "finished", max_polls: int = 100,
+            sleep_max: int = 120) -> str:
+        """Helper to poll the status of a job until some condition is reached."""
+        sleep = 10.0
+        start = time.time()
+        for p in range(max_polls):
+            elapsed = time.time() - start
+            try:
+                status = job.describe_job()['status']
+            except requests.ConnectionError as e:
+                print("job {j} status poll {p} ({e}s) failed: {x}".format(j=job.job_id, p=p, e=elapsed, x=e))
+            else:
+                print("job {j} status poll {p} ({e}s): {s}".format(j=job.job_id, p=p, e=elapsed, s=status))
+                if until(status):
+                    return status
+            time.sleep(sleep)
+            # Adapt sleep time
+            sleep = min(sleep * 1.1, sleep_max)
+
+        raise RuntimeError("reached max polls {m}".format(m=max_polls))
+
     @pytest.mark.timeout(600)
     def test_batch_cog(self):
         session = openeo.connect(self._rest_base).authenticate_basic(username='dummy', password='dummy123')
@@ -253,15 +274,8 @@ class Test(TestCase):
 
         job.start_job()
 
-        in_progress = True
-        while in_progress:
-            time.sleep(10)
-
-            status = job.describe_job()['status']
-            print("job %s has status %s" % (job.job_id, status))
-            in_progress = status not in ['canceled', 'finished', 'error']
-
-        self.assertEqual('finished', job.describe_job()['status'])
+        status = self.poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+        assert status == "finished"
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_file = "%s/%s.geotiff" % (tempdir, job.job_id)
@@ -292,36 +306,16 @@ class Test(TestCase):
         job.start_job()
 
         # await job running
-        job_running = False
-        while not job_running:
-            time.sleep(3)
-
-            status = job.describe_job()['status']
-            print("job status %s" % status)
-
-            if status in ['canceled', 'finished', 'error']:
-                self.fail(status)
-
-            job_running = status == 'running'
+        status = self.poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'])
+        assert status == "running"
 
         # cancel it
         job.stop_job()
         print("stopped job")
 
         # await job canceled
-        job_canceled = False
-        while not job_canceled:
-            time.sleep(10)
-
-            status = job.describe_job()['status']
-            print("job status %s" % status)
-
-            if status in ['finished', 'error']:
-                self.fail(status)
-
-            job_canceled = status == 'canceled'
-
-        pass  # success
+        status = self.poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+        assert status == "canceled"
 
     def _assert_geotiff(self, file, is_cog=None):
         # FIXME: check if actually a COG
