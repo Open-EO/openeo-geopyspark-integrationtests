@@ -22,7 +22,7 @@ echo "Found backend assembly: ${backend_assembly}"
 echo "Submitting: ${jobName}"
 ${SPARK_HOME}/bin/spark-submit \
  --master yarn --deploy-mode cluster \
- --queue testing \
+ --queue default \
  --principal jenkins@VGT.VITO.BE --keytab ${HOME}/jenkins.keytab \
  --driver-memory 4G \
  --conf spark.executor.memory=6G \
