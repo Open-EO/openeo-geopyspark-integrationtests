@@ -31,9 +31,9 @@ class Test(TestCase):
         product_ids = [entry.get("id") for entry in image_collections]
         self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M", product_ids)
 
-    def testS2FAPAR_download_latlon(self):
+    def test_terrascope_download_latlon(self):
         session = openeo.connect(self._rest_base)
-        s2_fapar = session.imagecollection("SENTINEL2_NDVI_TERRASCOPE")
+        s2_fapar = session.imagecollection("TERRASCOPE_S2_NDVI_V2")
         #bounding box:
         #http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
         s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z","2018-08-06T00:00:00Z"]) \
@@ -47,9 +47,9 @@ class Test(TestCase):
         s2_fapar.download(tempfile, format="GTIFF")
         self.assertTrue(os.path.exists(tempfile))
 
-    def testS2FAPAR_download_webmerc(self):
+    def test_terrascope_download_webmerc(self):
         session = openeo.connect(self._rest_base)
-        s2_fapar = session.imagecollection("SENTINEL2_NDVI_TERRASCOPE")
+        s2_fapar = session.imagecollection("TERRASCOPE_S2_NDVI_V2")
         s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"]) \
             .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
 
