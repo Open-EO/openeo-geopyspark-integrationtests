@@ -251,9 +251,9 @@ class Test(TestCase):
             try:
                 status = job.describe_job()['status']
             except requests.ConnectionError as e:
-                print("job {j} status poll {p} ({e}s) failed: {x}".format(j=job.job_id, p=p, e=elapsed, x=e))
+                print("job {j} status poll {p} ({e:.2f}s) failed: {x}".format(j=job.job_id, p=p, e=elapsed, x=e))
             else:
-                print("job {j} status poll {p} ({e}s): {s}".format(j=job.job_id, p=p, e=elapsed, s=status))
+                print("job {j} status poll {p} ({e:.2f}s): {s}".format(j=job.job_id, p=p, e=elapsed, s=status))
                 if until(status):
                     return status
             time.sleep(sleep)
