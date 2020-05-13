@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest import TestCase
 
 import openeo
+from .conftest import get_openeo_base_url
 
 
 def get_test_resource(relative_path):
@@ -14,11 +15,10 @@ def load_udf(relative_path):
     with open(str(get_test_resource(relative_path)), 'r+') as f:
         return f.read()
 
+
 class Test(TestCase):
 
-    _rest_base = "%s/openeo/0.4.0" % os.environ['ENDPOINT']
-    #_rest_base = "%s/openeo/0.4.0" % "http://openeo.vgt.vito.be"
-    #_rest_base = "%s/openeo/0.4.0" % "http://localhost:5000"
+    _rest_base = get_openeo_base_url()
 
     def test_reduce_time(self):
         product = "CGS_SENTINEL2_RADIOMETRY_V102_001"

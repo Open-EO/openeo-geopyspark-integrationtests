@@ -12,13 +12,12 @@ import imghdr
 import openeo
 from openeo.rest.job import RESTJob
 
+from .conftest import get_openeo_base_url
 
 
 class Test(TestCase):
 
-    _rest_base = "%s/openeo/0.4.0" % os.environ['ENDPOINT']
-    #_rest_base =  "http://openeo.vgt.vito.be/openeo/0.4.0"
-    #_rest_base = "%s/openeo/0.4.0" % "http://localhost:8080"
+    _rest_base = get_openeo_base_url()
 
     def test_health(self):
         r = requests.get(self._rest_base + "/health")

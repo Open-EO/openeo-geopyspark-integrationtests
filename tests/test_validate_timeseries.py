@@ -1,4 +1,3 @@
-import os
 from unittest import TestCase
 
 import numpy as np
@@ -7,11 +6,12 @@ from numpy.testing import assert_allclose
 from shapely.geometry import Polygon
 
 import openeo
+from .conftest import get_openeo_base_url
 
 
 class Test(TestCase):
-    _rest_base = "%s/openeo/0.4.0" % os.environ['ENDPOINT']
-    #_rest_base =  "http://openeo.vgt.vito.be/openeo/0.4.0"
+
+    _rest_base = get_openeo_base_url()
 
     configs = [
         {
