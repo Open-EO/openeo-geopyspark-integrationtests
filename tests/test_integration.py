@@ -15,50 +15,44 @@ from openeo.rest.job import RESTJob
 from .conftest import get_openeo_base_url
 
 
+def test_health(connection):
+    r = connection.get("/health")
+    assert r.status_code == 200
+
+
+def test_collections(connection):
+    image_collections = connection.list_collections()
+    product_ids = [entry.get("id") for entry in image_collections]
+    assert "PROBAV_L3_S10_TOC_NDVI_333M" in product_ids
+
+
+def test_terrascope_download_latlon(connection, tmp_path):
+    s2_fapar = (
+        connection.load_collection("SENTINEL2_NDVI_TERRASCOPE")
+            # bounding box: http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
+            .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
+            .filter_bbox(west=5.027, east=5.0438, south=51.1974, north=51.2213, crs="EPSG:4326")
+    )
+    out_file = tmp_path / "s2_fapar_latlon.geotiff"
+    s2_fapar.download(out_file, format="GTIFF")
+    assert out_file.exists()
+
+
+def test_terrascope_download_webmerc(connection, tmp_path):
+    s2_fapar = (
+        connection.load_collection("SENTINEL2_NDVI_TERRASCOPE")
+            .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
+            .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
+    )
+    out_file = tmp_path / "/tmp/s2_fapar_webmerc.geotiff"
+    s2_fapar.download(out_file, format="geotiff")
+    assert out_file.exists()
+
+
 class Test(TestCase):
 
     _rest_base = get_openeo_base_url()
 
-    def test_health(self):
-        r = requests.get(self._rest_base + "/health")
-        self.assertEqual(200, r.status_code)
-
-    def test_imagecollections(self):
-        session = openeo.connect(self._rest_base)
-        image_collections = session.list_collections()
-
-        product_ids = [entry.get("id") for entry in image_collections]
-        self.assertIn("PROBAV_L3_S10_TOC_NDVI_333M", product_ids)
-
-    def test_terrascope_download_latlon(self):
-        session = openeo.connect(self._rest_base)
-        s2_fapar = session.imagecollection("SENTINEL2_NDVI_TERRASCOPE")
-        #bounding box:
-        #http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
-        s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z","2018-08-06T00:00:00Z"]) \
-            .filter_bbox(west=5.027, east=5.0438, south=51.1974, north=51.2213, crs="EPSG:4326")
-
-        tempfile = "/tmp/s2_fapar_latlon.geotiff"
-        try:
-            os.remove(tempfile)
-        except OSError:
-            pass
-        s2_fapar.download(tempfile, format="GTIFF")
-        self.assertTrue(os.path.exists(tempfile))
-
-    def test_terrascope_download_webmerc(self):
-        session = openeo.connect(self._rest_base)
-        s2_fapar = session.imagecollection("SENTINEL2_NDVI_TERRASCOPE")
-        s2_fapar = s2_fapar.filter_daterange(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"]) \
-            .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
-
-        tempfile = "/tmp/s2_fapar_webmerc.geotiff"
-        try:
-            os.remove(tempfile)
-        except OSError:
-            pass
-        s2_fapar.download(tempfile, format="geotiff")
-        self.assertTrue(os.path.exists(tempfile))
 
     def test_zonal_statistics(self):
         session = openeo.connect(self._rest_base)
