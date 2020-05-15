@@ -15,7 +15,10 @@ def get_openeo_base_url(version="0.4.0"):
     return "{e}/openeo/{v}".format(e=endpoint.rstrip("/"), v=version)
 
 
-@pytest.fixture(params=["0.4.2", "1.0.0"])
+@pytest.fixture(params=[
+    "0.4.2",
+    "1.0.0",
+])
 def api_version(request):
     return request.param
 

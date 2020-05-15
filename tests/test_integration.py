@@ -1,5 +1,6 @@
+import json
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Union
 from unittest import TestCase,skip
 import rasterio
 import requests
@@ -9,10 +10,33 @@ import time
 import pytest
 import tempfile
 import imghdr
+from numpy.testing import assert_array_equal
+
 import openeo
+from openeo.capabilities import ComparableVersion
 from openeo.rest.job import RESTJob
+from openeo.rest.datacube import DataCube
+from openeo.rest.imagecollectionclient import ImageCollectionClient
 
 from .conftest import get_openeo_base_url
+from .cloudmask import create_advanced_mask, create_simple_mask
+from .data import get_path
+
+
+def _dump_process_graph(cube: Union[DataCube, ImageCollectionClient], tmp_path: Path, name="process_graph.json"):
+    """Dump a cube's process graph as json to a temp file"""
+    with (tmp_path / name).open("w") as fp:
+        json.dump(cube.graph, fp, indent=2)
+
+
+def _parse_bboxfinder_com(url: str) -> dict:
+    """Parse a bboxfinder.com URL to bbox dict"""
+    coords = [float(x) for x in url.split('#')[-1].split(",")]
+    return {"south": coords[0], "west": coords[1], "north": coords[2], "east": coords[3], "crs": "EPSG:4326"}
+
+
+BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.1028")
+BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
 
 
 def test_health(connection):
@@ -451,23 +475,68 @@ class Test(TestCase):
 
             self._assert_geotiff(output_file)
 
-    def test_advanced_cloud_masking(self):
-        from .cloudmask import create_mask
-        # RETIE
-        minx, miny, maxx, maxy = (4.996033, 51.258922, 5.091603, 51.282696)
-        date = "2018-08-14"
 
-        session = openeo.connect(self._rest_base)
-        mask = create_mask(date, date, session) \
-            .filter_bbox(west=minx, east=maxx, north=maxy, south=miny, crs="EPSG:4326")
+def assert_geotiff_basics(output_tiff: str, expected_band_count=1, min_width=100, min_height=100):
+    """Basic checks that a file is a readable GeoTIFF file"""
+    with rasterio.open(output_tiff) as dataset:
+        assert dataset.count == expected_band_count
+        assert dataset.width > min_width
+        assert dataset.height > min_height
 
-        s2_radiometry = session.imagecollection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"]) \
-            .filter_bbox(west=minx, east=maxx, north=maxy, south=miny, crs="EPSG:4326").filter_temporal(date, date) \
-            .mask(rastermask=mask)
 
-        s2_radiometry.download("masked_result.tiff", format='GTIFF')
-        from numpy.testing import assert_array_equal
-        with rasterio.open("masked_result.tiff") as result_ds:
-            with rasterio.open(Path(__file__).parent /'data'/ 'reference' / 'cloud_masked.tiff') as ref_ds:
-                assert_array_equal(ref_ds.read(),result_ds.read())
+def test_fuzzy_mask(connection, tmp_path):
+    date = "2019-04-26"
+    mask = create_simple_mask(connection, band_math_workaround=True)
+    mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
+    _dump_process_graph(mask, tmp_path)
+    output_tiff = tmp_path / "mask.tiff"
+    mask.download(output_tiff, format='GTIFF')
+    assert_geotiff_basics(output_tiff, expected_band_count=1)
 
+
+def test_simple_cloud_masking(connection, api_version, tmp_path):
+    date = "2019-04-26"
+    mask = create_simple_mask(connection, band_math_workaround=True)
+    mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
+    # mask.download(tmp_path / "mask.tiff", format='GTIFF')
+    s2_radiometry = (
+        connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"])
+            .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
+    )
+    # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
+    if ComparableVersion("1.0.0") <= api_version:
+        masked = s2_radiometry.mask(mask=mask)
+    else:
+        masked = s2_radiometry.mask(rastermask=mask)
+
+    _dump_process_graph(masked, tmp_path)
+    output_tiff = tmp_path / "masked_result.tiff"
+    masked.download(output_tiff, format='GTIFF')
+    assert_geotiff_basics(output_tiff, expected_band_count=3)
+
+
+def test_advanced_cloud_masking(connection, api_version, tmp_path):
+    # Retie
+    bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
+    date = "2018-08-14"
+    mask = create_advanced_mask(start=date, end=date, connection=connection, band_math_workaround=True)
+    mask = mask.filter_bbox(**bbox)
+    # mask.download(tmp_path / "mask.tiff", format='GTIFF')
+    s2_radiometry = (
+        connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"])
+            .filter_bbox(**bbox).filter_temporal(date, date)
+    )
+    # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
+
+    if ComparableVersion("1.0.0") <= api_version:
+        masked = s2_radiometry.mask(mask=mask)
+    else:
+        masked = s2_radiometry.mask(rastermask=mask)
+
+    _dump_process_graph(masked, tmp_path)
+    out_file = tmp_path / "masked_result.tiff"
+    masked.download(out_file, format='GTIFF')
+
+    with rasterio.open(out_file) as result_ds:
+        with rasterio.open(get_path("reference/cloud_masked.tiff")) as ref_ds:
+            assert_array_equal(ref_ds.read(), result_ds.read())
