@@ -11,7 +11,7 @@ import pytest
 import tempfile
 import imghdr
 from numpy.testing import assert_array_equal
-
+import numpy as np
 import openeo
 from openeo.capabilities import ComparableVersion
 from openeo.rest.job import RESTJob
@@ -158,32 +158,6 @@ class Test(TestCase):
 
         ndwi.download("/tmp/openeo-ndwi-udf2.geotiff",format=out_format)
 
-    def test_mask(self):
-        session = openeo.connect(self._rest_base)
-
-        bbox = {
-            "left": 7.0,
-            "top": 51.8,
-            "right": 7.7,
-            "bottom": 51.28,
-            "srs": "EPSG:4326"
-        }
-
-        image_collection = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
-            .bbox_filter(left=bbox["left"], right=bbox["right"], bottom=bbox["bottom"], top=bbox["top"],
-                         srs=bbox["srs"]) \
-            .date_range_filter(start_date="2017-11-01", end_date="2017-11-01")
-
-        polygon = Polygon(shell=[
-            (7.022705078125007, 51.75432477678571),
-            (7.659912109375007, 51.74333844866071),
-            (7.659912109375007, 51.29289899553571),
-            (7.044677734375007, 51.31487165178571),
-            (7.022705078125007, 51.75432477678571)
-        ])
-
-        geotiff = image_collection.mask(polygon).download("out.tiff",format="GTIFF")
 
     @skip
     @pytest.mark.timeout(600)
@@ -419,40 +393,6 @@ class Test(TestCase):
         assert isinstance(ts, dict)
         assert all(k.startswith('2019-05-') for k in ts.keys())
 
-    def test_mask_out_all_data(self):
-        session = openeo.connect(self._rest_base)
-
-        date = "2017-12-21"
-
-        probav = session.imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
-            .filter_bbox(west=5, east=6, south=51, north=52) \
-            .filter_temporal(date, date)
-
-        opaque_mask = probav != 255  # all ones
-
-        probav_masked = probav.mask(rastermask=opaque_mask)
-
-        probav.download("probav.geotiff", format='GTiff')
-        probav_masked.download("probav_masked.geotiff", format='GTiff')
-
-        import rasterio as rio
-        from numpy import all, isnan
-
-        with rio.open("probav.geotiff") as probav_geotiff, \
-                rio.open("probav_masked.geotiff") as probav_masked_geotiff:
-            self.assertTrue(probav_geotiff.width > 0)
-            self.assertEqual(probav_geotiff.width, probav_geotiff.height)
-            self.assertEqual(1, probav_geotiff.count)
-
-            probav_is_all_data = all(probav_geotiff.read(1) != 255)
-            self.assertTrue(probav_is_all_data)
-
-            self.assertEqual(probav_geotiff.width, probav_masked_geotiff.width)
-            self.assertEqual(probav_geotiff.height, probav_masked_geotiff.height)
-            self.assertEqual(1, probav_masked_geotiff.count)
-
-            probav_masked_is_all_nodata = all(isnan(probav_masked_geotiff.read(1)))
-            self.assertTrue(probav_masked_is_all_nodata)
 
     def test_load_collection_from_disk(self):
         session = openeo.connect(self._rest_base)
@@ -484,6 +424,56 @@ def assert_geotiff_basics(output_tiff: str, expected_band_count=1, min_width=100
         assert dataset.height > min_height
 
 
+def test_mask_polygon(connection, api_version, tmp_path):
+    bbox = {"west": 7.0, "south": 51.28, "east": 7.7, "north": 51.8, "crs": "EPSG:4326"}
+    date = "2017-11-01"
+    collection_id = 'PROBAV_L3_S10_TOC_NDVI_333M'
+    cube = connection.load_collection(collection_id).filter_bbox(**bbox).filter_temporal(date, date)
+    polygon = Polygon(shell=[
+        (7.022705078125007, 51.75432477678571),
+        (7.659912109375007, 51.74333844866071),
+        (7.659912109375007, 51.29289899553571),
+        (7.044677734375007, 51.31487165178571),
+        (7.022705078125007, 51.75432477678571)
+    ])
+    if api_version >= "1.0.0":
+        masked = cube.mask_polygon(polygon)
+    else:
+        masked = cube.mask(polygon=polygon)
+
+    output_tiff = tmp_path / "masked.tiff"
+    masked.download(output_tiff, format='GTIFF')
+    assert_geotiff_basics(output_tiff, expected_band_count=1)
+
+
+def test_mask_out_all_data(connection, api_version, tmp_path):
+    bbox = {"west": 5, "south": 51, "east": 6, "north": 52, "crs": "EPSG:4326"}
+    date = "2017-12-21"
+    collection_id = 'PROBAV_L3_S10_TOC_NDVI_333M'
+    probav = connection.load_collection(collection_id).filter_temporal(date, date).filter_bbox(**bbox)
+    opaque_mask = probav.band("ndvi") != 255  # all ones
+    _dump_process_graph(opaque_mask, tmp_path=tmp_path, name="opaque_mask.json")
+    if api_version >= "1.0.0":
+        probav_masked = probav.mask(mask=opaque_mask)
+    else:
+        probav_masked = probav.mask(rastermask=opaque_mask)
+
+    probav_path = tmp_path / "probav.tiff"
+    probav.download(probav_path, format='GTiff')
+    _dump_process_graph(probav_masked, tmp_path=tmp_path, name="probav_masked.json")
+    masked_path = tmp_path / "probav_masked.tiff"
+    probav_masked.download(masked_path, format='GTiff')
+
+    assert_geotiff_basics(probav_path, expected_band_count=1)
+    assert_geotiff_basics(masked_path, expected_band_count=1)
+    with rasterio.open(probav_path) as probav_ds, rasterio.open(masked_path) as masked_ds:
+        assert probav_ds.width == probav_ds.height
+        assert np.all(probav_ds.read(1) != 255)
+
+        assert (probav_ds.width, probav_ds.height) == (masked_ds.width, masked_ds.height)
+        assert np.all(np.isnan(masked_ds.read(1)))
+
+
 def test_fuzzy_mask(connection, tmp_path):
     date = "2019-04-26"
     mask = create_simple_mask(connection, band_math_workaround=True)
@@ -504,7 +494,7 @@ def test_simple_cloud_masking(connection, api_version, tmp_path):
             .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
-    if ComparableVersion("1.0.0") <= api_version:
+    if api_version >= "1.0.0":
         masked = s2_radiometry.mask(mask=mask)
     else:
         masked = s2_radiometry.mask(rastermask=mask)
@@ -528,7 +518,7 @@ def test_advanced_cloud_masking(connection, api_version, tmp_path):
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
 
-    if ComparableVersion("1.0.0") <= api_version:
+    if api_version >= "1.0.0":
         masked = s2_radiometry.mask(mask=mask)
     else:
         masked = s2_radiometry.mask(rastermask=mask)
