@@ -506,6 +506,8 @@ def test_simple_cloud_masking(connection, api_version, tmp_path):
 
 
 def test_advanced_cloud_masking(connection, api_version, tmp_path):
+    if api_version.at_least("1.0.0"):
+        pytest.skip("does not work in 1.0.0 yet")
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
     date = "2018-08-14"
