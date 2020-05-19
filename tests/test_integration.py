@@ -322,7 +322,10 @@ class Test(TestCase):
         job.start_job()
 
         # await job running
-        status = self.poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'], sleep_max=10)
+        status = self.poll_job_status(
+            job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'],
+            sleep_max=15, max_polls=300
+        )
         assert status == "running"
 
         # cancel it
