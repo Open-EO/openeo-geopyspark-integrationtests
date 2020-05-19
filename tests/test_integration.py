@@ -96,6 +96,32 @@ def test_aggregate_spatial_polygon(connection):
     assert expected_schema.validate(timeseries)
 
 
+def test_histogram_timeseries(connection):
+    probav = (
+        connection
+            .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
+            .filter_bbox(5, 6, 52, 51, 'EPSG:4326')
+            .filter_temporal(['2017-11-21', '2017-12-21'])
+    )
+    polygon = shape({"type": "Polygon", "coordinates": [[
+        [5.0761587693484875, 51.21222494794898],
+        [5.166854684377381, 51.21222494794898],
+        [5.166854684377381, 51.268936260927404],
+        [5.0761587693484875, 51.268936260927404],
+        [5.0761587693484875, 51.21222494794898]
+    ]]})
+    timeseries = probav.polygonal_histogram_timeseries(polygon=polygon).execute()
+    print(timeseries)
+
+    expected_schema = schema.Schema({str: [[{str: int}]]})
+    assert expected_schema.validate(timeseries)
+
+    for date, histograms in timeseries.items():
+        assert len(histograms) == 1
+        assert len(histograms[0]) == 1
+        assert len(histograms[0][0]) > 10
+
+
 class Test(TestCase):
 
     _rest_base = get_openeo_base_url()
@@ -329,47 +355,6 @@ class Test(TestCase):
 
         self.assertIn(wmts_url, get_capabilities)  # the capabilities document should advertise the proxied URL
 
-    def test_histogram_timeseries(self):
-
-        session = openeo.connect(self._rest_base)
-
-        probav = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
-            .filter_bbox(5, 6, 52, 51, 'EPSG:4326') \
-            .filter_temporal(['2017-11-21', '2017-12-21'])
-
-        histograms = probav.polygonal_histogram_timeseries(polygon=shape({
-          "type": "Polygon",
-          "coordinates": [
-            [
-              [
-                5.0761587693484875,
-                51.21222494794898
-              ],
-              [
-                5.166854684377381,
-                51.21222494794898
-              ],
-              [
-                5.166854684377381,
-                51.268936260927404
-              ],
-              [
-                5.0761587693484875,
-                51.268936260927404
-              ],
-              [
-                5.0761587693484875,
-                51.21222494794898
-              ]
-            ]
-          ]
-        })).execute()
-
-        single_band_index = 0
-        buckets = [bucket for bands in histograms.values() for bucket in bands[single_band_index].items()]
-
-        self.assertIsNotNone(buckets)
 
     #This test depends on a secret uuid that we can not check in EP-3050
     @skip
