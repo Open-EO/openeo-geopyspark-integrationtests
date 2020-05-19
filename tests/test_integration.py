@@ -10,6 +10,7 @@ import time
 import pytest
 import tempfile
 import imghdr
+import schema
 from numpy.testing import assert_array_equal
 import numpy as np
 import openeo
@@ -73,35 +74,33 @@ def test_terrascope_download_webmerc(connection, tmp_path):
     assert out_file.exists()
 
 
+def test_aggregate_spatial_polygon(connection):
+    polygon = Polygon(shell=[
+        (7.022705078125007, 51.75432477678571),
+        (7.659912109375007, 51.74333844866071),
+        (7.659912109375007, 51.29289899553571),
+        (7.044677734375007, 51.31487165178571),
+        (7.022705078125007, 51.75432477678571)
+    ])
+    timeseries = (
+        connection
+            .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
+            .filter_temporal(start_date="2017-11-01", end_date="2017-11-21")
+            .polygonal_mean_timeseries(polygon)
+            .execute()
+    )
+    print(timeseries)
+    expected_dates = ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
+    assert sorted(timeseries.keys()) == sorted(expected_dates)
+    expected_schema = schema.Schema({str: [[float]]})
+    assert expected_schema.validate(timeseries)
+
+
 class Test(TestCase):
 
     _rest_base = get_openeo_base_url()
 
 
-    def test_zonal_statistics(self):
-        session = openeo.connect(self._rest_base)
-
-        image_collection = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
-            .date_range_filter(start_date="2017-11-01", end_date="2017-11-21")
-
-        polygon = Polygon(shell=[
-            (7.022705078125007, 51.75432477678571),
-            (7.659912109375007, 51.74333844866071),
-            (7.659912109375007, 51.29289899553571),
-            (7.044677734375007, 51.31487165178571),
-            (7.022705078125007, 51.75432477678571)
-        ])
-
-        timeseries = image_collection.polygonal_mean_timeseries(polygon).execute()
-
-        expected_dates = ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
-        actual_dates = timeseries.keys()
-
-        self.assertEqual(sorted(expected_dates), sorted(actual_dates))
-        assert isinstance(timeseries["2017-11-01T00:00:00"], list)
-        assert isinstance(timeseries["2017-11-01T00:00:00"][0], list)
-        assert isinstance(timeseries["2017-11-01T00:00:00"][0][0], float)
 
     def test_ndvi_udf(self):
         import os,openeo_udf
