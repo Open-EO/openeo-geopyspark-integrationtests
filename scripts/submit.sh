@@ -24,11 +24,14 @@ ${SPARK_HOME}/bin/spark-submit \
  --master yarn --deploy-mode cluster \
  --queue default \
  --principal jenkins@VGT.VITO.BE --keytab ${HOME}/jenkins.keytab \
- --driver-memory 4G \
- --conf spark.executor.memory=6G \
+ --driver-memory 3G \
+ --conf spark.executor.cores=2 \
+ --conf spark.driver.memoryOverhead=1g \
+ --conf spark.executor.memoryOverhead=1g \
+ --conf spark.executor.memory=2G \
  --conf spark.speculation=true \
  --conf spark.speculation.quantile=0.4 --conf spark.speculation.multiplier=1.1 \
- --conf spark.dynamicAllocation.minExecutors=10 \
+ --conf spark.dynamicAllocation.minExecutors=5 \
  --conf spark.locality.wait=300ms --conf spark.shuffle.service.enabled=true --conf spark.dynamicAllocation.enabled=true \
  --conf spark.yarn.submit.waitAppCompletion=false \
  --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
