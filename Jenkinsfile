@@ -104,7 +104,7 @@ pipeline {
       }
       stage('Wait for Spark job'){
         steps{
-            sleep 600
+            sleep 1800
         }
       }
       // Run the tests
