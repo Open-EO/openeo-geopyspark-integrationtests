@@ -1,26 +1,25 @@
+import imghdr
 import json
+import tempfile
+import time
 from pathlib import Path
 from typing import Callable, Union
-from unittest import TestCase,skip
-import rasterio
-import requests
-import os
-from shapely.geometry import shape, Polygon
-import time
-import pytest
-import tempfile
-import imghdr
-import schema
-from numpy.testing import assert_array_equal
+from unittest import TestCase, skip
+
 import numpy as np
 import openeo
-from openeo.capabilities import ComparableVersion
-from openeo.rest.job import RESTJob
+import pytest
+import rasterio
+import requests
+import schema
+from numpy.testing import assert_array_equal
 from openeo.rest.datacube import DataCube
 from openeo.rest.imagecollectionclient import ImageCollectionClient
+from openeo.rest.job import RESTJob
+from shapely.geometry import shape, Polygon
 
-from .conftest import get_openeo_base_url
 from .cloudmask import create_advanced_mask, create_simple_mask
+from .conftest import get_openeo_base_url
 from .data import get_path
 
 
@@ -129,7 +128,7 @@ class Test(TestCase):
 
 
     def test_ndvi_udf(self):
-        import os,openeo_udf
+        import os
         import openeo_udf.functions
         dir = os.path.dirname(openeo_udf.functions.__file__)
         with (Path(__file__).parent / 'data/udfs/raster_collections_ndvi.py').open('r') as f:
@@ -146,8 +145,6 @@ class Test(TestCase):
 
 
     def test_ndwi(self):
-        import os,openeo_udf
-        import openeo_udf.functions
 
         product = "CGS_SENTINEL2_RADIOMETRY_V102_001"
         bbox = {
@@ -286,7 +283,13 @@ class Test(TestCase):
             .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
             .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
             .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
-            .send_job('GTiff', tiled=True)
+            .send_job('GTiff', tiled=True,job_options={
+            "driver-memory":"3G",
+            "driver-cores": "2",
+            "executor-memory": "1G",
+            "executor-memoryOverhead": "1G",
+            "executor-cores": "1"
+        })
 
         job.start_job()
 
@@ -317,7 +320,13 @@ class Test(TestCase):
                     [7.022705078125007, 51.75432477678571]
                 ]]
             }, func='mean') \
-            .send_job(out_format="GTIFF")
+            .send_job(out_format="GTIFF",job_options={
+            "driver-memory":"2G",
+            "driver-cores": "2",
+            "executor-memory": "1G",
+            "executor-memoryOverhead": "1G",
+            "executor-cores": "1"
+        })
 
         job.start_job()
 
