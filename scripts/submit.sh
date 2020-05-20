@@ -22,12 +22,12 @@ echo "Found backend assembly: ${backend_assembly}"
 echo "Submitting: ${jobName}"
 ${SPARK_HOME}/bin/spark-submit \
  --master yarn --deploy-mode cluster \
- --queue default \
+ --queue lowlatency \
  --principal jenkins@VGT.VITO.BE --keytab ${HOME}/jenkins.keytab \
- --driver-memory 3G \
+ --driver-memory 2G \
  --conf spark.executor.cores=2 \
  --conf spark.driver.memoryOverhead=1g \
- --conf spark.executor.memoryOverhead=1g \
+ --conf spark.executor.memoryOverhead=512m \
  --conf spark.executor.memory=2G \
  --conf spark.speculation=true \
  --conf spark.speculation.quantile=0.4 --conf spark.speculation.multiplier=1.1 \
