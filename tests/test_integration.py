@@ -141,49 +141,40 @@ def test_ndvi_udf_reduce_bands_udf(connection, tmp_path):
         assert ndvi.max(axis=None) < 0.95
 
 
+def test_ndvi_band_math(connection, tmp_path):
+    # http://bboxfinder.com/#50.560007,6.8371137,50.5647147,6.8566699
+    bbox = {
+        "west": 6.8371137, "south": 50.560007,
+        "east": 6.8566699, "north": 50.5647147,
+        "crs": "EPSG:4326"
+    }
+    cube = (
+        connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+            .filter_temporal("2017-10-10", "2017-10-30")
+            .filter_bbox(**bbox)
+    )
+    # cube.download(tmp_path / "cube.tiff", format="GTIFF")
+
+    red = cube.band("4")
+    nir = cube.band("8")
+    ndvi = (red - nir) / (red + nir)
+
+    out_file = tmp_path / "ndvi.tiff"
+    ndvi.download(out_file, format="GTIFF")
+    assert_geotiff_basics(out_file, expected_band_count=1)
+    with rasterio.open(out_file) as ds:
+        x = ds.read(1)
+        assert -0.9 < np.nanmin(x, axis=None)
+        assert np.nanmax(x, axis=None) < -0.1
+        assert np.isnan(x).sum(axis=None) > 10000
+
+
+
+
 
 class Test(TestCase):
 
     _rest_base = get_openeo_base_url()
-
-
-
-
-    def test_ndwi(self):
-
-        product = "CGS_SENTINEL2_RADIOMETRY_V102_001"
-        bbox = {
-            "left": 6.8371137,
-            "top": 50.5647147,
-            "right": 6.8566699,
-            "bottom": 50.560007,
-            "srs": "EPSG:4326"
-        }
-        time = {
-            "start": "2017-10-10",
-            "end": "2017-10-30"
-        }
-        ndvi = {
-            "red": "red",
-            "nir": "nir"
-        }
-        stretch = {
-            "min": -1,
-            "max": 1
-        }
-        out_format = "GTIFF"
-
-        connection = openeo.connect(self._rest_base)
-
-        image_collection = connection.imagecollection(product) \
-            .date_range_filter(start_date=time["start"], end_date=time["end"]) \
-            .bbox_filter(left=bbox["left"],right=bbox["right"],bottom=bbox["bottom"],top=bbox["top"],srs=bbox["srs"]) \
-
-        red = image_collection.band("4")
-        nir = image_collection.band("8")
-        ndwi = (red-nir)/(red+nir)
-
-        ndwi.download("/tmp/openeo-ndwi-udf2.geotiff",format=out_format)
 
 
     @skip
