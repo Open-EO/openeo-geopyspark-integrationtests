@@ -142,7 +142,9 @@ def test_ndvi_udf_reduce_bands_udf(connection, tmp_path):
         assert ndvi.max(axis=None) < 0.95
 
 
-def test_ndvi_band_math(connection, tmp_path):
+def test_ndvi_band_math(connection, tmp_path, api_version):
+    if api_version.at_least("1.0.0"):
+        pytest.skip("1.0-style add/subtract/divide not supported yet. see https://github.com/Open-EO/openeo-geotrellis-extensions/pull/4")
     # http://bboxfinder.com/#50.560007,6.8371137,50.5647147,6.8566699
     bbox = {
         "west": 6.8371137, "south": 50.560007,
