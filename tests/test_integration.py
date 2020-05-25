@@ -20,7 +20,7 @@ from shapely.geometry import shape, Polygon
 
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .conftest import get_openeo_base_url
-from .data import get_path
+from .data import get_path, read_data
 
 
 def _dump_process_graph(cube: Union[DataCube, ImageCollectionClient], tmp_path: Path, name="process_graph.json"):
@@ -121,27 +121,32 @@ def test_histogram_timeseries(connection):
         assert len(histograms[0][0]) > 10
 
 
+def test_ndvi_udf_reduce_bands_udf(connection, tmp_path):
+    udf_code = read_data("udfs/raster_collections_ndvi.py")
+
+    cube = (
+        connection.load_collection('CGS_SENTINEL2_RADIOMETRY_V102_001')
+            .date_range_filter(start_date="2017-10-15", end_date="2017-10-15")
+            .bbox_filter(left=761104, right=763281, bottom=6543830, top=6544655, srs="EPSG:3857")
+    )
+    # cube.download(tmp_path / "cube.tiff", format="GTIFF")
+    res = cube.reduce_bands_udf(udf_code)
+
+    out_file = tmp_path / "ndvi-udf.tiff"
+    res.download(out_file, format="geotiff")
+    assert_geotiff_basics(out_file, expected_band_count=1)
+    with rasterio.open(out_file) as ds:
+        ndvi = ds.read(1)
+        assert 0.35 < ndvi.min(axis=None)
+        assert ndvi.max(axis=None) < 0.95
+
+
+
 class Test(TestCase):
 
     _rest_base = get_openeo_base_url()
 
 
-
-    def test_ndvi_udf(self):
-        import os
-        import openeo_udf.functions
-        dir = os.path.dirname(openeo_udf.functions.__file__)
-        with (Path(__file__).parent / 'data/udfs/raster_collections_ndvi.py').open('r') as f:
-            udf_code = f.read()
-
-        session = openeo.connect(self._rest_base)
-
-        image_collection = session \
-            .imagecollection('CGS_SENTINEL2_RADIOMETRY_V102_001') \
-            .date_range_filter(start_date="2017-10-15", end_date="2017-10-15") \
-            .bbox_filter(left=761104,right=763281,bottom=6543830,top=6544655,srs="EPSG:3857") \
-            .apply_tiles(udf_code) \
-            .download("/tmp/openeo-ndvi-udf.geotiff",format="geotiff")
 
 
     def test_ndwi(self):
@@ -412,7 +417,7 @@ class Test(TestCase):
             self._assert_geotiff(output_file)
 
 
-def assert_geotiff_basics(output_tiff: str, expected_band_count=1, min_width=100, min_height=100):
+def assert_geotiff_basics(output_tiff: str, expected_band_count=1, min_width=64, min_height=64):
     """Basic checks that a file is a readable GeoTIFF file"""
     with rasterio.open(output_tiff) as dataset:
         assert dataset.count == expected_band_count
