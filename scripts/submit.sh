@@ -19,7 +19,8 @@ backend_assembly=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrelli
 
 echo "Found backend assembly: ${backend_assembly}"
 
-echo "Submitting: ${jobName}"
+echo "Submitting Spark job ${jobName}"
+date
 ${SPARK_HOME}/bin/spark-submit \
  --master yarn --deploy-mode cluster \
  --queue lowlatency \
@@ -48,3 +49,6 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
  --jars ${extensions},${backend_assembly} \
  --name ${jobName} openeogeotrellis.deploy.probav-mep.py
+
+echo "Submitted"
+date
