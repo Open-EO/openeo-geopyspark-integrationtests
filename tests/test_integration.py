@@ -169,6 +169,17 @@ def test_ndvi_band_math(connection, tmp_path):
         assert np.isnan(x).sum(axis=None) > 10000
 
 
+def test_sync_cog(connection, tmp_path):
+    out_file = tmp_path / "cog.tiff"
+    (
+        connection
+            .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
+            .filter_temporal("2017-11-21", "2017-11-21")
+            .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
+            .download(out_file, format="GTIFF", options={"tiled": True})
+    )
+    assert_geotiff_basics(out_file)
+    assert_cog(out_file)
 
 
 
@@ -235,19 +246,6 @@ class Test(TestCase):
 
         self.assertEqual(3, len(zonal_statistics))
 
-    def test_sync_cog(self):
-        session = openeo.connect(self._rest_base)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_file = "%s/%s.geotiff" % (tempdir, "test_cog")
-
-            session \
-                .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
-                .date_range_filter(start_date="2017-11-21", end_date="2017-11-21") \
-                .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
-                .download(output_file, format="GTIFF", options={"tiled": True})
-
-            self._assert_geotiff(output_file)
 
     def poll_job_status(
             self, job: RESTJob, until: Callable = lambda s: s == "finished", max_polls: int = 100,
@@ -410,10 +408,16 @@ class Test(TestCase):
 
 def assert_geotiff_basics(output_tiff: str, expected_band_count=1, min_width=64, min_height=64):
     """Basic checks that a file is a readable GeoTIFF file"""
+    assert imghdr.what(output_tiff) == 'tiff'
     with rasterio.open(output_tiff) as dataset:
         assert dataset.count == expected_band_count
         assert dataset.width > min_width
         assert dataset.height > min_height
+
+
+def assert_cog(output_tiff: str):
+    # FIXME: check if actually a COG
+    pass
 
 
 def test_mask_polygon(connection, api_version, tmp_path):
