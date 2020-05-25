@@ -37,6 +37,7 @@ def _parse_bboxfinder_com(url: str) -> dict:
 
 BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.1028")
 BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
+BBOX_NIEUWPOORT = _parse_bboxfinder_com("http://bboxfinder.com/#51.05,2.60,51.20,2.90")
 
 
 def test_health(connection):
@@ -384,26 +385,20 @@ class Test(TestCase):
         assert all(k.startswith('2019-05-') for k in ts.keys())
 
 
-    def test_load_collection_from_disk(self):
-        session = openeo.connect(self._rest_base)
+def test_load_collection_from_disk(connection, tmp_path):
+    fapar = connection.load_disk_collection(
+        format='GTiff',
+        glob_pattern='/data/MTDA/CGS_S2/CGS_S2_FAPAR/2019/04/24/*/*/10M/*_FAPAR_10M_V102.tif',
+        options={
+            'date_regex': r".*\/S2._(\d{4})(\d{2})(\d{2})T.*"
+        }
+    )
+    date = "2019-04-24"
+    fapar = fapar.filter_bbox(**BBOX_NIEUWPOORT).filter_temporal(date, date)
 
-        date = "2019-04-24"
-
-        fapar = session.load_disk_collection(
-            format='GTiff',
-            glob_pattern='/data/MTDA/CGS_S2/CGS_S2_FAPAR/2019/04/24/*/*/10M/*_FAPAR_10M_V102.tif',
-            options={
-                'date_regex': r".*\/S2._(\d{4})(\d{2})(\d{2})T.*"
-            }
-        ) \
-            .filter_bbox(west=2.59003, south=51.069, east=2.8949, north=51.2206, crs="EPSG:4326") \
-            .filter_temporal(date, date)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_file = "%s/%s.geotiff" % (tempdir, "fapar_from_disk")
-            fapar.download(output_file, format="GTiff")
-
-            self._assert_geotiff(output_file)
+    output_file = tmp_path / "fapar_from_disk.tiff"
+    fapar.download(output_file, format="GTiff")
+    assert_geotiff_basics(output_file)
 
 
 def assert_geotiff_basics(output_tiff: str, expected_band_count=1, min_width=64, min_height=64):
