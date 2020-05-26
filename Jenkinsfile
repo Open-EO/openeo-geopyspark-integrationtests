@@ -104,9 +104,7 @@ pipeline {
       }
       stage('Wait for Spark job'){
         steps{
-            sh "date"
-            sleep 600
-            sh "date"
+            sh "python3.5 scripts/poll-yarn.py wait-for-webapp ${jobName}"
         }
       }
       // Run the tests
