@@ -13,6 +13,7 @@ def deploy = ("${BRANCH_NAME}" == 'master') ? true : false
 def pylint = false
 def run_tests = true
 def test_coverage = false
+def extras_require = 'dev'
 
 pipeline {
     // Run job on any node with this label
@@ -31,6 +32,7 @@ pipeline {
       PYTEST_RESULTS = "${pytest_results}"
       PYLINT         = "${pylint}"
       TEST_COVERAGE  = "${test_coverage}"
+      EXTRAS_REQUIRE = "${extras_require}"
     }
     parameters {
       string(name: 'mail_address', defaultValue: 'dummy@vito.be')
