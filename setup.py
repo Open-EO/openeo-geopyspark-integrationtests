@@ -6,7 +6,7 @@ tests_require = [
     'numpy',
     'scipy',
     'rasterio',
-    'scema',
+    'schema',
     'pytest-timeout',
     'shapely',
     'openeo',
