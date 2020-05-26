@@ -26,8 +26,12 @@ For example, select by substring of the name of a test with the `-k` option:
     pytest -k test_health
 
 
-## Debugging
+### Debugging and troubleshooting tips
 
-The `tmp_path` fixture provides a [fresh temporary folder for a test to work in](https://docs.pytest.org/en/latest/tmpdir.html). 
+- The `tmp_path` fixture provides a [fresh temporary folder for a test to work in](https://docs.pytest.org/en/latest/tmpdir.html). 
 It is cleaned up automatically, except for the last 3 runs, so you can inspect
 generated files post-mortem. The temp folders are typically situated under `/tmp/pytest-of-$USERNAME`.
+
+- To disable pytest's default log/output capturing, to better see what is going on in "real time", add these options:
+
+        --capture=no --log-cli-level=INFO

@@ -40,6 +40,20 @@ BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
 BBOX_NIEUWPOORT = _parse_bboxfinder_com("http://bboxfinder.com/#51.05,2.60,51.20,2.90")
 
 
+# TODO: real authenticaion?
+TEST_USER = "geopyspark-integrationtester"
+TEST_PASSWORD = TEST_USER + "123"
+
+
+POLYGON01 = Polygon(shell=[
+    [7.022705078125007, 51.75432477678571],
+    [7.659912109375007, 51.74333844866071],
+    [7.659912109375007, 51.29289899553571],
+    [7.044677734375007, 51.31487165178571],
+    [7.022705078125007, 51.75432477678571]
+])
+
+
 def test_health(connection):
     r = connection.get("/health")
     assert r.status_code == 200
@@ -75,18 +89,11 @@ def test_terrascope_download_webmerc(connection, tmp_path):
 
 
 def test_aggregate_spatial_polygon(connection):
-    polygon = Polygon(shell=[
-        (7.022705078125007, 51.75432477678571),
-        (7.659912109375007, 51.74333844866071),
-        (7.659912109375007, 51.29289899553571),
-        (7.044677734375007, 51.31487165178571),
-        (7.022705078125007, 51.75432477678571)
-    ])
     timeseries = (
         connection
             .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
             .filter_temporal(start_date="2017-11-01", end_date="2017-11-21")
-            .polygonal_mean_timeseries(polygon)
+            .polygonal_mean_timeseries(POLYGON01)
             .execute()
     )
     print(timeseries)
@@ -185,92 +192,76 @@ def test_sync_cog(connection, tmp_path):
     assert_cog(out_file)
 
 
+def _poll_job_status(
+        job: RESTJob, until: Callable = lambda s: s == "finished", max_polls: int = 100,
+        sleep_max: int = 120) -> str:
+    """Helper to poll the status of a job until some condition is reached."""
+    sleep = 10.0
+    start = time.time()
+    for p in range(max_polls):
+        elapsed = time.time() - start
+        try:
+            status = job.describe_job()['status']
+        except requests.ConnectionError as e:
+            print("job {j} status poll {p} ({e:.2f}s) failed: {x}".format(j=job.job_id, p=p, e=elapsed, x=e))
+        else:
+            print("job {j} status poll {p} ({e:.2f}s): {s}".format(j=job.job_id, p=p, e=elapsed, s=status))
+            if until(status):
+                return status
+        time.sleep(sleep)
+        # Adapt sleep time
+        sleep = min(sleep * 1.1, sleep_max)
+
+    raise RuntimeError("reached max polls {m}".format(m=max_polls))
+
+
+@pytest.mark.timeout(600)
+def test_batch_job_basic(connection, tmp_path):
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+
+    job = timeseries.send_job()
+    assert job.job_id
+
+    job.start_job()
+    status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+    assert status == "finished"
+
+    assets = job.download_results(tmp_path)
+    assert len(assets) == 1
+
+    with open(list(assets.keys())[0]) as f:
+        data = json.load(f)
+
+    expected_dates = ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
+    assert sorted(data.keys()) == sorted(expected_dates)
+    expected_schema = schema.Schema({str: [[float]]})
+    assert expected_schema.validate(data)
+
+
+@pytest.mark.timeout(600)
+def test_batch_job_execute_batch(connection, tmp_path):
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+
+    output_file = tmp_path / "ts.json"
+    timeseries.execute_batch(output_file)
+
+    with output_file.open("r") as f:
+        data = json.load(f)
+    expected_dates = ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
+    assert sorted(data.keys()) == sorted(expected_dates)
+    expected_schema = schema.Schema({str: [[float]]})
+    assert expected_schema.validate(data)
+
+
+
 
 class Test(TestCase):
 
     _rest_base = get_openeo_base_url()
-
-
-    @skip
-    @pytest.mark.timeout(600)
-    def test_batch_job(self):
-        create_batch_job = requests.post(self._rest_base + "/jobs", json={
-            "process_graph": {
-                "process_id": "zonal_statistics",
-                "args": {
-                    "imagery": {
-                        "process_id": "filter_daterange",
-                        "args": {
-                            "imagery": {
-                                "product_id": "PROBAV_L3_S10_TOC_NDVI_333M"
-                            },
-                            "from": "2017-11-01",
-                            "to": "2017-11-21"
-                        }
-                    },
-                    "regions": {
-                        "type": "Polygon",
-                        "coordinates": [[
-                            [7.022705078125007, 51.75432477678571], [7.659912109375007, 51.74333844866071],
-                            [7.659912109375007, 51.29289899553571], [7.044677734375007, 51.31487165178571],
-                            [7.022705078125007, 51.75432477678571]
-                        ]]
-                    }
-                }
-            },
-            "output": {}
-        })
-
-        self.assertEqual(201, create_batch_job.status_code)
-
-        job_url = create_batch_job.headers['Location']
-        self.assertIsNotNone(job_url)
-
-        queue_job = requests.post(job_url + "/results")
-        self.assertEqual(202, queue_job.status_code)
-
-        job_id = job_url.split('/')[-1]
-        status = self.poll_job_status(
-            RESTJob(job_id=job_id, connection=openeo.connect(self._rest_base)),
-            until=lambda s: s in ['canceled', 'finished', 'error']
-        )
-        assert status == "finished"
-
-        get_job_results = requests.get(job_url + "/results")
-        self.assertEqual(200, get_job_results.status_code)
-
-        job_result_links = get_job_results.json()["links"]
-        self.assertEqual(1, len(job_result_links))
-
-        get_job_result = requests.get(job_result_links[0])
-        self.assertEqual(200, get_job_result.status_code)
-
-        zonal_statistics = get_job_result.json()
-
-        self.assertEqual(3, len(zonal_statistics))
-
-
-    def poll_job_status(
-            self, job: RESTJob, until: Callable = lambda s: s == "finished", max_polls: int = 100,
-            sleep_max: int = 120) -> str:
-        """Helper to poll the status of a job until some condition is reached."""
-        sleep = 10.0
-        start = time.time()
-        for p in range(max_polls):
-            elapsed = time.time() - start
-            try:
-                status = job.describe_job()['status']
-            except requests.ConnectionError as e:
-                print("job {j} status poll {p} ({e:.2f}s) failed: {x}".format(j=job.job_id, p=p, e=elapsed, x=e))
-            else:
-                print("job {j} status poll {p} ({e:.2f}s): {s}".format(j=job.job_id, p=p, e=elapsed, s=status))
-                if until(status):
-                    return status
-            time.sleep(sleep)
-            # Adapt sleep time
-            sleep = min(sleep * 1.1, sleep_max)
-
-        raise RuntimeError("reached max polls {m}".format(m=max_polls))
 
     @pytest.mark.timeout(600)
     def test_batch_cog(self):
@@ -290,7 +281,7 @@ class Test(TestCase):
 
         job.start_job()
 
-        status = self.poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+        status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
         assert status == "finished"
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -328,7 +319,7 @@ class Test(TestCase):
         job.start_job()
 
         # await job running
-        status = self.poll_job_status(
+        status = _poll_job_status(
             job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'],
             sleep_max=15, max_polls=300
         )
@@ -339,7 +330,7 @@ class Test(TestCase):
         print("stopped job")
 
         # await job canceled
-        status = self.poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+        status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
         assert status == "canceled"
 
     def _assert_geotiff(self, file, is_cog=None):
@@ -422,17 +413,10 @@ def test_mask_polygon(connection, api_version, tmp_path):
     date = "2017-11-01"
     collection_id = 'PROBAV_L3_S10_TOC_NDVI_333M'
     cube = connection.load_collection(collection_id).filter_bbox(**bbox).filter_temporal(date, date)
-    polygon = Polygon(shell=[
-        (7.022705078125007, 51.75432477678571),
-        (7.659912109375007, 51.74333844866071),
-        (7.659912109375007, 51.29289899553571),
-        (7.044677734375007, 51.31487165178571),
-        (7.022705078125007, 51.75432477678571)
-    ])
     if api_version >= "1.0.0":
-        masked = cube.mask_polygon(polygon)
+        masked = cube.mask_polygon(POLYGON01)
     else:
-        masked = cube.mask(polygon=polygon)
+        masked = cube.mask(polygon=POLYGON01)
 
     output_tiff = tmp_path / "masked.tiff"
     masked.download(output_tiff, format='GTIFF')
