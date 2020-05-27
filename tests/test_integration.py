@@ -280,51 +280,43 @@ def test_batch_job_execute_batch(connection, tmp_path):
     assert expected_schema.validate(data)
 
 
+@pytest.mark.timeout(600)
+def test_batch_job_cancel(connection, tmp_path):
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+
+    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+
+    job = timeseries.send_job(out_format="GTIFF", job_options={
+        "driver-memory": "2G",
+        "driver-cores": "2",
+        "executor-memory": "1G",
+        "executor-memoryOverhead": "1G",
+        "executor-cores": "1"
+    })
+    assert job.job_id
+    job.start_job()
+
+    # await job running
+    status = _poll_job_status(
+        job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'],
+        sleep_max=10, max_polls=300
+    )
+    assert status == "running"
+
+    # cancel it
+    job.stop_job()
+    print("stopped job")
+
+    # await job canceled
+    status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+    assert status == "canceled"
 
 
 class Test(TestCase):
 
     _rest_base = get_openeo_base_url()
 
-    @pytest.mark.timeout(600)
-    def test_cancel_batch_job(self):
-        session = openeo.connect(self._rest_base).authenticate_basic(username='dummy', password='dummy123')
-
-        job = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
-            .date_range_filter(start_date="2017-01-01", end_date="2017-11-21") \
-            .zonal_statistics(regions={
-                "type": "Polygon",
-                "coordinates": [[
-                    [7.022705078125007, 51.75432477678571], [7.659912109375007, 51.74333844866071],
-                    [7.659912109375007, 51.29289899553571], [7.044677734375007, 51.31487165178571],
-                    [7.022705078125007, 51.75432477678571]
-                ]]
-            }, func='mean') \
-            .send_job(out_format="GTIFF",job_options={
-            "driver-memory":"2G",
-            "driver-cores": "2",
-            "executor-memory": "1G",
-            "executor-memoryOverhead": "1G",
-            "executor-cores": "1"
-        })
-
-        job.start_job()
-
-        # await job running
-        status = _poll_job_status(
-            job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'],
-            sleep_max=15, max_polls=300
-        )
-        assert status == "running"
-
-        # cancel it
-        job.stop_job()
-        print("stopped job")
-
-        # await job canceled
-        status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
-        assert status == "canceled"
 
     def _assert_geotiff(self, file, is_cog=None):
         # FIXME: check if actually a COG
