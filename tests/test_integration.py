@@ -179,17 +179,40 @@ def test_ndvi_band_math(connection, tmp_path, api_version):
         assert np.isnan(x).sum(axis=None) > 10000
 
 
-def test_sync_cog(connection, tmp_path):
-    out_file = tmp_path / "cog.tiff"
-    (
+def test_cog_synchronous(connection, tmp_path):
+    cube = (
         connection
             .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
             .filter_temporal("2017-11-21", "2017-11-21")
             .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
-            .download(out_file, format="GTIFF", options={"tiled": True})
     )
+
+    out_file = tmp_path / "cog.tiff"
+    cube.download(out_file, format="GTIFF", options={"tiled": True})
     assert_geotiff_basics(out_file)
     assert_cog(out_file)
+
+
+@pytest.mark.timeout(600)
+def test_cog_execute_batch(connection, tmp_path):
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    cube = (
+        connection
+            .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
+            .filter_temporal("2017-11-21", "2017-11-21")
+            .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
+    )
+    output_file = tmp_path / "result.tiff"
+    job = cube.execute_batch(output_file, out_format="GTIFF", tiled=True, job_options={
+        "driver-memory": "3G",
+        "driver-cores": "2",
+        "executor-memory": "1G",
+        "executor-memoryOverhead": "1G",
+        "executor-cores": "1"
+    })
+    assert [j["status"] for j in connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
+    assert_geotiff_basics(output_file)
+    assert_cog(output_file)
 
 
 def _poll_job_status(
@@ -262,36 +285,6 @@ def test_batch_job_execute_batch(connection, tmp_path):
 class Test(TestCase):
 
     _rest_base = get_openeo_base_url()
-
-    @pytest.mark.timeout(600)
-    def test_batch_cog(self):
-        session = openeo.connect(self._rest_base).authenticate_basic(username='dummy', password='dummy123')
-
-        job = session \
-            .imagecollection('PROBAV_L3_S10_TOC_NDVI_333M') \
-            .date_range_filter(start_date="2017-11-01", end_date="2017-11-21") \
-            .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
-            .send_job('GTiff', tiled=True,job_options={
-            "driver-memory":"3G",
-            "driver-cores": "2",
-            "executor-memory": "1G",
-            "executor-memoryOverhead": "1G",
-            "executor-cores": "1"
-        })
-
-        job.start_job()
-
-        status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
-        assert status == "finished"
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_file = "%s/%s.geotiff" % (tempdir, job.job_id)
-
-            job.download_result(output_file)
-            self._assert_geotiff(output_file)
-
-        this_job = [user_job for user_job in session.list_jobs() if user_job['id'] == job.job_id][0]
-        self.assertEqual('finished', this_job['status'])
 
     @pytest.mark.timeout(600)
     def test_cancel_batch_job(self):
