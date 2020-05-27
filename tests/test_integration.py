@@ -46,6 +46,7 @@ TEST_PASSWORD = TEST_USER + "123"
 
 
 POLYGON01 = Polygon(shell=[
+    # bounding box (Dortmund): http://bboxfinder.com/#51.29289899553571,7.022705078125007,51.75432477678571,7.659912109375007
     [7.022705078125007, 51.75432477678571],
     [7.659912109375007, 51.74333844866071],
     [7.659912109375007, 51.29289899553571],
@@ -313,32 +314,39 @@ def test_batch_job_cancel(connection, tmp_path):
     assert status == "canceled"
 
 
+def test_create_wtms_service(connection):
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    s2_fapar = (
+        connection
+            .load_collection('S2_FAPAR_V102_WEBMERCATOR2')
+            .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
+            .filter_temporal(start_date="2019-04-01", end_date="2019-04-01")
+    )
+    res = s2_fapar.tiled_viewing_service(type='WMTS')
+    print("created service", res)
+    assert "service_id" in res
+    assert "url" in res
+    service_id = res["service_id"]
+    service_url = res["url"]
+    assert '/services/{s}'.format(s=service_id) in service_url
+
+    wmts_metadata = connection.get(service_url).json()
+    print("wmts metadata", wmts_metadata)
+    assert "url" in wmts_metadata
+    wmts_url = wmts_metadata["url"]
+    time.sleep(5)  # seems to take a while before the service is proxied
+    get_capabilities = requests.get(wmts_url + '?REQUEST=getcapabilities').text
+    print("getcapabilities", get_capabilities)
+    # the capabilities document should advertise the proxied URL
+    assert "<Capabilities" in get_capabilities
+    assert wmts_url in get_capabilities
+
+
+
 class Test(TestCase):
 
     _rest_base = get_openeo_base_url()
 
-
-    def _assert_geotiff(self, file, is_cog=None):
-        # FIXME: check if actually a COG
-        self.assertEqual("tiff", imghdr.what(file))
-
-    # this test requires proxying to work properly
-    @skip
-    def test_create_wtms_service(self):
-        session = openeo.connect(self._rest_base)
-
-        s2_fapar = session \
-            .imagecollection('S2_FAPAR_V102_WEBMERCATOR2') \
-            .bbox_filter(left=0, right=5, bottom=50, top=55, srs='EPSG:4326') \
-            .date_range_filter(start_date="2019-04-01", end_date="2019-04-01") \
-
-        wmts_url = s2_fapar.tiled_viewing_service(type='WMTS')['url']
-        #returns a url like: http://tsviewer-rest-test.vgt.vito.be/openeo/services/6d6f0dbc-d3e6-4606-9768-2130ad96b01d/service/wmts
-
-        time.sleep(5)  # seems to take a while before the service is proxied
-        get_capabilities = requests.get(wmts_url + '?REQUEST=getcapabilities').text
-
-        self.assertIn(wmts_url, get_capabilities)  # the capabilities document should advertise the proxied URL
 
 
     #This test depends on a secret uuid that we can not check in EP-3050
