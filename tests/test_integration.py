@@ -489,3 +489,28 @@ def test_advanced_cloud_masking(connection, api_version, tmp_path):
     with rasterio.open(out_file) as result_ds:
         with rasterio.open(get_path("reference/cloud_masked.tiff")) as ref_ds:
             assert_array_equal(ref_ds.read(), result_ds.read())
+
+
+def test_reduce_temporal_udf(connection, tmp_path):
+    bbox = {
+        "west": 6.8371137,
+        "north": 50.5647147,
+        "east": 6.8566699,
+        "south": 50.560007,
+        "crs": "EPSG:4326"
+    }
+
+    cube = (
+        connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+            .filter_temporal("2017-03-10", "2017-03-30")
+            .filter_bbox(**bbox)
+    )
+
+    udf_code = read_data("udfs/udf_temporal_slope.py")
+    print(udf_code)
+
+    trend = cube.reduce_temporal_udf(udf_code, runtime="Python", version="latest")
+
+    output_file = tmp_path / "trend.tiff"
+    trend.download(output_file, format="GTIFF")
+    assert_geotiff_basics(output_file, expected_band_count=16)
