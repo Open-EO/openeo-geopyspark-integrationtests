@@ -52,6 +52,9 @@ POLYGON01 = Polygon(shell=[
 ])
 
 
+BATCH_JOB_POLL_INTERVAL = 10
+
+
 def test_health(connection):
     r = connection.get("/health")
     assert r.status_code == 200
@@ -199,21 +202,23 @@ def test_cog_execute_batch(connection, tmp_path):
             .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
     )
     output_file = tmp_path / "result.tiff"
-    job = cube.execute_batch(output_file, out_format="GTIFF", tiled=True, job_options={
-        "driver-memory": "3G",
-        "driver-cores": "2",
-        "executor-memory": "1G",
-        "executor-memoryOverhead": "1G",
-        "executor-cores": "1"
-    })
+    job = cube.execute_batch(
+        output_file, out_format="GTIFF", max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+        tiled=True, job_options={
+            "driver-memory": "3G",
+            "driver-cores": "2",
+            "executor-memory": "1G",
+            "executor-memoryOverhead": "1G",
+            "executor-cores": "1"
+        })
     assert [j["status"] for j in connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
     assert_geotiff_basics(output_file)
     assert_cog(output_file)
 
 
 def _poll_job_status(
-        job: RESTJob, until: Callable = lambda s: s == "finished", max_polls: int = 100,
-        sleep_max: int = 120) -> str:
+        job: RESTJob, until: Callable = lambda s: s == "finished",
+        max_polls: int = 180, sleep_max: int = BATCH_JOB_POLL_INTERVAL) -> str:
     """Helper to poll the status of a job until some condition is reached."""
     sleep = 10.0
     start = time.time()
@@ -266,7 +271,7 @@ def test_batch_job_execute_batch(connection, tmp_path):
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
     output_file = tmp_path / "ts.json"
-    timeseries.execute_batch(output_file)
+    timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL)
 
     with output_file.open("r") as f:
         data = json.load(f)
@@ -294,10 +299,7 @@ def test_batch_job_cancel(connection, tmp_path):
     job.start_job()
 
     # await job running
-    status = _poll_job_status(
-        job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'],
-        sleep_max=10, max_polls=300
-    )
+    status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'], )
     assert status == "running"
 
     # cancel it
