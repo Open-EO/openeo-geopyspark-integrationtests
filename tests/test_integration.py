@@ -1,25 +1,22 @@
 import imghdr
 import json
-import tempfile
-import time
 from pathlib import Path
+import time
 from typing import Callable, Union
-from unittest import TestCase, skip
 
 import numpy as np
-import openeo
+from numpy.testing import assert_array_equal
 import pytest
 import rasterio
 import requests
 import schema
-from numpy.testing import assert_array_equal
+from shapely.geometry import shape, Polygon
+
+import openeo
 from openeo.rest.datacube import DataCube
 from openeo.rest.imagecollectionclient import ImageCollectionClient
 from openeo.rest.job import RESTJob
-from shapely.geometry import shape, Polygon
-
 from .cloudmask import create_advanced_mask, create_simple_mask
-from .conftest import get_openeo_base_url
 from .data import get_path, read_data
 
 
@@ -342,33 +339,25 @@ def test_create_wtms_service(connection):
     assert wmts_url in get_capabilities
 
 
+@pytest.mark.skip(reason="SENTINEL1_GAMMA0_SENTINELHUB requires secret #EP-3050")
+def test_ep3048_sentinel1_udf(connection):
+    # http://bboxfinder.com/#-4.745000,-55.700000,-4.740000,-55.695000
+    N, E, S, W = (-4.740, -55.695, -4.745, -55.7)
+    polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
 
-class Test(TestCase):
+    udf_code = read_data('udfs/smooth_savitsky_golay.py')
 
-    _rest_base = get_openeo_base_url()
-
-
-
-    #This test depends on a secret uuid that we can not check in EP-3050
-    @skip
-    def test_ep3048_sentinel1_udf(self):
-        session = openeo.connect(self._rest_base)
-        N, E, S, W = (-4.740, -55.695, -4.745, -55.7)
-        with (Path(__file__).parent / 'data/udfs/smooth_savitsky_golay.py').open('r') as f:
-            udf_code = f.read()
-
-        polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
-        ts = (
-            session.imagecollection("SENTINEL1_GAMMA0_SENTINELHUB")
-                .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
-                .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
-                .band_filter([0])
-                .apply_dimension(udf_code, runtime="Python")
-                .polygonal_mean_timeseries(polygon)
-                .execute()
-        )
-        assert isinstance(ts, dict)
-        assert all(k.startswith('2019-05-') for k in ts.keys())
+    ts = (
+        connection.load_collection("SENTINEL1_GAMMA0_SENTINELHUB")
+            .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
+            .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
+            .filter_bands([0])
+            .apply_dimension(udf_code, runtime="Python")
+            .polygonal_mean_timeseries(polygon)
+            .execute()
+    )
+    assert isinstance(ts, dict)
+    assert all(k.startswith('2019-05-') for k in ts.keys())
 
 
 def test_load_collection_from_disk(connection, tmp_path):
