@@ -311,6 +311,7 @@ def test_batch_job_cancel(connection, tmp_path):
     assert status == "canceled"
 
 
+@pytest.mark.skip(reason="Requires proxying to work properly")
 def test_create_wtms_service(connection):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     s2_fapar = (
