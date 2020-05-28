@@ -5,6 +5,6 @@ from openeo_driver.save_result import JSONResult
 @custom_process
 def foobar(args: dict, viewingParameters: dict):
     return JSONResult(data={
-        "args": list(args.keys()),
+        "args": sorted(args.keys()),
         "msg": "hello world",
     })

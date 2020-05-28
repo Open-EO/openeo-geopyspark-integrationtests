@@ -515,3 +515,19 @@ def test_reduce_temporal_udf(connection, tmp_path):
     output_file = tmp_path / "trend.tiff"
     trend.download(output_file, format="GTIFF")
     assert_geotiff_basics(output_file, expected_band_count=16)
+
+
+@pytest.mark.requires_custom_processes
+def test_custom_processes(connection):
+    process_graph = {
+        "foobar1": {
+            "process_id": "foobar",
+            "arguments": {"size": 123, "color": "green"},
+            "result": True,
+        }
+    }
+    res = connection.execute(process_graph)
+    assert res == {
+        "args": ["color", "size"],
+        "msg": "hello world",
+    }
