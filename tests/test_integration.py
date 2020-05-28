@@ -1,6 +1,7 @@
 import imghdr
 import json
 from pathlib import Path
+import re
 import time
 from typing import Callable, Union
 
@@ -12,7 +13,6 @@ import requests
 import schema
 from shapely.geometry import shape, Polygon
 
-import openeo
 from openeo.rest.datacube import DataCube
 from openeo.rest.imagecollectionclient import ImageCollectionClient
 from openeo.rest.job import RESTJob
@@ -28,19 +28,24 @@ def _dump_process_graph(cube: Union[DataCube, ImageCollectionClient], tmp_path: 
 
 def _parse_bboxfinder_com(url: str) -> dict:
     """Parse a bboxfinder.com URL to bbox dict"""
+    # TODO: move this kind of functionality to python client?
     coords = [float(x) for x in url.split('#')[-1].split(",")]
     return {"south": coords[0], "west": coords[1], "north": coords[2], "east": coords[3], "crs": "EPSG:4326"}
+
+
+def _polygon_bbox(polygon: Polygon) -> dict:
+    """Extract bbox dict from given polygon"""
+    coords = polygon.bounds
+    return {"south": coords[1], "west": coords[0], "north": coords[3], "east": coords[2], "crs": "EPSG:4326"}
 
 
 BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.1028")
 BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
 BBOX_NIEUWPOORT = _parse_bboxfinder_com("http://bboxfinder.com/#51.05,2.60,51.20,2.90")
 
-
 # TODO: real authenticaion?
 TEST_USER = "geopyspark-integrationtester"
 TEST_PASSWORD = TEST_USER + "123"
-
 
 POLYGON01 = Polygon(shell=[
     # bounding box (Dortmund): http://bboxfinder.com/#51.29289899553571,7.022705078125007,51.75432477678571,7.659912109375007
@@ -50,7 +55,6 @@ POLYGON01 = Polygon(shell=[
     [7.044677734375007, 51.31487165178571],
     [7.022705078125007, 51.75432477678571]
 ])
-
 
 BATCH_JOB_POLL_INTERVAL = 10
 
@@ -531,3 +535,66 @@ def test_custom_processes(connection):
         "args": ["color", "size"],
         "msg": "hello world",
     }
+
+
+@pytest.mark.parametrize(["cid", "expected_dates"], [
+    (
+            'S2_FAPAR_V102_WEBMERCATOR2',
+            [
+                '2017-11-01T00:00:00', '2017-11-02T00:00:00', '2017-11-04T00:00:00', '2017-11-06T00:00:00',
+                '2017-11-07T00:00:00', '2017-11-09T00:00:00', '2017-11-11T00:00:00', '2017-11-12T00:00:00',
+                '2017-11-14T00:00:00', '2017-11-16T00:00:00', '2017-11-17T00:00:00', '2017-11-19T00:00:00',
+                '2017-11-21T00:00:00'
+            ]
+    ),
+    (
+            'PROBAV_L3_S10_TOC_NDVI_333M',
+            ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
+    ),
+])
+def test_polygonal_timeseries(connection, tmp_path, cid, expected_dates, api_version):
+    expected_dates = sorted(expected_dates)
+    polygon = POLYGON01
+    bbox = _polygon_bbox(polygon)
+    cube = (
+        connection
+            .load_collection(cid)
+            .filter_temporal("2017-11-01", "2017-11-21")
+            .filter_bbox(**bbox)
+    )
+    ts_mean = cube.polygonal_mean_timeseries(polygon).execute()
+    print("mean", ts_mean)
+    ts_median = cube.polygonal_median_timeseries(polygon).execute()
+    print("median", ts_median)
+    ts_sd = cube.polygonal_standarddeviation_timeseries(polygon).execute()
+    print("sd", ts_sd)
+
+    # TODO: see https://jira.vito.be/browse/EP-3434
+    assert sorted(ts_mean.keys()) == expected_dates
+    assert sorted(ts_median.keys()) == [d + "Z" for d in expected_dates]
+    assert sorted(ts_sd.keys()) == [d + "Z" for d in expected_dates]
+
+    # Only check for a subset of dates if there are a lot
+    for date in expected_dates[::max(1, len(expected_dates) // 5)]:
+        output_file = tmp_path / "ts_{d}.tiff".format(d=re.sub(r'[^0-9]', '', date))
+        print("Evaluating date {d}, downloading to {p}".format(d=date, p=output_file))
+        date_cube = connection.load_collection(cid).filter_temporal(date, date).filter_bbox(**bbox)
+        if api_version.at_least("1.0.0"):
+            date_cube = date_cube.mask_polygon(polygon)
+        else:
+            date_cube = date_cube.mask(polygon=polygon)
+        date_cube.download(output_file, format="GTIFF")
+        with rasterio.open(output_file) as ds:
+            data = ds.read(masked=True)
+            band_count = ds.count
+            print("bands {b}, masked {m:.2f}%".format(b=band_count, m=100.0 * data.mask.mean()))
+
+            if data.count() == 0:
+                assert ts_mean[date] == [[None] * band_count]
+                assert ts_median[date + "Z"] == [[None] * band_count]
+                assert ts_sd[date + "Z"] == [[None] * band_count]
+            else:
+                rtol = 0.02
+                np.testing.assert_allclose(np.ma.mean(data, axis=(-1, -2)), ts_mean[date][0], rtol=rtol)
+                np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median[date + "Z"][0], rtol=rtol)
+                np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd[date + "Z"][0], rtol=rtol)

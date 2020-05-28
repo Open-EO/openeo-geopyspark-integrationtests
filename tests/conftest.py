@@ -6,7 +6,7 @@ import openeo
 from openeo.capabilities import ComparableVersion
 
 
-def get_openeo_base_url(version: str = "0.4.0"):
+def get_openeo_base_url(version: str = "1.0.0"):
     try:
         endpoint = os.environ["ENDPOINT"].rstrip("/")
     except Exception:
