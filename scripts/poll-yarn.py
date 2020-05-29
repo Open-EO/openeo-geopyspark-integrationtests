@@ -26,8 +26,12 @@ def main(argv: List[str]):
     elif cmd == 'get-webapp-url':
         app = App.from_job_name(job_name=job_name, states=["RUNNING"])
         print(app.get_webapp_url())
+    elif cmd == 'kill-when-running':
+        try:
+            App.from_job_name(job_name=job_name, states=["RUNNING"]).kill()
+        except AppNotFoundException as e:
+            _log.info("No running app {n!}: {e!}".format(n=job_name, e=e))
     else:
-        # TODO: define more commands?
         raise ValueError(cmd)
 
 
@@ -67,6 +71,10 @@ class Yarn:
         assert p.returncode == 0
 
 
+class AppNotFoundException(Exception):
+    pass
+
+
 class App:
     """Inspect OpenEO webapp state."""
 
@@ -81,9 +89,9 @@ class App:
         _log.info("Looking up app id for job name {j!r}".format(j=job_name))
         apps = [line for line in yarn.list_applications(states=states) if line[1] == job_name]
         if len(apps) == 0:
-            raise Exception("No app found with name {j!r}".format(j=job_name))
+            raise AppNotFoundException("No app found with name {j!r} and state in {s!r}".format(j=job_name, s=states))
         if len(apps) > 1:
-            raise Exception("Multiple apps found with name {j!r}: {a}".format(j=job_name, a=apps))
+            raise Exception("Multiple apps found with name {j!r}: {a!r}".format(j=job_name, a=apps))
         _log.info("Found this app: {a!r}".format(a=apps[0]))
         return cls(app_id=apps[0][0], yarn=yarn)
 
@@ -131,6 +139,10 @@ class App:
         url = re.search(r"Listening at: (\S+)", listen_logs[0]).group(1)
         _log.info("Found webapp url in logs of app {a!r}: {u!r}".format(a=self.app_id, u=url))
         return url
+
+    def kill(self):
+        stdout = run_command(['yarn', 'application', '-kill', self.app_id]).stdout
+        _log.info("Kill stdout: {s!r}".format(s=stdout))
 
 
 if __name__ == '__main__':

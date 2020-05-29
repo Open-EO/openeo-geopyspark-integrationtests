@@ -8,7 +8,6 @@ def pre_test_script = ''
 def pylint_results = 'test_results/pylint.out'
 def pytest_results = 'test_results/pytest_results.xml'
 def jobName = "OpenEO-GeoPySpark-IntegrationTests-${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
-def appId = ""
 def deploy = ("${BRANCH_NAME}" == 'master') ? true : false
 def pylint = false
 def run_tests = true
@@ -95,10 +94,6 @@ pipeline {
       stage('Deploy on Spark') {
         steps{
             sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
-            script{
-              appId = sh(returnStdout: true, script: "python3.5 scripts/poll-yarn.py get-app-id ${jobName}").trim()
-            }
-            echo "Spark Job started: ${appId}"
         }
       }
       stage('Wait for Spark job'){
@@ -138,10 +133,7 @@ pipeline {
       // Record the test results in Jenkins
       always {
         script{
-            if( appId != "" ) {
-                echo "Killing running Spark application: ${appId}"
-                sh "yarn application -kill ${appId} || true"
-            }
+            sh "python3.5 scripts/poll-yarn.py kill-when-running ${jobName}"
             python.recordTestResults()
         }
       }
