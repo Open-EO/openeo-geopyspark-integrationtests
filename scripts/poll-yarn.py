@@ -3,11 +3,11 @@ Script to poll job status in YARN
 """
 
 import logging
+import re
 import subprocess
 import sys
-from typing import List
 import time
-import re
+from typing import List, Iterator
 
 _log = logging.getLogger('poll-yarn')
 
@@ -15,8 +15,12 @@ _log = logging.getLogger('poll-yarn')
 def main(argv: List[str]):
     logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
     # Simple interface for now
-    cmd, job_name = argv
-    if cmd == 'wait-for-webapp':
+    _log.info("argv: {a!r}".format(a=argv))
+    cmd, job_name = argv[1:]
+    if cmd == 'get-app-id':
+        app = App.from_job_name(job_name=job_name, states=["SUBMITTED", "ACCEPTED", "RUNNING"])
+        print(app.app_id)
+    elif cmd == 'wait-for-webapp':
         app = App.from_job_name(job_name=job_name, states=["SUBMITTED", "ACCEPTED", "RUNNING"])
         app.wait_for_listening_webapp()
     elif cmd == 'get-webapp-url':
@@ -37,6 +41,7 @@ class Yarn:
 
     @staticmethod
     def list_applications(states: List[str] = None) -> List[List[str]]:
+        """List all YARN applications"""
         states = states or ['RUNNING']
         command = ['yarn', 'application', '-list', '-appStates', ','.join(s.upper() for s in states)]
         p = run_command(command)
@@ -47,11 +52,13 @@ class Yarn:
 
     @staticmethod
     def get_application_status(app_id: str) -> str:
+        """Get YARN app status"""
         stdout = run_command(['yarn', 'application', '-status', app_id]).stdout
         return re.search(r'\s+State\s*:\s*(\w+)', stdout).group(1)
 
     @staticmethod
-    def read_application_logs(app_id: str) -> str:
+    def read_application_logs(app_id: str) -> Iterator[str]:
+        """Stream the application logs"""
         command = ['yarn', 'logs', '-applicationId', app_id, '-log_files', 'stdout']
         _log.info("Running {c!r}".format(c=command))
         with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as p:
@@ -69,6 +76,7 @@ class App:
 
     @classmethod
     def from_job_name(cls, job_name: str, states=List[str]) -> 'App':
+        """Get YARN app listing and get app id corresponding with given job name."""
         yarn = Yarn()
         _log.info("Looking up app id for job name {j!r}".format(j=job_name))
         apps = [line for line in yarn.list_applications(states=states) if line[1] == job_name]
@@ -126,4 +134,4 @@ class App:
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main(sys.argv)
