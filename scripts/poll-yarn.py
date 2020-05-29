@@ -79,28 +79,33 @@ class App:
     def wait_for_listening_webapp(self, timeout=30 * 60, sleep=20) -> str:
         start = time.time()
 
+        def elapsed():
+            return time.time() - start
+
         _log.info("Waiting for app {a!r} to reach state RUNNING".format(a=self.app_id))
         while True:
             status = self.yarn.get_application_status(app_id=self.app_id)
             if status == "RUNNING":
-                _log.info("Reached status RUNNING (elapsed: {e}s)".format(e=time.time() - start))
+                _log.info("App {a!r} reached status RUNNING (elapsed: {e:.1f}s)".format(a=self.app_id, e=elapsed()))
                 break
             elif status not in ["SUBMITTED", "ACCEPTED"]:
                 raise ValueError(status)
-            elif time.time() > start + timeout:
+            elif elapsed() > timeout:
                 raise TimeoutError("timeout")
-            _log.info("Not RUNNING yet, instead: {s!r}. Will sleep {p}s.".format(s=status, p=sleep))
+            _log.info("App {a!r} not RUNNING yet after {e:.1f}s, instead: {s!r}. Will sleep {p}s.".format(
+                a=self.app_id, s=status, e=elapsed(), p=sleep)
+            )
             time.sleep(sleep)
 
         _log.info("Waiting for webapp to start listening for connections")
         while True:
             try:
                 url = self.get_webapp_url()
-                _log.info("Found webapp url {u!r} (elapsed: {e}s)".format(u=url, e=time.time() - start))
+                _log.info("Found webapp url {u!r} (elapsed: {e:.1f}s)".format(u=url, e=elapsed()))
                 return url
             except ValueError:
-                _log.info("No webapp url found yet")
-            if time.time() > start + timeout:
+                _log.info("No webapp url found yet after {e:.1f}s".format(e=elapsed()))
+            if elapsed() > timeout:
                 raise TimeoutError("timeout")
             _log.info("Will sleep {p}s.".format(p=sleep))
             time.sleep(sleep)
