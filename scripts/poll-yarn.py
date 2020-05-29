@@ -19,6 +19,9 @@ def main(argv: List[str]):
     if cmd == 'wait-for-webapp':
         app = App.from_job_name(job_name=job_name, states=["SUBMITTED", "ACCEPTED", "RUNNING"])
         app.wait_for_listening_webapp()
+    elif cmd == 'get-webapp-url':
+        app = App.from_job_name(job_name=job_name, states=["RUNNING"])
+        print(app.get_webapp_url())
     else:
         # TODO: define more commands?
         raise ValueError(cmd)
@@ -38,7 +41,7 @@ class Yarn:
         command = ['yarn', 'application', '-list', '-appStates', ','.join(s.upper() for s in states)]
         p = run_command(command)
         app_lines = [line.split() for line in p.stdout.split('\n') if line.startswith('application_')]
-        _log.info("Found {c} apps".format(c=len(app_lines)))
+        _log.info("Found {c} apps with states {s!r}".format(c=len(app_lines), s=states))
         # TODO: do a bit of parsing?
         return app_lines
 
@@ -114,8 +117,12 @@ class App:
         """Get 'listening' url of openeo web app from logs"""
         listen_logs = [line for line in self.yarn.read_application_logs(self.app_id) if 'Listening at' in line]
         if len(listen_logs) != 1:
-            raise ValueError("Expected 1 'listening at' log line but found {l}".format(l=listen_logs))
-        return re.search(r"Listening at: (\S+)", listen_logs[0]).group(1)
+            raise ValueError("Expected 1 'Listening at' log line in logs of {a!r} but found {l!r}".format(
+                a=self.app_id, l=listen_logs)
+            )
+        url = re.search(r"Listening at: (\S+)", listen_logs[0]).group(1)
+        _log.info("Found webapp url in logs of app {a!r}: {u!r}".format(a=self.app_id, u=url))
+        return url
 
 
 if __name__ == '__main__':

@@ -118,7 +118,7 @@ pipeline {
         }
         steps {
           script{
-            endpoint = sh(returnStdout: true, script: "scripts/endpoint.sh ${jobName}").trim()
+            endpoint = sh(returnStdout: true, script: "python3.5 scripts/poll-yarn.py get-webapp-url ${jobName}").trim()
             echo "ENDPOINT=${endpoint}"
             python.test(docker_registry, python_version, 'tests', true, '', ["ENDPOINT=${endpoint}"], pre_test_script)
           }
