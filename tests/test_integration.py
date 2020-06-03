@@ -57,6 +57,7 @@ POLYGON01 = Polygon(shell=[
 ])
 
 BATCH_JOB_POLL_INTERVAL = 10
+BATCH_JOB_TIMEOUT = 20 * 60
 
 
 def test_health(connection):
@@ -196,7 +197,7 @@ def test_cog_synchronous(connection, tmp_path):
     assert_cog(out_file)
 
 
-@pytest.mark.timeout(600)
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_cog_execute_batch(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     cube = (
@@ -243,7 +244,7 @@ def _poll_job_status(
     raise RuntimeError("reached max polls {m}".format(m=max_polls))
 
 
-@pytest.mark.timeout(600)
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_basic(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
@@ -268,7 +269,7 @@ def test_batch_job_basic(connection, tmp_path):
     assert expected_schema.validate(data)
 
 
-@pytest.mark.timeout(600)
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_execute_batch(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
@@ -285,7 +286,7 @@ def test_batch_job_execute_batch(connection, tmp_path):
     assert expected_schema.validate(data)
 
 
-@pytest.mark.timeout(600)
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_cancel(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
