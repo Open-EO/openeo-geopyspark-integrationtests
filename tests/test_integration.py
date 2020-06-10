@@ -599,3 +599,15 @@ def test_polygonal_timeseries(connection, tmp_path, cid, expected_dates, api_ver
                 np.testing.assert_allclose(np.ma.mean(data, axis=(-1, -2)), ts_mean[date][0], rtol=rtol)
                 np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median[date + "Z"][0], rtol=rtol)
                 np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd[date + "Z"][0], rtol=rtol)
+
+
+def test_ndvi(connection, tmp_path):
+    ndvi = connection.load_collection(
+        "CGS_SENTINEL2_RADIOMETRY_V102_001",
+        spatial_extent={"west": 5.027, "east": 5.0438, "south": 51.1974, "north": 51.2213},
+        temporal_extent=["2020-04-05", "2020-04-05"]
+    ).ndvi()
+
+    output_tiff = tmp_path / "ndvi.tiff"
+    ndvi.download(output_tiff, format='GTIFF')
+    assert_geotiff_basics(output_tiff, expected_band_count=1)
