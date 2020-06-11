@@ -611,3 +611,20 @@ def test_ndvi(connection, tmp_path):
     output_tiff = tmp_path / "ndvi.tiff"
     ndvi.download(output_tiff, format='GTIFF')
     assert_geotiff_basics(output_tiff, expected_band_count=1)
+
+
+def test_normalized_difference(connection, tmp_path):
+    toc = connection.load_collection(
+        "TERRASCOPE_S2_TOC_V2",
+        spatial_extent={"west": 5.027, "east": 5.0438, "south": 51.1974, "north": 51.2213},
+        temporal_extent=["2020-04-05", "2020-04-05"]
+    )
+
+    nir = toc.band('TOC-B08_10M')
+    red = toc.band('TOC-B04_10M')
+
+    ndvi = nir.normalized_difference(red)
+
+    output_tiff = tmp_path / "normalized_difference_ndvi.tiff"
+    ndvi.download(output_tiff, format='GTIFF')
+    assert_geotiff_basics(output_tiff, expected_band_count=1)
