@@ -67,7 +67,7 @@ def batch_default_options(driverMemoryOverhead="1G"):
             "executor-memory": "1G",
             "executor-memoryOverhead": "1G",
             "executor-cores": "1",
-            "queue": "geoviewer"
+            "queue": "lowlatency"
         }
 
 def test_health(connection):
