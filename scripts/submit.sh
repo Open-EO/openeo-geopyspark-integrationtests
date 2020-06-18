@@ -25,7 +25,7 @@ ${SPARK_HOME}/bin/spark-submit \
  --master yarn --deploy-mode cluster \
  --queue lowlatency \
  --principal jenkins@VGT.VITO.BE --keytab ${HOME}/jenkins.keytab \
- --driver-memory 3G \
+ --driver-memory 2G \
  --conf spark.executor.cores=2 \
  --conf spark.driver.memoryOverhead=2g \
  --conf spark.executor.memoryOverhead=512m \
