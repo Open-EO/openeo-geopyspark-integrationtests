@@ -83,7 +83,7 @@ def test_collections(connection):
 
 def test_terrascope_download_latlon(connection, tmp_path):
     s2_fapar = (
-        connection.load_collection("SENTINEL2_NDVI_TERRASCOPE")
+        connection.load_collection("TERRASCOPE_S2_NDVI_V2")
             # bounding box: http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
             .filter_bbox(west=5.027, east=5.0438, south=51.1974, north=51.2213, crs="EPSG:4326")
@@ -95,7 +95,7 @@ def test_terrascope_download_latlon(connection, tmp_path):
 
 def test_terrascope_download_webmerc(connection, tmp_path):
     s2_fapar = (
-        connection.load_collection("SENTINEL2_NDVI_TERRASCOPE")
+        connection.load_collection("TERRASCOPE_S2_NDVI_V2")
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
             .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
     )
