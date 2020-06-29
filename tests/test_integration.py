@@ -626,3 +626,21 @@ def test_normalized_difference(connection, tmp_path):
     output_tiff = tmp_path / "normalized_difference_ndvi.tiff"
     ndvi.download(output_tiff, format='GTIFF')
     assert_geotiff_basics(output_tiff, expected_band_count=1)
+
+
+def test_udp(connection100):
+    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+
+    toc = connection100.load_collection("TERRASCOPE_S2_TOC_V2")
+    udp = toc.save_user_defined_process(user_defined_process_id='toc')
+
+    udp_details = udp.describe()
+
+    assert udp_details['id'] == 'toc'
+    assert 'loadcollection1' in udp_details['process_graph']
+
+    udp.delete()
+
+    udps = connection100.list_user_defined_processes()
+
+    assert not udps
