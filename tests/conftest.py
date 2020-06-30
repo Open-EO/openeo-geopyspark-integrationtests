@@ -36,4 +36,4 @@ def connection(api_base_url) -> openeo.Connection:
 
 @pytest.fixture
 def connection100() -> openeo.Connection:
-    return openeo.connect(get_openeo_base_url())
+    return openeo.connect(get_openeo_base_url("1.0.0"))

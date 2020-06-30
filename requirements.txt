@@ -1,4 +1,4 @@
-openeo>=0.4.0a1.*
+openeo>=0.4.1a1.*
 openeo_driver>=0.3.0a1.*
 openeo_geopyspark>=0.1.1a1.*
 openeo-udf>=0.0.9.post0

@@ -13,9 +13,10 @@ import requests
 import schema
 from shapely.geometry import shape, Polygon
 
-from openeo.rest.datacube import DataCube
+from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.imagecollectionclient import ImageCollectionClient
 from openeo.rest.job import RESTJob
+from openeo.rest.udp import Parameter
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
 
@@ -628,7 +629,7 @@ def test_normalized_difference(connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=1)
 
 
-def test_udp(connection100):
+def test_udp_crud(connection100):
     connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
     toc = connection100.load_collection("TERRASCOPE_S2_TOC_V2")
@@ -645,3 +646,46 @@ def test_udp(connection100):
     udps = connection100.list_user_defined_processes()
 
     assert not udps
+
+
+def test_udp_usage_simple(connection100, tmp_path):
+    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    # Store User Defined Process (UDP)
+    flatten_bands = {
+        "reduce1": {
+            "process_id": "reduce_dimension",
+            "arguments": {
+                "data": {"from_parameter": "data"},
+                "dimension": "bands",
+                "reducer": {
+                    "process_graph": {
+                        "mean": {
+                            "process_id": "mean",
+                            "arguments": {
+                                "data": {"from_parameter": "data"}
+                            },
+                            "result": True,
+                        }
+                    }
+                },
+            },
+            "result": True,
+        }
+    }
+    connection100.save_user_defined_process(
+        "flatten_bands", flatten_bands, parameters=[
+            Parameter(name="data", description="A data cube.", schema={"type": "object", "subtype": "raster-cube"})
+        ]
+    )
+    # Use UDP
+    date = "2020-06-26"
+    cube = (
+        connection100.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+            .filter_bands(["red", "green", "blue", "nir"])
+            .filter_temporal(date, date)
+            .filter_bbox(**BBOX_MOL)
+            .process("flatten_bands", arguments={"data": THIS})
+    )
+    output_tiff = tmp_path / "mol.tiff"
+    cube.download(output_tiff, format='GTIFF')
+    assert_geotiff_basics(output_tiff, expected_band_count=1)
