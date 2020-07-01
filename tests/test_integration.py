@@ -643,9 +643,9 @@ def test_udp_crud(connection100):
 
     udp.delete()
 
-    udps = connection100.list_user_defined_processes()
+    user_udp_ids = [udp['id'] for udp in connection100.list_user_defined_processes()]
 
-    assert not udps
+    assert 'toc' not in user_udp_ids
 
 
 def test_udp_usage_simple(connection100, tmp_path):
