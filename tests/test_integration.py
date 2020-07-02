@@ -58,11 +58,11 @@ POLYGON01 = Polygon(shell=[
 ])
 
 BATCH_JOB_POLL_INTERVAL = 10
-BATCH_JOB_TIMEOUT = 20 * 60
+BATCH_JOB_TIMEOUT = 40 * 60
 
-def batch_default_options(driverMemoryOverhead="1G"):
+def batch_default_options(driverMemoryOverhead="1G", driverMemory="2G"):
     return {
-            "driver-memory": "3G",
+            "driver-memory": driverMemory,
             "driver-memoryOverhead": driverMemoryOverhead,
             "driver-cores": "2",
             "executor-memory": "1G",
@@ -215,12 +215,12 @@ def test_cog_execute_batch(connection, tmp_path):
         connection
             .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
             .filter_temporal("2017-11-21", "2017-11-21")
-            .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
+            .filter_bbox(west=2, south=51, east=3, north=52, crs='EPSG:4326')
     )
     output_file = tmp_path / "result.tiff"
     job = cube.execute_batch(
         output_file, out_format="GTIFF", max_poll_interval=BATCH_JOB_POLL_INTERVAL,
-        tiled=True, job_options=batch_default_options(driverMemoryOverhead="2G"))
+        tiled=True, job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"))
     assert [j["status"] for j in connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
     assert_geotiff_basics(output_file)
     assert_cog(output_file)
@@ -255,7 +255,7 @@ def test_batch_job_basic(connection, tmp_path):
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
-    job = timeseries.send_job(job_options=batch_default_options())
+    job = timeseries.send_job(job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"))
     assert job.job_id
 
     job.start_job()
@@ -281,7 +281,7 @@ def test_batch_job_execute_batch(connection, tmp_path):
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
     output_file = tmp_path / "ts.json"
-    timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options())
+    timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"))
 
     with output_file.open("r") as f:
         data = json.load(f)
@@ -298,7 +298,7 @@ def test_batch_job_cancel(connection, tmp_path):
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
-    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options())
+    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="512m"))
     assert job.job_id
     job.start_job()
 
