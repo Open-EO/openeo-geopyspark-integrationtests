@@ -648,7 +648,69 @@ def test_udp_crud(connection100):
     assert 'toc' not in user_udp_ids
 
 
-def test_udp_usage_simple(connection100, tmp_path):
+def test_udp_usage_blur(connection100, tmp_path):
+    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    # Store User Defined Process (UDP)
+    blur = {
+        "blur": {
+            "process_id": "apply_kernel",
+            "arguments": {
+                "data": {"from_parameter": "data"},
+                "kernel": [[1, 1, 1], [1, 2, 1], [1, 1, 1]],
+                "factor": 0.1,
+            },
+            "result": True,
+        },
+    }
+    connection100.save_user_defined_process("blur", blur)
+    # Use UDP
+    date = "2020-06-26"
+    cube = (
+        connection100.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+            .filter_bands(["red", "green"])
+            .filter_temporal(date, date)
+            .filter_bbox(**BBOX_MOL)
+            .process("blur", arguments={"data": THIS})
+    )
+    output_tiff = tmp_path / "mol.tiff"
+    cube.download(output_tiff, format='GTIFF')
+    assert_geotiff_basics(output_tiff, expected_band_count=2)
+    # TODO: check resulting data?
+
+
+def test_udp_usage_blur_parameter_default(connection100, tmp_path):
+    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    # Store User Defined Process (UDP)
+    blur = {
+        "blur": {
+            "process_id": "apply_kernel",
+            "arguments": {
+                "data": {"from_parameter": "data"},
+                "kernel": [[1, 1, 1], [1, 2, 1], [1, 1, 1]],
+                "factor": {"from_parameter": "scale"},
+            },
+            "result": True,
+        },
+    }
+    connection100.save_user_defined_process("blur", blur, parameters=[
+        Parameter("scale", description="factor", schema="number", default=0.1)
+    ])
+    # Use UDP
+    date = "2020-06-26"
+    cube = (
+        connection100.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+            .filter_bands(["red", "green"])
+            .filter_temporal(date, date)
+            .filter_bbox(**BBOX_MOL)
+            .process("blur", arguments={"data": THIS})
+    )
+    output_tiff = tmp_path / "mol.tiff"
+    cube.download(output_tiff, format='GTIFF')
+    assert_geotiff_basics(output_tiff, expected_band_count=2)
+    # TODO: check resulting data?
+
+
+def test_udp_usage_reduce(connection100, tmp_path):
     connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
     # Store User Defined Process (UDP)
     flatten_bands = {
@@ -674,7 +736,7 @@ def test_udp_usage_simple(connection100, tmp_path):
     }
     connection100.save_user_defined_process(
         "flatten_bands", flatten_bands, parameters=[
-            Parameter(name="data", description="A data cube.", schema={"type": "object", "subtype": "raster-cube"})
+            Parameter.raster_cube(name="data")
         ]
     )
     # Use UDP
@@ -689,3 +751,4 @@ def test_udp_usage_simple(connection100, tmp_path):
     output_tiff = tmp_path / "mol.tiff"
     cube.download(output_tiff, format='GTIFF')
     assert_geotiff_basics(output_tiff, expected_band_count=1)
+    # TODO: check resulting data?
