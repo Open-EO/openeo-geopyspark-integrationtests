@@ -95,7 +95,7 @@ class App:
         _log.info("Found this app: {a!r}".format(a=apps[0]))
         return cls(app_id=apps[0][0], yarn=yarn)
 
-    def wait_for_listening_webapp(self, timeout=30 * 60, sleep=20) -> str:
+    def wait_for_listening_webapp(self, timeout=45 * 60, sleep=20) -> str:
         start = time.time()
 
         def elapsed():
