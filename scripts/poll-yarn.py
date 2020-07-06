@@ -28,9 +28,9 @@ def main(argv: List[str]):
         print(app.get_webapp_url())
     elif cmd == 'kill-when-running':
         try:
-            App.from_job_name(job_name=job_name, states=["RUNNING"]).kill()
+            App.from_job_name(job_name=job_name, states=["ACCEPTED", "RUNNING"]).kill()
         except AppNotFoundException as e:
-            _log.info("No running app {n!}: {e!}".format(n=job_name, e=e))
+            _log.info("No running app {n!r}: {e!r}".format(n=job_name, e=e))
     else:
         raise ValueError(cmd)
 
