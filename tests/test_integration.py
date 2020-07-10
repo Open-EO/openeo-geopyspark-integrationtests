@@ -227,26 +227,26 @@ def test_cog_execute_batch(connection, tmp_path):
 
 
 def _poll_job_status(
-        job: RESTJob, until: Callable = lambda s: s == "finished",
-        max_polls: int = 180, sleep_max: int = BATCH_JOB_POLL_INTERVAL) -> str:
+        job: RESTJob, until: Callable = lambda s: s == "fimax_pollsnished",
+        sleep: int = BATCH_JOB_POLL_INTERVAL, max_poll_time=30 * 60) -> str:
     """Helper to poll the status of a job until some condition is reached."""
-    sleep = 10.0
     start = time.time()
-    for p in range(max_polls):
-        elapsed = time.time() - start
+
+    def elapsed():
+        return time.time() - start
+
+    while elapsed() < max_poll_time:
         try:
             status = job.describe_job()['status']
         except requests.ConnectionError as e:
-            print("job {j} status poll {p} ({e:.2f}s) failed: {x}".format(j=job.job_id, p=p, e=elapsed, x=e))
+            print("job {j} status poll ({e:.2f}s) failed: {x}".format(j=job.job_id, e=elapsed(), x=e))
         else:
-            print("job {j} status poll {p} ({e:.2f}s): {s}".format(j=job.job_id, p=p, e=elapsed, s=status))
+            print("job {j} status poll ({e:.2f}s): {s}".format(j=job.job_id, e=elapsed(), s=status))
             if until(status):
                 return status
         time.sleep(sleep)
-        # Adapt sleep time
-        sleep = min(sleep * 1.1, sleep_max)
 
-    raise RuntimeError("reached max polls {m}".format(m=max_polls))
+    raise RuntimeError("reached max poll time: {e} > {m}".format(e=elapsed(), m=max_poll_time))
 
 
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
@@ -303,7 +303,7 @@ def test_batch_job_cancel(connection, tmp_path):
     job.start_job()
 
     # await job running
-    status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'], )
+    status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'], sleep=3)
     assert status == "running"
 
     # cancel it
