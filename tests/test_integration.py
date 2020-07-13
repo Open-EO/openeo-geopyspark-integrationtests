@@ -101,7 +101,7 @@ def test_terrascope_download_webmerc(connection, tmp_path):
             .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
     )
     out_file = tmp_path / "/tmp/s2_fapar_webmerc.geotiff"
-    s2_fapar.download(out_file, format="geotiff")
+    s2_fapar.download(out_file, format="GTIFF")
     assert out_file.exists()
 
 
@@ -158,7 +158,7 @@ def test_ndvi_udf_reduce_bands_udf(connection, tmp_path):
     res = cube.reduce_bands_udf(udf_code)
 
     out_file = tmp_path / "ndvi-udf.tiff"
-    res.download(out_file, format="geotiff")
+    res.download(out_file, format="GTIFF")
     assert_geotiff_basics(out_file, expected_band_count=1)
     with rasterio.open(out_file) as ds:
         ndvi = ds.read(1)
