@@ -296,6 +296,13 @@ def test_batch_job_cancel(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    if isinstance(cube, DataCube):
+        cube = cube.process("sleep", arguments={"data": cube, "seconds": 30})
+    elif isinstance(cube, ImageCollectionClient):
+        cube = cube.graph_add_process("sleep", args={"data": {"from_node": cube.node_id}, "seconds": 30})
+    else:
+        raise ValueError(cube)
+
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
     job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="512m"))
@@ -303,7 +310,7 @@ def test_batch_job_cancel(connection, tmp_path):
     job.start_job()
 
     # await job running
-    status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'], sleep=3)
+    status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'])
     assert status == "running"
 
     # cancel it
