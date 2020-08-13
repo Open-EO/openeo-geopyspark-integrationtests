@@ -348,8 +348,8 @@ def test_batch_job_delete_ongoing_job(connection100):
     def job_directory_exists() -> bool:
         return (Path("/data/projects/OpenEO") / job.job_id).exists()
 
-    time.sleep(30)  # FIXME: generalize/mimic _poll_job_status
-    assert job_directory_exists()
+    time.sleep(60)  # FIXME: generalize/mimic _poll_job_status
+    assert job_directory_exists(), job.job_id
 
     # delete it
     job.delete_job()
@@ -361,8 +361,8 @@ def test_batch_job_delete_ongoing_job(connection100):
     except OpenEoApiError as e:
         assert e.http_status_code == 404
 
-    time.sleep(30)
-    assert not job_directory_exists()
+    time.sleep(60)
+    assert not job_directory_exists(), job.job_id
 
 
 @pytest.mark.skip(reason="Requires proxying to work properly")
