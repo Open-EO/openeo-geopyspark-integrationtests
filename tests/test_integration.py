@@ -17,6 +17,7 @@ from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.imagecollectionclient import ImageCollectionClient
 from openeo.rest.job import RESTJob
 from openeo.rest.udp import Parameter
+from openeo.rest.connection import OpenEoApiError
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
 
@@ -320,6 +321,47 @@ def test_batch_job_cancel(connection, tmp_path):
     # await job canceled
     status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
     assert status == "canceled"
+
+
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_batch_job_delete_ongoing_job(connection100):
+    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+
+    cube = connection100.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    if isinstance(cube, DataCube):
+        cube = cube.process("sleep", arguments={"data": cube, "seconds": 30})
+    elif isinstance(cube, ImageCollectionClient):
+        cube = cube.graph_add_process("sleep", args={"data": {"from_node": cube.node_id}, "seconds": 30})
+    else:
+        raise ValueError(cube)
+
+    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+
+    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="512m"))
+    assert job.job_id
+    job.start_job()
+
+    # await job running
+    status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'])
+    assert status == "running"
+
+    def job_directory_exists() -> bool:
+        return (Path("/data/projects/OpenEO") / job.job_id).exists()
+
+    assert job_directory_exists()
+
+    # delete it
+    job.delete_job()
+    print("deleted job")
+
+    try:
+        job.describe_job()
+        pytest.fail("should have returned a 404 for a deleted job")
+    except OpenEoApiError as e:
+        assert e.http_status_code == 404
+
+    time.sleep(30)
+    assert not job_directory_exists()
 
 
 @pytest.mark.skip(reason="Requires proxying to work properly")
