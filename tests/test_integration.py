@@ -228,7 +228,7 @@ def test_cog_execute_batch(connection, tmp_path):
 
 
 def _poll_job_status(
-        job: RESTJob, until: Callable = lambda s: s == "fimax_pollsnished",
+        job: RESTJob, until: Callable = lambda s: s == "finished",
         sleep: int = BATCH_JOB_POLL_INTERVAL, max_poll_time=30 * 60) -> str:
     """Helper to poll the status of a job until some condition is reached."""
     start = time.time()
@@ -348,6 +348,7 @@ def test_batch_job_delete_ongoing_job(connection100):
     def job_directory_exists() -> bool:
         return (Path("/data/projects/OpenEO") / job.job_id).exists()
 
+    time.sleep(30)  # FIXME: generalize/mimic _poll_job_status
     assert job_directory_exists()
 
     # delete it
