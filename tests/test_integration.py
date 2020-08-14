@@ -324,47 +324,30 @@ def test_batch_job_cancel(connection, tmp_path):
 
 
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_delete_ongoing_job(connection100):
-    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+def test_batch_job_delete_job(connection):
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
-    cube = connection100.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
-    if isinstance(cube, DataCube):
-        cube = cube.process("sleep", arguments={"data": cube, "seconds": 30})
-    elif isinstance(cube, ImageCollectionClient):
-        cube = cube.graph_add_process("sleep", args={"data": {"from_node": cube.node_id}, "seconds": 30})
-    else:
-        raise ValueError(cube)
-
+    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
     job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="512m"))
     assert job.job_id
     job.start_job()
 
-    # await job running
-    status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'])
-    assert status == "running"
+    # await job finished
+    status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+    assert status == "finished"
 
-    def job_directory_exists(expected: bool) -> bool:
-        start = time.time()
+    def job_directory_exists() -> bool:
+        try:
+            with (Path("/data/projects/OpenEO") / job.job_id / "out").open("r"):
+                return True
+        except FileNotFoundError:
+            pass
 
-        def elapsed():
-            return time.time() - start
+        return False
 
-        def directory_exists() -> bool:
-            exists = (Path("/data/projects/OpenEO") / job.job_id).exists()
-            print("job {j} directory exists ({e:.2f}s): {d}".format(j=job.job_id, e=elapsed(), d=exists))
-            return exists
-
-        while elapsed() < 300:
-            if directory_exists() == expected:
-                return expected
-
-            time.sleep(10)
-
-        return directory_exists()
-
-    assert job_directory_exists(True)
+    assert job_directory_exists()
 
     # delete it
     job.delete_job()
@@ -376,7 +359,7 @@ def test_batch_job_delete_ongoing_job(connection100):
     except OpenEoApiError as e:
         assert e.http_status_code == 404
 
-    assert not job_directory_exists(False)
+    assert not job_directory_exists()
 
 
 @pytest.mark.skip(reason="Requires proxying to work properly")
