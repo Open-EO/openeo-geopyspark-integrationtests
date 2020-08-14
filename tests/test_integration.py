@@ -345,11 +345,26 @@ def test_batch_job_delete_ongoing_job(connection100):
     status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'])
     assert status == "running"
 
-    def job_directory_exists() -> bool:
-        return (Path("/data/projects/OpenEO") / job.job_id).exists()
+    def job_directory_exists(expected: bool) -> bool:
+        start = time.time()
 
-    time.sleep(60)  # FIXME: generalize/mimic _poll_job_status
-    assert job_directory_exists(), job.job_id
+        def elapsed():
+            return time.time() - start
+
+        def directory_exists() -> bool:
+            exists = (Path("/data/projects/OpenEO") / job.job_id).exists()
+            print("job {j} directory exists ({e:.2f}s): {d}".format(j=job.job_id, e=elapsed(), d=exists))
+            return exists
+
+        while elapsed() < 300:
+            if directory_exists() == expected:
+                return expected
+
+            time.sleep(10)
+
+        return directory_exists()
+
+    assert job_directory_exists(True)
 
     # delete it
     job.delete_job()
@@ -361,8 +376,7 @@ def test_batch_job_delete_ongoing_job(connection100):
     except OpenEoApiError as e:
         assert e.http_status_code == 404
 
-    time.sleep(60)
-    assert not job_directory_exists(), job.job_id
+    assert not job_directory_exists(False)
 
 
 @pytest.mark.skip(reason="Requires proxying to work properly")
