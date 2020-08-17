@@ -338,16 +338,31 @@ def test_batch_job_delete_job(connection):
     status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
     assert status == "finished"
 
-    def job_directory_exists() -> bool:
-        try:
-            with (Path("/data/projects/OpenEO") / job.job_id / "out").open("r"):
-                return True
-        except FileNotFoundError:
-            pass
+    def job_directory_exists(expected: bool) -> bool:
+        start = time.time()
 
-        return False
+        def elapsed():
+            return time.time() - start
 
-    assert job_directory_exists()
+        def directory_exists() -> bool:
+            try:
+                with (Path("/data/projects/OpenEO") / job.job_id / "out").open("r"):
+                    exists = True
+            except FileNotFoundError:
+                exists = False
+
+            print("job {j} directory exists ({e:.2f}s): {d}".format(j=job.job_id, e=elapsed(), d=exists))
+            return exists
+
+        while elapsed() < 300:
+            if directory_exists() == expected:
+                return expected
+
+            time.sleep(10)
+
+        return directory_exists()
+
+    assert job_directory_exists(True)
 
     # delete it
     job.delete_job()
@@ -359,7 +374,7 @@ def test_batch_job_delete_job(connection):
     except OpenEoApiError as e:
         assert e.http_status_code == 404
 
-    assert not job_directory_exists()
+    assert not job_directory_exists(False)
 
 
 @pytest.mark.skip(reason="Requires proxying to work properly")
