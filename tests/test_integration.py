@@ -83,9 +83,9 @@ def test_collections(connection):
     assert "PROBAV_L3_S10_TOC_NDVI_333M" in product_ids
 
 
-def test_terrascope_download_latlon(connection, tmp_path):
+def test_terrascope_download_latlon(auth_connection, tmp_path):
     s2_fapar = (
-        connection.load_collection("TERRASCOPE_S2_NDVI_V2")
+        auth_connection.load_collection("TERRASCOPE_S2_NDVI_V2")
             # bounding box: http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
             .filter_bbox(west=5.027, east=5.0438, south=51.1974, north=51.2213, crs="EPSG:4326")
