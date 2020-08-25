@@ -37,3 +37,14 @@ def connection(api_base_url) -> openeo.Connection:
 @pytest.fixture
 def connection100() -> openeo.Connection:
     return openeo.connect(get_openeo_base_url("1.0.0"))
+
+# TODO: real authenticaion?
+TEST_USER = "geopyspark-integrationtester"
+TEST_PASSWORD = TEST_USER + "123"
+
+@pytest.fixture
+def auth_connection(connection) -> openeo.Connection:
+    """Connection fixture to a backend of given version with some image collections."""
+    connection.authenticate_basic(TEST_USER,TEST_PASSWORD)
+    return connection
+

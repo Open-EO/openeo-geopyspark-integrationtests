@@ -95,9 +95,9 @@ def test_terrascope_download_latlon(connection, tmp_path):
     assert out_file.exists()
 
 
-def test_terrascope_download_webmerc(connection, tmp_path):
+def test_terrascope_download_webmerc(auth_connection, tmp_path):
     s2_fapar = (
-        connection.load_collection("TERRASCOPE_S2_NDVI_V2")
+        auth_connection.load_collection("TERRASCOPE_S2_NDVI_V2")
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
             .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
     )
@@ -106,9 +106,9 @@ def test_terrascope_download_webmerc(connection, tmp_path):
     assert out_file.exists()
 
 
-def test_aggregate_spatial_polygon(connection):
+def test_aggregate_spatial_polygon(auth_connection):
     timeseries = (
-        connection
+        auth_connection
             .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
             .filter_temporal(start_date="2017-11-01", end_date="2017-11-21")
             .polygonal_mean_timeseries(POLYGON01)
@@ -121,9 +121,9 @@ def test_aggregate_spatial_polygon(connection):
     assert expected_schema.validate(timeseries)
 
 
-def test_histogram_timeseries(connection):
+def test_histogram_timeseries(auth_connection):
     probav = (
-        connection
+        auth_connection
             .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
             .filter_bbox(5, 6, 52, 51, 'EPSG:4326')
             .filter_temporal(['2017-11-21', '2017-12-21'])
@@ -147,11 +147,11 @@ def test_histogram_timeseries(connection):
         assert len(histograms[0][0]) > 10
 
 
-def test_ndvi_udf_reduce_bands_udf(connection, tmp_path):
+def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path):
     udf_code = read_data("udfs/raster_collections_ndvi.py")
 
     cube = (
-        connection.load_collection('CGS_SENTINEL2_RADIOMETRY_V102_001')
+        auth_connection.load_collection('CGS_SENTINEL2_RADIOMETRY_V102_001')
             .date_range_filter(start_date="2017-10-15", end_date="2017-10-15")
             .bbox_filter(left=761104, right=763281, bottom=6543830, top=6544655, srs="EPSG:3857")
     )
@@ -167,7 +167,7 @@ def test_ndvi_udf_reduce_bands_udf(connection, tmp_path):
         assert ndvi.max(axis=None) < 0.95
 
 
-def test_ndvi_band_math(connection, tmp_path, api_version):
+def test_ndvi_band_math(auth_connection, tmp_path, api_version):
     # http://bboxfinder.com/#50.560007,6.8371137,50.5647147,6.8566699
     bbox = {
         "west": 6.8371137, "south": 50.560007,
@@ -175,7 +175,7 @@ def test_ndvi_band_math(connection, tmp_path, api_version):
         "crs": "EPSG:4326"
     }
     cube = (
-        connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+        auth_connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
             .filter_temporal("2017-10-10", "2017-10-30")
             .filter_bbox(**bbox)
     )
@@ -195,9 +195,9 @@ def test_ndvi_band_math(connection, tmp_path, api_version):
         assert np.isnan(x).sum(axis=None) > 10000
 
 
-def test_cog_synchronous(connection, tmp_path):
+def test_cog_synchronous(auth_connection, tmp_path):
     cube = (
-        connection
+        auth_connection
             .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
             .filter_temporal("2017-11-21", "2017-11-21")
             .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
@@ -210,10 +210,9 @@ def test_cog_synchronous(connection, tmp_path):
 
 
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_cog_execute_batch(connection, tmp_path):
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+def test_cog_execute_batch(auth_connection, tmp_path):
     cube = (
-        connection
+        auth_connection
             .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
             .filter_temporal("2017-11-21", "2017-11-21")
             .filter_bbox(west=2, south=51, east=3, north=52, crs='EPSG:4326')
@@ -222,7 +221,7 @@ def test_cog_execute_batch(connection, tmp_path):
     job = cube.execute_batch(
         output_file, out_format="GTIFF", max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         tiled=True, job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"))
-    assert [j["status"] for j in connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
+    assert [j["status"] for j in auth_connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
     assert_geotiff_basics(output_file)
     assert_cog(output_file)
 
@@ -407,7 +406,7 @@ def test_create_wtms_service(connection):
 
 
 @pytest.mark.skip(reason="SENTINEL1_GAMMA0_SENTINELHUB requires secret #EP-3050")
-def test_ep3048_sentinel1_udf(connection):
+def test_ep3048_sentinel1_udf(auth_connection):
     # http://bboxfinder.com/#-4.745000,-55.700000,-4.740000,-55.695000
     N, E, S, W = (-4.740, -55.695, -4.745, -55.7)
     polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
@@ -415,7 +414,7 @@ def test_ep3048_sentinel1_udf(connection):
     udf_code = read_data('udfs/smooth_savitsky_golay.py')
 
     ts = (
-        connection.load_collection("SENTINEL1_GAMMA0_SENTINELHUB")
+        auth_connection.load_collection("SENTINEL1_GAMMA0_SENTINELHUB")
             .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
             .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
             .filter_bands([0])
@@ -427,8 +426,8 @@ def test_ep3048_sentinel1_udf(connection):
     assert all(k.startswith('2019-05-') for k in ts.keys())
 
 
-def test_load_collection_from_disk(connection, tmp_path):
-    fapar = connection.load_disk_collection(
+def test_load_collection_from_disk(auth_connection, tmp_path):
+    fapar = auth_connection.load_disk_collection(
         format='GTiff',
         glob_pattern='/data/MTDA/CGS_S2/CGS_S2_FAPAR/2019/04/24/*/*/10M/*_FAPAR_10M_V102.tif',
         options={
@@ -457,11 +456,11 @@ def assert_cog(output_tiff: str):
     pass
 
 
-def test_mask_polygon(connection, api_version, tmp_path):
+def test_mask_polygon(auth_connection, api_version, tmp_path):
     bbox = {"west": 7.0, "south": 51.28, "east": 7.7, "north": 51.8, "crs": "EPSG:4326"}
     date = "2017-11-01"
     collection_id = 'PROBAV_L3_S10_TOC_NDVI_333M'
-    cube = connection.load_collection(collection_id).filter_bbox(**bbox).filter_temporal(date, date)
+    cube = auth_connection.load_collection(collection_id).filter_bbox(**bbox).filter_temporal(date, date)
     if api_version >= "1.0.0":
         masked = cube.mask_polygon(POLYGON01)
     else:
@@ -472,11 +471,11 @@ def test_mask_polygon(connection, api_version, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=1)
 
 
-def test_mask_out_all_data(connection, api_version, tmp_path):
+def test_mask_out_all_data(auth_connection, api_version, tmp_path):
     bbox = {"west": 5, "south": 51, "east": 6, "north": 52, "crs": "EPSG:4326"}
     date = "2017-12-21"
     collection_id = 'PROBAV_L3_S10_TOC_NDVI_333M'
-    probav = connection.load_collection(collection_id).filter_temporal(date, date).filter_bbox(**bbox)
+    probav = auth_connection.load_collection(collection_id).filter_temporal(date, date).filter_bbox(**bbox)
     opaque_mask = probav.band("ndvi") != 255  # all ones
     _dump_process_graph(opaque_mask, tmp_path=tmp_path, name="opaque_mask.json")
     if api_version >= "1.0.0":
@@ -500,9 +499,9 @@ def test_mask_out_all_data(connection, api_version, tmp_path):
         assert np.all(np.isnan(masked_ds.read(1)))
 
 
-def test_fuzzy_mask(connection, tmp_path):
+def test_fuzzy_mask(auth_connection, tmp_path):
     date = "2019-04-26"
-    mask = create_simple_mask(connection, band_math_workaround=True)
+    mask = create_simple_mask(auth_connection, band_math_workaround=True)
     mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     _dump_process_graph(mask, tmp_path)
     output_tiff = tmp_path / "mask.tiff"
@@ -510,13 +509,13 @@ def test_fuzzy_mask(connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=1)
 
 
-def test_simple_cloud_masking(connection, api_version, tmp_path):
+def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
     date = "2019-04-26"
-    mask = create_simple_mask(connection, band_math_workaround=True)
+    mask = create_simple_mask(auth_connection, band_math_workaround=True)
     mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
     s2_radiometry = (
-        connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"])
+        auth_connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"])
             .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
@@ -531,15 +530,15 @@ def test_simple_cloud_masking(connection, api_version, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=3)
 
 
-def test_advanced_cloud_masking(connection, api_version, tmp_path):
+def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
     date = "2018-08-14"
-    mask = create_advanced_mask(start=date, end=date, connection=connection, band_math_workaround=True)
+    mask = create_advanced_mask(start=date, end=date, connection=auth_connection, band_math_workaround=True)
     mask = mask.filter_bbox(**bbox)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
     s2_radiometry = (
-        connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"])
+        auth_connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"])
             .filter_bbox(**bbox).filter_temporal(date, date)
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
@@ -558,7 +557,7 @@ def test_advanced_cloud_masking(connection, api_version, tmp_path):
             assert_array_equal(ref_ds.read(), result_ds.read())
 
 
-def test_reduce_temporal_udf(connection, tmp_path):
+def test_reduce_temporal_udf(auth_connection, tmp_path):
     bbox = {
         "west": 6.8371137,
         "north": 50.5647147,
@@ -568,7 +567,7 @@ def test_reduce_temporal_udf(connection, tmp_path):
     }
 
     cube = (
-        connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+        auth_connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
             .filter_temporal("2017-03-10", "2017-03-30")
             .filter_bbox(**bbox)
     )
@@ -584,7 +583,7 @@ def test_reduce_temporal_udf(connection, tmp_path):
 
 
 @pytest.mark.requires_custom_processes
-def test_custom_processes(connection):
+def test_custom_processes(auth_connection):
     process_graph = {
         "foobar1": {
             "process_id": "foobar",
@@ -592,7 +591,7 @@ def test_custom_processes(connection):
             "result": True,
         }
     }
-    res = connection.execute(process_graph)
+    res = auth_connection.execute(process_graph)
     assert res == {
         "args": ["color", "size"],
         "msg": "hello world",
@@ -614,12 +613,12 @@ def test_custom_processes(connection):
             ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
     ),
 ])
-def test_polygonal_timeseries(connection, tmp_path, cid, expected_dates, api_version):
+def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, api_version):
     expected_dates = sorted(expected_dates)
     polygon = POLYGON01
     bbox = _polygon_bbox(polygon)
     cube = (
-        connection
+        auth_connection
             .load_collection(cid)
             .filter_temporal("2017-11-01", "2017-11-21")
             .filter_bbox(**bbox)
@@ -640,7 +639,7 @@ def test_polygonal_timeseries(connection, tmp_path, cid, expected_dates, api_ver
     for date in expected_dates[::max(1, len(expected_dates) // 5)]:
         output_file = tmp_path / "ts_{d}.tiff".format(d=re.sub(r'[^0-9]', '', date))
         print("Evaluating date {d}, downloading to {p}".format(d=date, p=output_file))
-        date_cube = connection.load_collection(cid).filter_temporal(date, date).filter_bbox(**bbox)
+        date_cube = auth_connection.load_collection(cid).filter_temporal(date, date).filter_bbox(**bbox)
         if api_version.at_least("1.0.0"):
             date_cube = date_cube.mask_polygon(polygon)
         else:
@@ -662,8 +661,8 @@ def test_polygonal_timeseries(connection, tmp_path, cid, expected_dates, api_ver
                 np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd[date + "Z"][0], rtol=rtol)
 
 
-def test_ndvi(connection, tmp_path):
-    ndvi = connection.load_collection(
+def test_ndvi(auth_connection, tmp_path):
+    ndvi = auth_connection.load_collection(
         "CGS_SENTINEL2_RADIOMETRY_V102_001",
         spatial_extent={"west": 5.027, "east": 5.0438, "south": 51.1974, "north": 51.2213},
         temporal_extent=["2020-04-05", "2020-04-05"]
@@ -674,8 +673,8 @@ def test_ndvi(connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=1)
 
 
-def test_normalized_difference(connection, tmp_path):
-    toc = connection.load_collection(
+def test_normalized_difference(auth_connection, tmp_path):
+    toc = auth_connection.load_collection(
         "TERRASCOPE_S2_TOC_V2",
         spatial_extent={"west": 5.027, "east": 5.0438, "south": 51.1974, "north": 51.2213},
         temporal_extent=["2020-04-05", "2020-04-05"]
