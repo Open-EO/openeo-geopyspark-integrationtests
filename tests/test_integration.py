@@ -817,7 +817,7 @@ def test_udp_usage_reduce(connection100, tmp_path):
 
 def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tmp_path):
     s2_fapar = (
-        auth_connection.load_collection("TERRASCOPE_S2_NDVI_V2")
+        auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M")
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
     )
     out_file = tmp_path / "s2_fapar_latlon.geotiff"
@@ -828,9 +828,10 @@ def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tm
     assert excinfo.value.code == 'ProcessGraphComplexity'
 
 
+@pytest.mark.skip(reason="DELETEing a service doesn't work because it's being proxied to the WMTS Jetty server")
 def test_secondary_service_without_spatial_bounds_is_accepted(auth_connection):
     s2_fapar = (
-        auth_connection.load_collection("TERRASCOPE_S2_NDVI_V2")
+        auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M")
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
     )
 
