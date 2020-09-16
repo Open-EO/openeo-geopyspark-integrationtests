@@ -813,3 +813,27 @@ def test_udp_usage_reduce(connection100, tmp_path):
     cube.download(output_tiff, format='GTIFF')
     assert_geotiff_basics(output_tiff, expected_band_count=1)
     # TODO: check resulting data?
+
+
+def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tmp_path):
+    s2_fapar = (
+        auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M")
+            .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
+    )
+    out_file = tmp_path / "s2_fapar_latlon.geotiff"
+
+    with pytest.raises(OpenEoApiError) as excinfo:
+        s2_fapar.download(out_file, format="GTIFF")
+
+    assert excinfo.value.code == 'ProcessGraphComplexity'
+
+
+@pytest.mark.skip(reason="DELETEing a service doesn't work because it's being proxied to the WMTS Jetty server")
+def test_secondary_service_without_spatial_bounds_is_accepted(auth_connection):
+    s2_fapar = (
+        auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M")
+            .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
+    )
+
+    service_id = s2_fapar.tiled_viewing_service(type="WMTS")["service_id"]
+    auth_connection.remove_service(service_id)
