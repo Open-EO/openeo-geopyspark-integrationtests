@@ -515,7 +515,7 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
     mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
     s2_radiometry = (
-        auth_connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"])
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[ "blue", "green", "red"])
             .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
@@ -538,7 +538,7 @@ def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
     mask = mask.filter_bbox(**bbox)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
     s2_radiometry = (
-        auth_connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001", bands=["2", "3", "4"])
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["blue", "green", "red"])
             .filter_bbox(**bbox).filter_temporal(date, date)
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
@@ -567,7 +567,7 @@ def test_reduce_temporal_udf(auth_connection, tmp_path):
     }
 
     cube = (
-        auth_connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["blue", "green", "red"])
             .filter_temporal("2017-03-10", "2017-03-30")
             .filter_bbox(**bbox)
     )
@@ -663,9 +663,10 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
 
 def test_ndvi(auth_connection, tmp_path):
     ndvi = auth_connection.load_collection(
-        "CGS_SENTINEL2_RADIOMETRY_V102_001",
+        "TERRASCOPE_S2_TOC_V2",
         spatial_extent={"west": 5.027, "east": 5.0438, "south": 51.1974, "north": 51.2213},
-        temporal_extent=["2020-04-05", "2020-04-05"]
+        temporal_extent=["2020-04-05", "2020-04-05"],
+        bands = ["nir", "red"]
     ).ndvi()
 
     output_tiff = tmp_path / "ndvi.tiff"
@@ -727,7 +728,7 @@ def test_udp_usage_blur(connection100, tmp_path):
     # Use UDP
     date = "2020-06-26"
     cube = (
-        connection100.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+        connection100.load_collection("TERRASCOPE_S2_TOC_V2")
             .filter_bands(["red", "green"])
             .filter_temporal(date, date)
             .filter_bbox(**BBOX_MOL)
@@ -759,7 +760,7 @@ def test_udp_usage_blur_parameter_default(connection100, tmp_path):
     # Use UDP
     date = "2020-06-26"
     cube = (
-        connection100.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+        connection100.load_collection("TERRASCOPE_S2_TOC_V2")
             .filter_bands(["red", "green"])
             .filter_temporal(date, date)
             .filter_bbox(**BBOX_MOL)
@@ -803,7 +804,7 @@ def test_udp_usage_reduce(connection100, tmp_path):
     # Use UDP
     date = "2020-06-26"
     cube = (
-        connection100.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+        connection100.load_collection("TERRASCOPE_S2_TOC_V2")
             .filter_bands(["red", "green", "blue", "nir"])
             .filter_temporal(date, date)
             .filter_bbox(**BBOX_MOL)
