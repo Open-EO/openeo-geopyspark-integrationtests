@@ -22,9 +22,9 @@ def _add_band_dimension_workaround(cube: ImageCollection) -> ImageCollection:
 
 
 def create_simple_mask(connection: Connection, size: int = 5, class_to_mask=3, band_math_workaround=False):
-    band = 'classification'
+    band = 'SCENECLASSIFICATION_20M'
     # TODO: drop "bands" argument after https://github.com/Open-EO/openeo-python-driver/issues/38
-    classification = connection.load_collection("S2_FAPAR_SCENECLASSIFICATION_V102_PYRAMID", bands=[band]).band(band)
+    classification = connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[band]).band(band)
     base_mask = (classification == class_to_mask)
     fuzzy = base_mask.apply_kernel(makekernel(size))
     if band_math_workaround:
@@ -35,9 +35,9 @@ def create_simple_mask(connection: Connection, size: int = 5, class_to_mask=3, b
 
 
 def create_advanced_mask(start: str, end: str, connection: Connection, band_math_workaround=False):
-    band = 'classification'
+    band = 'SCENECLASSIFICATION_20M'
     # TODO: drop "bands" argument after https://github.com/Open-EO/openeo-python-driver/issues/38
-    classification = connection.load_collection("S2_FAPAR_SCENECLASSIFICATION_V102_PYRAMID", bands=[band]).band(band)
+    classification = connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[band]).band(band)
 
     # in openEO, 1 means mask (remove pixel) 0 means keep pixel
 
