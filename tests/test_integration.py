@@ -579,7 +579,7 @@ def test_reduce_temporal_udf(auth_connection, tmp_path):
 
     output_file = tmp_path / "trend.tiff"
     trend.download(output_file, format="GTIFF")
-    assert_geotiff_basics(output_file, expected_band_count=16)
+    assert_geotiff_basics(output_file, expected_band_count=12)
 
 
 @pytest.mark.requires_custom_processes
