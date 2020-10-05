@@ -250,7 +250,7 @@ def _poll_job_status(
 
 
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_basic(connection, tmp_path):
+def test_batch_job_basic(connection, api_version, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
@@ -272,6 +272,14 @@ def test_batch_job_basic(connection, tmp_path):
     assert sorted(data.keys()) == sorted(expected_dates)
     expected_schema = schema.Schema({str: [[float]]})
     assert expected_schema.validate(data)
+
+    if api_version >= "1.0.0":
+        job_results = connection.job_results(job.job_id)
+
+        assert shape(job_results['geometry']).equals_exact(POLYGON01, tolerance=0.0001)
+        assert Polygon.from_bounds(*job_results['bbox']).equals_exact(Polygon.from_bounds(*POLYGON01.bounds), tolerance=0.0001)
+        assert job_results['properties']['start_datetime'] == "2017-11-01T00:00:00Z"
+        assert job_results['properties']['end_datetime'] == "2017-11-21T00:00:00Z"
 
 
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
