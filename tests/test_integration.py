@@ -115,7 +115,7 @@ def test_aggregate_spatial_polygon(auth_connection):
             .execute()
     )
     print(timeseries)
-    expected_dates = ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
+    expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
     assert sorted(timeseries.keys()) == sorted(expected_dates)
     expected_schema = schema.Schema({str: [[float]]})
     assert expected_schema.validate(timeseries)
@@ -268,7 +268,7 @@ def test_batch_job_basic(connection, api_version, tmp_path):
     with open(list(assets.keys())[0]) as f:
         data = json.load(f)
 
-    expected_dates = ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
+    expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
     assert sorted(data.keys()) == sorted(expected_dates)
     expected_schema = schema.Schema({str: [[float]]})
     assert expected_schema.validate(data)
@@ -293,7 +293,7 @@ def test_batch_job_execute_batch(connection, tmp_path):
 
     with output_file.open("r") as f:
         data = json.load(f)
-    expected_dates = ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
+    expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
     assert sorted(data.keys()) == sorted(expected_dates)
     expected_schema = schema.Schema({str: [[float]]})
     assert expected_schema.validate(data)
@@ -610,15 +610,15 @@ def test_custom_processes(auth_connection):
     (
             'S2_FAPAR_V102_WEBMERCATOR2',
             [
-                '2017-11-01T00:00:00', '2017-11-02T00:00:00', '2017-11-04T00:00:00', '2017-11-06T00:00:00',
-                '2017-11-07T00:00:00', '2017-11-09T00:00:00', '2017-11-11T00:00:00', '2017-11-12T00:00:00',
-                '2017-11-14T00:00:00', '2017-11-16T00:00:00', '2017-11-17T00:00:00', '2017-11-19T00:00:00',
-                '2017-11-21T00:00:00'
+                '2017-11-01T00:00:00Z', '2017-11-02T00:00:00Z', '2017-11-04T00:00:00Z', '2017-11-06T00:00:00Z',
+                '2017-11-07T00:00:00Z', '2017-11-09T00:00:00Z', '2017-11-11T00:00:00Z', '2017-11-12T00:00:00Z',
+                '2017-11-14T00:00:00Z', '2017-11-16T00:00:00Z', '2017-11-17T00:00:00Z', '2017-11-19T00:00:00Z',
+                '2017-11-21T00:00:00Z'
             ]
     ),
     (
             'PROBAV_L3_S10_TOC_NDVI_333M',
-            ["2017-11-01T00:00:00", "2017-11-11T00:00:00", "2017-11-21T00:00:00"]
+            ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
     ),
 ])
 def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, api_version):
@@ -638,10 +638,9 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
     ts_sd = cube.polygonal_standarddeviation_timeseries(polygon).execute()
     print("sd", ts_sd)
 
-    # TODO: see https://jira.vito.be/browse/EP-3434
     assert sorted(ts_mean.keys()) == expected_dates
-    assert sorted(ts_median.keys()) == [d + "Z" for d in expected_dates]
-    assert sorted(ts_sd.keys()) == [d + "Z" for d in expected_dates]
+    assert sorted(ts_median.keys()) == expected_dates
+    assert sorted(ts_sd.keys()) == expected_dates
 
     # Only check for a subset of dates if there are a lot
     for date in expected_dates[::max(1, len(expected_dates) // 5)]:
@@ -660,13 +659,13 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
 
             if data.count() == 0:
                 assert ts_mean[date] == [[None] * band_count]
-                assert ts_median[date + "Z"] == [[None] * band_count]
-                assert ts_sd[date + "Z"] == [[None] * band_count]
+                assert ts_median[date] == [[None] * band_count]
+                assert ts_sd[date] == [[None] * band_count]
             else:
                 rtol = 0.02
                 np.testing.assert_allclose(np.ma.mean(data, axis=(-1, -2)), ts_mean[date][0], rtol=rtol)
-                np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median[date + "Z"][0], rtol=rtol)
-                np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd[date + "Z"][0], rtol=rtol)
+                np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median[date][0], rtol=rtol)
+                np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd[date][0], rtol=rtol)
 
 
 def test_ndvi(auth_connection, tmp_path):
