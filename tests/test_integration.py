@@ -176,24 +176,24 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
         "crs": "EPSG:4326"
     }
     cube = (
-        auth_connection.load_collection("CGS_SENTINEL2_RADIOMETRY_V102_001")
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2",bands=['TOC-B04_10M','TOC-B08_10M'])
             .filter_temporal("2017-10-10", "2017-10-30")
             .filter_bbox(**bbox)
     )
     # cube.download(tmp_path / "cube.tiff", format="GTIFF")
 
-    red = cube.band("4")
-    nir = cube.band("8")
-    ndvi = (red - nir) / (red + nir)
+    red = cube.band("TOC-B04_10M")
+    nir = cube.band("TOC-B08_10M")
+    ndvi = (nir - red) / (red + nir)
 
     out_file = tmp_path / "ndvi.tiff"
     ndvi.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file, expected_shape=(1, 88, 228))
+    assert_geotiff_basics(out_file,min_height=40, expected_shape=(1, 49, 141))
     with rasterio.open(out_file) as ds:
         x = ds.read(1)
-        assert -0.9 < np.nanmin(x, axis=None)
-        assert np.nanmax(x, axis=None) < -0.1
-        assert np.isnan(x).sum(axis=None) > 10000
+        assert -0.08 < np.nanmin(x, axis=None)
+        assert np.nanmax(x, axis=None) < 0.9
+        assert np.isnan(x).sum(axis=None) == 0
 
 
 def test_cog_synchronous(auth_connection, tmp_path):
