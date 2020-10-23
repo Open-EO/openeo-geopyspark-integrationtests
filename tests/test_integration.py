@@ -72,6 +72,7 @@ def batch_default_options(driverMemoryOverhead="1G", driverMemory="2G"):
             "queue": "geoviewer"
         }
 
+
 def test_health(connection):
     r = connection.get("/health")
     assert r.status_code == 200
@@ -90,9 +91,9 @@ def test_terrascope_download_latlon(auth_connection, tmp_path):
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
             .filter_bbox(west=5.027, east=5.0438, south=51.1974, north=51.2213, crs="EPSG:4326")
     )
-    out_file = tmp_path / "s2_fapar_latlon.geotiff"
+    out_file = tmp_path / "result.tiff"
     s2_fapar.download(out_file, format="GTIFF")
-    assert out_file.exists()
+    assert_geotiff_basics(out_file, expected_shape=(1, 270, 111))
 
 
 def test_terrascope_download_webmerc(auth_connection, tmp_path):
@@ -101,9 +102,9 @@ def test_terrascope_download_webmerc(auth_connection, tmp_path):
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
             .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
     )
-    out_file = tmp_path / "/tmp/s2_fapar_webmerc.geotiff"
+    out_file = tmp_path / "result.tiff"
     s2_fapar.download(out_file, format="GTIFF")
-    assert out_file.exists()
+    assert_geotiff_basics(out_file, expected_shape=(1, 216, 434))
 
 
 def test_aggregate_spatial_polygon(auth_connection):
@@ -160,7 +161,7 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path):
 
     out_file = tmp_path / "ndvi-udf.tiff"
     res.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file, expected_band_count=1)
+    assert_geotiff_basics(out_file, expected_shape=(1, 88, 228))
     with rasterio.open(out_file) as ds:
         ndvi = ds.read(1)
         assert 0.35 < ndvi.min(axis=None)
@@ -187,7 +188,7 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
 
     out_file = tmp_path / "ndvi.tiff"
     ndvi.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file, expected_band_count=1)
+    assert_geotiff_basics(out_file, expected_shape=(1, 88, 228))
     with rasterio.open(out_file) as ds:
         x = ds.read(1)
         assert -0.9 < np.nanmin(x, axis=None)
@@ -205,7 +206,7 @@ def test_cog_synchronous(auth_connection, tmp_path):
 
     out_file = tmp_path / "cog.tiff"
     cube.download(out_file, format="GTIFF", options={"tiled": True})
-    assert_geotiff_basics(out_file)
+    assert_geotiff_basics(out_file, expected_shape=(1, 2241, 2240))
     assert_cog(out_file)
 
 
@@ -222,7 +223,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         output_file, out_format="GTIFF", max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         tiled=True, job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"))
     assert [j["status"] for j in auth_connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
-    assert_geotiff_basics(output_file)
+    assert_geotiff_basics(output_file, expected_band_count=1)
     assert_cog(output_file)
 
 
@@ -447,16 +448,19 @@ def test_load_collection_from_disk(auth_connection, tmp_path):
 
     output_file = tmp_path / "fapar_from_disk.tiff"
     fapar.download(output_file, format="GTiff")
-    assert_geotiff_basics(output_file)
+    assert_geotiff_basics(output_file, expected_shape=(1, 2786, 3496))
 
 
-def assert_geotiff_basics(output_tiff: str, expected_band_count=1, min_width=64, min_height=64):
+def assert_geotiff_basics(output_tiff: str, expected_band_count=1, min_width=64, min_height=64, expected_shape=None):
     """Basic checks that a file is a readable GeoTIFF file"""
     assert imghdr.what(output_tiff) == 'tiff'
     with rasterio.open(output_tiff) as dataset:
-        assert dataset.count == expected_band_count
         assert dataset.width > min_width
         assert dataset.height > min_height
+        if expected_shape is not None:
+            assert (dataset.count, dataset.height, dataset.width) == expected_shape
+        elif expected_band_count is not None:
+            assert dataset.count == expected_band_count
 
 
 def assert_cog(output_tiff: str):
@@ -535,7 +539,7 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
     _dump_process_graph(masked, tmp_path)
     output_tiff = tmp_path / "masked_result.tiff"
     masked.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_band_count=3)
+    assert_geotiff_basics(output_tiff, expected_shape=(3, 227, 350))
 
 
 def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
@@ -559,6 +563,7 @@ def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
     masked.download(out_file, format='GTIFF')
+    assert_geotiff_basics(out_file, expected_shape=(3, 284, 660))
 
     with rasterio.open(out_file) as result_ds:
         with rasterio.open(get_path("reference/cloud_masked.tiff")) as ref_ds:
