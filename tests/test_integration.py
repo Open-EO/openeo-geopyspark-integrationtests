@@ -152,7 +152,7 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path):
     udf_code = read_data("udfs/raster_collections_ndvi.py")
 
     cube = (
-        auth_connection.load_collection('CGS_SENTINEL2_RADIOMETRY_V102_001')
+        auth_connection.load_collection('TERRASCOPE_S2_TOC_V2',bands=['TOC-B04_10M','TOC-B08_10M'])
             .date_range_filter(start_date="2017-10-15", end_date="2017-10-15")
             .bbox_filter(left=761104, right=763281, bottom=6543830, top=6544655, srs="EPSG:3857")
     )
@@ -161,11 +161,11 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path):
 
     out_file = tmp_path / "ndvi-udf.tiff"
     res.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file, expected_shape=(1, 88, 228))
+    assert_geotiff_basics(out_file, min_height=40, expected_shape=(1, 49, 141))
     with rasterio.open(out_file) as ds:
         ndvi = ds.read(1)
         assert 0.35 < ndvi.min(axis=None)
-        assert ndvi.max(axis=None) < 0.95
+        assert ndvi.max(axis=None) < 1.0
 
 
 def test_ndvi_band_math(auth_connection, tmp_path, api_version):

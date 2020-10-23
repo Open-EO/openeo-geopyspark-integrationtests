@@ -5,7 +5,7 @@ from openeo_udf.api.datacube import DataCube
 from typing import Dict
 
 
-def apply_hypercube(cube: DataCube, context: Dict) -> DataCube:
+def apply_datacube(cube: DataCube, context: Dict) -> DataCube:
     """Compute the NDVI based on sentinel2 tiles
 
     Tiles with ids "red" and "nir" are required. The NDVI computation will be applied
@@ -13,8 +13,8 @@ def apply_hypercube(cube: DataCube, context: Dict) -> DataCube:
 
     """
     array: xarray.DataArray = cube.get_array()
-    red = array.sel(bands="4")
-    nir = array.sel(bands="8")
+    red = array.sel(bands="TOC-B04_10M")
+    nir = array.sel(bands="TOC-B08_10M")
     ndvi = (nir-red)/(nir+red)
     return DataCube(ndvi)
 
