@@ -10,7 +10,6 @@ tests_require = [
     'pytest-timeout',
     'shapely',
     'openeo',
-    'pytest-xdist',
 ]
 
 setup(
