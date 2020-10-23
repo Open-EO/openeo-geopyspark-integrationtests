@@ -20,11 +20,17 @@ For example:
     pytest
 
 
-Pytest provides [various options](https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests) to run a subset or just a single test.
-For example, select by substring of the name of a test with the `-k` option:
+Pytest provides [various options](https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests) 
+to run a subset or just a single test.
+Some examples (that can be combined):
 
-    pytest -k test_health
+-   select by substring of the name of a test with the `-k` option:
 
+        pytest -k test_health
+
+-   run tests that do not involve batch jobs (which are decorated with `@pytest.mark.batchjob`)
+
+        pytest -m "not batchjob"
 
 ### Debugging and troubleshooting tips
 

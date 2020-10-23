@@ -210,6 +210,7 @@ def test_cog_synchronous(auth_connection, tmp_path):
     assert_cog(out_file)
 
 
+@pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_cog_execute_batch(auth_connection, tmp_path):
     cube = (
@@ -250,6 +251,7 @@ def _poll_job_status(
     raise RuntimeError("reached max poll time: {e} > {m}".format(e=elapsed(), m=max_poll_time))
 
 
+@pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_basic(connection, api_version, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
@@ -283,6 +285,7 @@ def test_batch_job_basic(connection, api_version, tmp_path):
         assert job_results['properties']['end_datetime'] == "2017-11-21T00:00:00Z"
 
 
+@pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_execute_batch(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
@@ -300,6 +303,7 @@ def test_batch_job_execute_batch(connection, tmp_path):
     assert expected_schema.validate(data)
 
 
+@pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_cancel(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
@@ -331,6 +335,7 @@ def test_batch_job_cancel(connection, tmp_path):
     assert status == "canceled"
 
 
+@pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_delete_job(connection):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
