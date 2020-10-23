@@ -17,7 +17,7 @@ def get_openeo_base_url(version: str = "1.0.0"):
 
 
 @pytest.fixture(params=[
-    "0.4.2",
+    # "0.4.2",
     "1.0.0",
 ])
 def api_version(request) -> ComparableVersion:
