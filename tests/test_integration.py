@@ -590,10 +590,10 @@ def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
     out_file = tmp_path / "masked_result.tiff"
     masked.download(out_file, format='GTIFF')
     assert_geotiff_basics(out_file, expected_shape=(3, 284, 660))
-
     with rasterio.open(out_file) as result_ds:
-        with rasterio.open(get_path("reference/cloud_masked.tiff")) as ref_ds:
-            assert_array_equal(ref_ds.read(), result_ds.read())
+        assert result_ds.dtypes == ('int16', 'int16', 'int16',)
+        with rasterio.open(get_path("reference/advanced_cloud_masking.tiff")) as ref_ds:
+            assert_array_equal(ref_ds.read(masked=True), result_ds.read(masked=True))
 
 
 def test_reduce_temporal_udf(auth_connection, tmp_path):
