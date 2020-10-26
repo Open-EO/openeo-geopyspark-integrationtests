@@ -280,10 +280,10 @@ def test_batch_job_basic(connection, api_version, tmp_path):
         job_results = connection.job_results(job.job_id)
         print(job_results)
         geometry = shape(job_results['geometry'])
-        print(geometry)
+        print("geometry", geometry, POLYGON01)
         assert geometry.equals_exact(POLYGON01, tolerance=0.0001)
         bbox = Polygon.from_bounds(*job_results['bbox'])
-        print(bbox)
+        print("bbox", bbox, Polygon.from_bounds(*POLYGON01.bounds))
         assert bbox.equals_exact(Polygon.from_bounds(*POLYGON01.bounds), tolerance=0.0001)
         assert job_results['properties']['start_datetime'] == "2017-11-01T00:00:00Z"
         assert job_results['properties']['end_datetime'] == "2017-11-21T00:00:00Z"
