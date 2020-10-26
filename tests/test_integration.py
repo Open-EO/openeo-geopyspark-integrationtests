@@ -206,7 +206,7 @@ def test_cog_synchronous(auth_connection, tmp_path):
 
     out_file = tmp_path / "cog.tiff"
     cube.download(out_file, format="GTIFF", options={"tiled": True})
-    assert_geotiff_basics(out_file, expected_shape=(1, 2241, 2240))
+    assert_geotiff_basics(out_file, expected_shape=(1, 1681, 1681))
     assert_cog(out_file)
 
 
