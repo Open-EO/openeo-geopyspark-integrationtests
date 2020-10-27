@@ -50,16 +50,20 @@ TEST_USER = "geopyspark-integrationtester"
 TEST_PASSWORD = TEST_USER + "123"
 
 POLYGON01 = Polygon(shell=[
-    # bounding box (Dortmund): http://bboxfinder.com/#51.29289899553571,7.022705078125007,51.75432477678571,7.659912109375007
-    [7.022705078125007, 51.75432477678571],
-    [7.659912109375007, 51.74333844866071],
-    [7.659912109375007, 51.29289899553571],
-    [7.044677734375007, 51.31487165178571],
-    [7.022705078125007, 51.75432477678571]
+    # Dortmund (bbox: http://bboxfinder.com/#51.30,7.00,51.75,7.60)
+    [7.00, 51.75],
+    [7.10, 51.35],
+    [7.50, 51.30],
+    [7.60, 51.70],
+    [7.00, 51.75],
 ])
+
+POLYGON01_BBOX = [7.00, 51.30, 7.60, 51.75]
+
 
 BATCH_JOB_POLL_INTERVAL = 10
 BATCH_JOB_TIMEOUT = 40 * 60
+
 
 def batch_default_options(driverMemoryOverhead="1G", driverMemory="2G"):
     return {
@@ -280,11 +284,8 @@ def test_batch_job_basic(connection, api_version, tmp_path):
         job_results = connection.job_results(job.job_id)
         print(job_results)
         geometry = shape(job_results['geometry'])
-        print("geometry", geometry, POLYGON01)
         assert geometry.equals_exact(POLYGON01, tolerance=0.0001)
-        bbox = Polygon.from_bounds(*job_results['bbox'])
-        print("bbox", bbox, Polygon.from_bounds(*POLYGON01.bounds))
-        assert bbox.equals_exact(Polygon.from_bounds(*POLYGON01.bounds), tolerance=0.0001)
+        assert job_results["bbox"] == POLYGON01_BBOX
         assert job_results['properties']['start_datetime'] == "2017-11-01T00:00:00Z"
         assert job_results['properties']['end_datetime'] == "2017-11-21T00:00:00Z"
 
@@ -460,7 +461,9 @@ def test_load_collection_from_disk(auth_connection, tmp_path):
     assert_geotiff_basics(output_file, expected_shape=(1, 2786, 3496))
 
 
-def assert_geotiff_basics(output_tiff: str, expected_band_count=1, min_width=64, min_height=64, expected_shape=None):
+def assert_geotiff_basics(
+        output_tiff: Union[str, Path], expected_band_count=1, min_width=64, min_height=64, expected_shape=None
+):
     """Basic checks that a file is a readable GeoTIFF file"""
     assert imghdr.what(output_tiff) == 'tiff'
     with rasterio.open(output_tiff) as dataset:
@@ -489,7 +492,7 @@ def test_mask_polygon(auth_connection, api_version, tmp_path):
 
     output_tiff = tmp_path / "masked.tiff"
     masked.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_band_count=1)
+    assert_geotiff_basics(output_tiff, expected_shape=(1, 176, 236))
 
 
 def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
