@@ -28,7 +28,7 @@ ${SPARK_HOME}/bin/spark-submit \
  --driver-memory 2G \
  --conf spark.executor.cores=2 \
  --driver-java-options "-Dlog4j.debug=true -Dlog4j.configuration=file:log4j.properties" \
- --conf spark.driver.memoryOverhead=2g \
+ --conf spark.driver.memoryOverhead=3g \
  --conf spark.executor.memoryOverhead=512m \
  --conf spark.executor.memory=2G \
  --conf spark.speculation=true \
