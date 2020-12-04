@@ -67,7 +67,7 @@ pipeline {
       stage('Package virtualenv'){
         steps {
           script{
-            dir('venv36') {
+            dir('venv38') {
               sh "zip -r ../openeo-${DATE}-${BUILD_NUMBER}.zip *"
             }
           }

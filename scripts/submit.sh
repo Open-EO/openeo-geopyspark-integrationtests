@@ -51,7 +51,7 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.executorEnv.YARN_CONTAINER_RUNTIME_TYPE=docker \
  --conf spark.executorEnv.YARN_CONTAINER_RUNTIME_DOCKER_IMAGE=vito-docker-private-dev.artifactory.vgt.vito.be/python38-hadoop \
  --conf spark.executorEnv.YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS=/var/lib/sss/pipes:/var/lib/sss/pipes:rw,/usr/hdp/current/:/usr/hdp/current/:ro,/etc/hadoop/conf/:/etc/hadoop/conf/:ro,/etc/krb5.conf:/etc/krb5.conf:ro,/data/MTDA:/data/MTDA:ro \
- --files venv36/layercatalog.json,venv36/log4j.properties \
+ --files venv38/layercatalog.json,venv38/log4j.properties \
  --py-files tests/data/custom_processes.py \
  --archives "${hdfsVenvZip}#venv" \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
