@@ -184,7 +184,7 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
             .filter_temporal("2017-10-10", "2017-10-30")
             .filter_bbox(**bbox)
     )
-    # cube.download(tmp_path / "cube.tiff", format="GTIFF")
+    cube.download(tmp_path / "cube.tiff", format="GTIFF")
 
     red = cube.band("TOC-B04_10M")
     nir = cube.band("TOC-B08_10M")
