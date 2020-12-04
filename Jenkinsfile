@@ -17,7 +17,7 @@ def extras_require = 'dev'
 pipeline {
     // Run job on any node with this label
     agent {
-      label "devdmz"
+      node "jenkinsslave7.services.rscloud.vito.be"
     }
     // Set built-in environment variables
     environment {
@@ -93,9 +93,7 @@ pipeline {
       }
       stage('Deploy on Spark') {
         steps{script{
-	  docker.image('vito-docker-private-dev.artifactory.vgt.vito.be/python38-hadoop').inside("-u root -v ${WORKSPACE}:/work -w /work") {
-            sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
-          }
+          sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
         }}
       }
       stage('Wait for Spark job'){
