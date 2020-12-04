@@ -2,8 +2,8 @@
 
 @Library('lib')_
 
-def docker_registry = globalDefaults.docker_registry_prod()
-def python_version = '3.6'
+def docker_registry = globalDefaults.docker_registry_dev()
+def python_version = '3.8'
 def pre_test_script = ''
 def pylint_results = 'test_results/pylint.out'
 def pytest_results = 'test_results/pytest_results.xml'
