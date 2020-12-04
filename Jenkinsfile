@@ -92,9 +92,11 @@ pipeline {
         }
       }
       stage('Deploy on Spark') {
-        steps{
+        steps{script{
+	  docker.image('vito-docker-private-dev.artifactory.vgt.vito.be/python38').inside("-u root -v ${WORKSPACE}:/work -w /work") {
             sh "scripts/submit.sh ${jobName} ${DATE}-${BUILD_NUMBER}"
-        }
+          }
+        }}
       }
       stage('Wait for Spark job'){
         steps{
