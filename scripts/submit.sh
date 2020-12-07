@@ -32,6 +32,7 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.executor.memoryOverhead=512m \
  --conf spark.executor.memory=2G \
  --conf spark.speculation=true \
+ --conf spark.shuffle.service.port=7447 \
  --conf spark.speculation.quantile=0.4 --conf spark.speculation.multiplier=1.1 \
  --conf spark.dynamicAllocation.minExecutors=5 \
  --conf spark.locality.wait=300ms --conf spark.shuffle.service.enabled=true --conf spark.dynamicAllocation.enabled=true \
