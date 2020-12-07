@@ -190,6 +190,9 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
     nir = cube.band("TOC-B08_10M")
     ndvi = (nir - red) / (red + nir)
 
+    red.download(tmp_path / "red.tiff", format="GTiff")
+    nir.download(tmp_path / "nir.tiff", format="GTiff")
+
     out_file = tmp_path / "ndvi.tiff"
     ndvi.download(out_file, format="GTIFF")
     assert_geotiff_basics(out_file,min_height=40, expected_shape=(1, 49, 141))
