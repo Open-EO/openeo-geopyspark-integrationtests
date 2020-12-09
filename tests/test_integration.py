@@ -325,7 +325,7 @@ def test_batch_job_cancel(connection, tmp_path):
 
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
-    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="512m"))
+    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="1g"))
     assert job.job_id
     job.start_job()
 
@@ -350,7 +350,7 @@ def test_batch_job_delete_job(connection):
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
-    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="512m"))
+    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="1g"))
     assert job.job_id
     job.start_job()
 

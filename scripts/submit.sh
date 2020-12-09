@@ -24,11 +24,11 @@ date
 ${SPARK_HOME}/bin/spark-submit \
  --master yarn --deploy-mode cluster \
  --queue lowlatency \
- --driver-memory 2G \
+ --driver-memory 1536m \
  --principal jenkins@VGT.VITO.BE --keytab ${HOME}/jenkins.keytab \
  --conf spark.executor.cores=2 \
  --driver-java-options "-Dlog4j.debug=true -Dlog4j.configuration=file:log4j.properties -Dhdp.version=3.1.4.0-315" \
- --conf spark.driver.memoryOverhead=4g \
+ --conf spark.driver.memoryOverhead=5g \
  --conf spark.executor.memoryOverhead=512m \
  --conf spark.executor.memory=2G \
  --conf spark.speculation=true \
