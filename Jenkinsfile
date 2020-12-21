@@ -125,6 +125,8 @@ pipeline {
         steps {
           script {
             utils.triggerJob('geo.openeo_deploy', ['version': "${DATE}-${BUILD_NUMBER}", 'openeo_env': 'dev', 'mail_address': mail_address])
+            utils.triggerJob('bld.container_images/bld.centos8-openeo', [])
+            utils.triggerJob('bld.container_images/bld.openeo-geotrellis-kakadu', [])
           }
         }
       }
