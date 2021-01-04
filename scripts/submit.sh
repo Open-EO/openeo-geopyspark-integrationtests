@@ -14,7 +14,7 @@ export PATH="$SPARK_HOME/bin:$PATH"
 export PYTHONPATH="venv/lib64/python3.8/site-packages:venv/lib/python3.8/site-packages"
 
 hdfsVenvZip=https://artifactory.vgt.vito.be/auxdata-public/openeo/dev/openeo-"${version}".zip
-extensions=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrellis-extensions-2.0.0_2.12-SNAPSHOT.jar
+extensions=https://artifactory.vgt.vito.be/libs-snapshot-public/org/openeo/geotrellis-extensions/2.0.0_2.12-SNAPSHOT/geotrellis-extensions-2.0.0_2.12-SNAPSHOT.jar
 backend_assembly=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrellis-backend-assembly-0.4.6-openeo_2.12.jar
 
 echo "Found backend assembly: ${backend_assembly}"
@@ -40,8 +40,8 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
  --conf "spark.yarn.appMasterEnv.PYSPARK_PYTHON=$pysparkPython" \
  --conf "spark.yarn.appMasterEnv.PYSPARK_DRIVER_PYTHON=$pysparkPython" \
- --conf "spark.yarn.appMasterEnv.JAVA_HOME=/usr/lib/jvm/jre-11-openjdk" \
- --conf "spark.executorEnv.JAVA_HOME=/usr/lib/jvm/jre-11-openjdk" \
+ --conf "spark.yarn.appMasterEnv.JAVA_HOME=/usr/java/default" \
+ --conf "spark.executorEnv.JAVA_HOME=/usr/java/default" \
  --conf spark.executorEnv.LD_LIBRARY_PATH=venv/lib64 --conf spark.yarn.appMasterEnv.LD_LIBRARY_PATH=venv/lib64 \
  --conf "spark.yarn.appMasterEnv.OPENEO_VENV_ZIP=$hdfsVenvZip" \
  --conf spark.executorEnv.DRIVER_IMPLEMENTATION_PACKAGE=openeogeotrellis --conf spark.yarn.appMasterEnv.DRIVER_IMPLEMENTATION_PACKAGE=openeogeotrellis \
