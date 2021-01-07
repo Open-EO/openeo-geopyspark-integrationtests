@@ -884,3 +884,20 @@ def test_secondary_service_without_spatial_bounds_is_accepted(auth_connection):
 
     service_id = s2_fapar.tiled_viewing_service(type="WMTS")["service_id"]
     auth_connection.remove_service(service_id)
+
+
+def test_simple_raster_to_vector(auth_connection, api_version, tmp_path):
+    date = "2019-04-26"
+    
+    # using sceneclassification that will have contiguous areas suitable for vectorization
+    s2_sc = (
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[ "SCENECLASSIFICATION_20M"])
+            .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
+    )
+    vectorized=s2_sc.raster_to_vector()
+
+    output_json = tmp_path / "raster_to_vector.json"
+    vectorized.download(output_json)
+    assert os.path.getsize(output_json) > 0
+    
+    
