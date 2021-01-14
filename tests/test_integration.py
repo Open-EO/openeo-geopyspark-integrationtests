@@ -157,7 +157,7 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path):
 
     cube = (
         auth_connection.load_collection('TERRASCOPE_S2_TOC_V2',bands=['TOC-B04_10M','TOC-B08_10M'])
-            .date_range_filter(start_date="2017-10-15", end_date="2017-10-15")
+            .date_range_filter(start_date="2020-11-05", end_date="2020-11-05")
             .bbox_filter(left=761104, right=763281, bottom=6543830, top=6544655, srs="EPSG:3857")
     )
     # cube.download(tmp_path / "cube.tiff", format="GTIFF")
@@ -180,9 +180,10 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
         "crs": "EPSG:4326"
     }
     cube = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2",bands=['TOC-B04_10M','TOC-B08_10M'])
-            .filter_temporal("2017-10-10", "2017-10-30")
-            .filter_bbox(**bbox)
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2",
+                                        bands=['TOC-B04_10M','TOC-B08_10M'])
+           .filter_temporal("2020-11-01", "2020-11-20")
+           .filter_bbox(**bbox)
     )
     # cube.download(tmp_path / "cube.tiff", format="GTIFF")
 
@@ -198,7 +199,7 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
         print(np.histogram(x, bins=16))
         print(np.histogram(x, bins=16, range=(-1, 1)))
         assert -0.08 < np.nanmin(x, axis=None)
-        assert np.nanmax(x, axis=None) < 0.9
+        assert np.nanmax(x, axis=None) < 1.0
         assert np.isnan(x).sum(axis=None) == 0
 
 
@@ -616,7 +617,7 @@ def test_reduce_temporal_udf(auth_connection, tmp_path):
 
     cube = (
         auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["blue", "green", "red"])
-            .filter_temporal("2017-03-10", "2017-03-30")
+            .filter_temporal("2020-11-01", "2020-11-20")
             .filter_bbox(**bbox)
     )
 
