@@ -14,7 +14,7 @@ export PATH="$SPARK_HOME/bin:$PATH"
 export PYTHONPATH="venv/lib64/python3.6/site-packages:venv/lib/python3.6/site-packages"
 
 hdfsVenvZip=https://artifactory.vgt.vito.be/auxdata-public/openeo/dev/openeo-"${version}".zip
-extensions=https://artifactory.vgt.vito.be/libs-snapshot-public/org/openeo/geotrellis-extensions/2.0.0-SNAPSHOT/geotrellis-extensions-2.0.0-SNAPSHOT.jar
+extensions=https://artifactory.vgt.vito.be/libs-snapshot-public/org/openeo/geotrellis-extensions/2.1.0-SNAPSHOT/geotrellis-extensions-2.1.0-SNAPSHOT.jar
 backend_assembly=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrellis-backend-assembly-0.4.6-openeo.jar
 
 echo "Found backend assembly: ${backend_assembly}"
@@ -39,7 +39,8 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.yarn.appMasterEnv.PYTHON_EGG_CACHE=./ \
  --conf "spark.yarn.appMasterEnv.PYSPARK_PYTHON=$pysparkPython" \
  --conf "spark.yarn.appMasterEnv.PYSPARK_DRIVER_PYTHON=$pysparkPython" \
- --conf spark.executorEnv.LD_LIBRARY_PATH=venv/lib64 --conf spark.yarn.appMasterEnv.LD_LIBRARY_PATH=venv/lib64 \
+ --conf spark.executorEnv.LD_LIBRARY_PATH=venv/lib64:/tmp_epod/gdal --conf spark.yarn.appMasterEnv.LD_LIBRARY_PATH=venv/lib64:/tmp_epod/gdal \
+ --conf spark.executorEnv.PROJ_LIB=/tmp_epod/gdal/data --conf spark.yarn.appMasterEnv.PROJ_LIB=/tmp_epod/gdal/data \
  --conf "spark.yarn.appMasterEnv.OPENEO_VENV_ZIP=$hdfsVenvZip" \
  --conf spark.executorEnv.DRIVER_IMPLEMENTATION_PACKAGE=openeogeotrellis --conf spark.yarn.appMasterEnv.DRIVER_IMPLEMENTATION_PACKAGE=openeogeotrellis \
  --conf spark.yarn.appMasterEnv.WMTS_BASE_URL_PATTERN=http://tsviewer-rest-test.vgt.vito.be/openeo/services/%s \

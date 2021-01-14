@@ -901,4 +901,24 @@ def test_simple_raster_to_vector(auth_connection, api_version, tmp_path):
     vectorized.download(output_json)
     assert os.path.getsize(output_json) > 0
     
-    
+
+def test_cgls(auth_connection):
+    lai300 = (auth_connection
+              .load_collection("CGLS_LAI300_V1_GLOBAL")
+              .filter_temporal(["2017-01-10", "2017-01-31"]))
+
+    N, E, S, W = (35.53222622770337, -80.33203125, 29.84064389983441, -86.30859375)
+    polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
+
+    timeseries = lai300.polygonal_mean_timeseries(polygon).execute()
+
+    print(timeseries)
+    expected_dates = ["2017-01-10T00:00:00Z", "2017-01-20T00:00:00Z", "2017-01-31T00:00:00Z"]
+    assert sorted(timeseries.keys()) == sorted(expected_dates)
+    expected_schema = schema.Schema({str: [[float]]})
+    assert expected_schema.validate(timeseries)
+
+    scaling_factor = 0.0333329997956753
+
+    assert abs(timeseries["2017-01-10T00:00:00Z"][0][0] * scaling_factor - 1.0038442394683125) < 0.001
+    assert abs(timeseries["2017-01-31T00:00:00Z"][0][0] * scaling_factor - 1.0080865841250772) < 0.001
