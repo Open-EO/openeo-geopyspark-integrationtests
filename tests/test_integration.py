@@ -197,8 +197,8 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
     assert_geotiff_basics(out_file,min_height=40, expected_shape=(1, 324, 365))
     with rasterio.open(out_file) as ds:
         x = ds.read(1)
-        assert 0.09 < np.nanmin(x, axis=None)
-        assert np.nanmax(x, axis=None) < 0.52
+        assert 0.08 < np.nanmin(x, axis=None)
+        assert np.nanmax(x, axis=None) < 0.67
         assert np.isnan(x).sum(axis=None) == 0
 
 
