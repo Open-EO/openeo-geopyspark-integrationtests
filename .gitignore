@@ -110,3 +110,5 @@ ENV/
 *.tif
 *.tiff
 *.geotiff
+
+tmp

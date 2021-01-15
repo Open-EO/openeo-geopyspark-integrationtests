@@ -2,6 +2,7 @@ import imghdr
 import json
 from pathlib import Path
 import re
+import os
 import time
 from typing import Callable, Union
 
@@ -173,10 +174,10 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path):
 
 
 def test_ndvi_band_math(auth_connection, tmp_path, api_version):
-    # http://bboxfinder.com/#50.560007,6.8371137,50.5647147,6.8566699
+    # http://bboxfinder.com/#50.55,6.82,50.58,6.87
     bbox = {
-        "west": 6.8371137, "south": 50.560007,
-        "east": 6.8566699, "north": 50.5647147,
+        "west": 6.82, "south": 50.55,
+        "east": 6.87, "north": 50.58,
         "crs": "EPSG:4326"
     }
     cube = (
@@ -190,16 +191,15 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
     red = cube.band("TOC-B04_10M")
     nir = cube.band("TOC-B08_10M")
     ndvi = (nir - red) / (red + nir)
+    ndvi = ndvi.mean_time()
 
     out_file = tmp_path / "ndvi.tiff"
     ndvi.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file,min_height=40, expected_shape=(1, 49, 141))
+    assert_geotiff_basics(out_file,min_height=40, expected_shape=(1, 324, 365))
     with rasterio.open(out_file) as ds:
         x = ds.read(1)
-        print(np.histogram(x, bins=16))
-        print(np.histogram(x, bins=16, range=(-1, 1)))
-        assert -0.08 < np.nanmin(x, axis=None)
-        assert np.nanmax(x, axis=None) < 1.0
+        assert 0.08 < np.nanmin(x, axis=None)
+        assert np.nanmax(x, axis=None) < 0.67
         assert np.isnan(x).sum(axis=None) == 0
 
 
@@ -886,3 +886,40 @@ def test_secondary_service_without_spatial_bounds_is_accepted(auth_connection):
 
     service_id = s2_fapar.tiled_viewing_service(type="WMTS")["service_id"]
     auth_connection.remove_service(service_id)
+
+
+def test_simple_raster_to_vector(auth_connection, api_version, tmp_path):
+    date = "2019-04-26"
+
+    # using sceneclassification that will have contiguous areas suitable for vectorization
+    s2_sc = (
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[ "SCENECLASSIFICATION_20M"])
+            .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
+    )
+    vectorized=s2_sc.raster_to_vector()
+
+    output_json = tmp_path / "raster_to_vector.json"
+    vectorized.download(output_json)
+    assert os.path.getsize(output_json) > 0
+
+
+def test_cgls(auth_connection):
+    lai300 = (auth_connection
+              .load_collection("CGLS_LAI300_V1_GLOBAL")
+              .filter_temporal(["2017-01-10", "2017-01-31"]))
+
+    N, E, S, W = (35.53222622770337, -80.33203125, 29.84064389983441, -86.30859375)
+    polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
+
+    timeseries = lai300.polygonal_mean_timeseries(polygon).execute()
+
+    print(timeseries)
+    expected_dates = ["2017-01-10T00:00:00Z", "2017-01-20T00:00:00Z", "2017-01-31T00:00:00Z"]
+    assert sorted(timeseries.keys()) == sorted(expected_dates)
+    expected_schema = schema.Schema({str: [[float]]})
+    assert expected_schema.validate(timeseries)
+
+    scaling_factor = 0.0333329997956753
+
+    assert abs(timeseries["2017-01-10T00:00:00Z"][0][0] * scaling_factor - 1.0038442394683125) < 0.001
+    assert abs(timeseries["2017-01-31T00:00:00Z"][0][0] * scaling_factor - 1.0080865841250772) < 0.001
