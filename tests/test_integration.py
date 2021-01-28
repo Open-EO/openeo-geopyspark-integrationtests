@@ -923,3 +923,15 @@ def test_cgls(auth_connection):
 
     assert abs(timeseries["2017-01-10T00:00:00Z"][0][0] * scaling_factor - 1.0038442394683125) < 0.001
     assert abs(timeseries["2017-01-31T00:00:00Z"][0][0] * scaling_factor - 1.0080865841250772) < 0.001
+
+def test_resolution_merge(auth_connection,tmp_path):
+    date = "2019-04-26"
+    output_tiff = tmp_path / "highres.tif"
+    lowres_output_tiff = tmp_path / "lowres.tif"
+    base = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=['TOC-B08_10M','TOC-B8A_20M'])\
+        .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
+    #base.download(lowres_output_tiff)
+
+    base.resolution_merge(
+    high_resolution_bands=['TOC-B08_10M'], low_resolution_bands=['TOC-B8A_20M']).download(output_tiff)
+    assert_geotiff_basics(output_tiff, expected_band_count=2)
