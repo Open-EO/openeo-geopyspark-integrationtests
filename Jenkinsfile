@@ -17,7 +17,7 @@ def extras_require = 'dev'
 pipeline {
     // Run job on any node with this label
     agent {
-      node "jenkinsslave7.services.rscloud.vito.be"
+      node "devdmz"
     }
     // Set built-in environment variables
     environment {
