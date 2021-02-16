@@ -938,7 +938,9 @@ def test_resolution_merge(auth_connection,tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
 
+@pytest.mark.skip(reason="SENTINEL1_GAMMA0_SENTINELHUB requires secret #EP-3050")
 def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
+    # FIXME: a separate filter_bands call drops the mask and local_incidence_angle bands
     sar_backscatter = (auth_connection
                        .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
                        .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
