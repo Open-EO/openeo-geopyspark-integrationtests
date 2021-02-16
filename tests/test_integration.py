@@ -924,6 +924,7 @@ def test_cgls(auth_connection):
     assert abs(timeseries["2017-01-10T00:00:00Z"][0][0] * scaling_factor - 1.0038442394683125) < 0.001
     assert abs(timeseries["2017-01-31T00:00:00Z"][0][0] * scaling_factor - 1.0080865841250772) < 0.001
 
+
 def test_resolution_merge(auth_connection,tmp_path):
     date = "2019-04-26"
     output_tiff = tmp_path / "highres.tif"
@@ -935,3 +936,16 @@ def test_resolution_merge(auth_connection,tmp_path):
     base.resolution_merge(
     high_resolution_bands=['TOC-B08_10M'], low_resolution_bands=['TOC-B8A_20M']).download(output_tiff)
     assert_geotiff_basics(output_tiff, expected_band_count=2)
+
+
+def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
+    sar_backscatter = (auth_connection
+                       .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
+                       .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
+                       .filter_temporal(extent=["2019-10-10", "2019-10-10"])
+                       .sar_backscatter(mask=True, local_incidence_angle=True))
+
+    output_tiff = tmp_path / "sar_backscatter.tif"
+
+    sar_backscatter.execute_batch(output_tiff, out_format='GTiff', job_options={'sentinel-hub-batch': True})
+    assert_geotiff_basics(output_tiff, expected_band_count=4)  # VV, VH, mask and local_incidence_angle
