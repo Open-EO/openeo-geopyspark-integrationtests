@@ -285,7 +285,7 @@ def test_batch_job_basic(connection, api_version, tmp_path):
     assert expected_schema.validate(data)
 
     if api_version >= "1.0.0":
-        job_results = connection.job_results(job.job_id)
+        job_results = job.list_results()
         print(job_results)
         geometry = shape(job_results['geometry'])
         assert geometry.equals_exact(POLYGON01, tolerance=0.0001)
