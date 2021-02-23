@@ -8,6 +8,7 @@ from typing import Callable, Union
 
 import numpy as np
 from numpy.testing import assert_array_equal
+import xarray
 import pytest
 import rasterio
 import requests
@@ -19,9 +20,9 @@ from openeo.rest.imagecollectionclient import ImageCollectionClient
 from openeo.rest.job import RESTJob
 from openeo.rest.udp import Parameter
 from openeo.rest.connection import OpenEoApiError
+from openeo.rest.conversions import datacube_from_file
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
-
 
 def _dump_process_graph(cube: Union[DataCube, ImageCollectionClient], tmp_path: Path, name="process_graph.json"):
     """Dump a cube's process graph as json to a temp file"""
@@ -951,3 +952,86 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
 
     sar_backscatter.execute_batch(output_tiff, out_format='GTiff', job_options={'sentinel-hub-batch': True})
     assert_geotiff_basics(output_tiff, expected_band_count=4)  # VV, VH, mask and local_incidence_angle
+    
+    
+# this function checks that only up to a portion of values do not match within tolerance
+# there always are few pixels with reflections, ... etc on images which is sensitive to very small changes in the code
+def compare_xarrays(xa1,xa2,max_nonmatch_ratio=0.01, tolerance=1.e-6):
+    np.testing.assert_allclose(xa1.shape,xa2.shape)
+    nmax=xa1.shape[-1]*xa1.shape[-2]*max_nonmatch_ratio
+    diff=xarray.ufuncs.fabs(xa1-xa2)>tolerance
+    assert(diff.where(diff).count()<=nmax)
+    np.testing.assert_allclose(xa2.where(~diff), xa2.where(~diff), rtol=0., atol=tolerance, equal_nan=True)
+
+
+def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tmp_path):
+    # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
+    date = "2019-04-11"
+    bbox=(655000,5677000,660000,5685000)
+
+    l1c = (
+        auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
+            .filter_temporal(date,date)\
+            .filter_bbox(crs="EPSG:32631", **dict(zip(["west", "south", "east", "north"], bbox)))
+    )
+    l2a=l1c.process(
+        process_id="atmospheric_correction",
+        arguments={
+            "data": THIS,
+            # "missionId": "SENTINEL2", this is the default
+        }
+    )
+    output = tmp_path / "icorvalidation_default.json"
+    l2a.download(output,format="json")
+    
+    result=datacube_from_file(output,fmt="json").get_array()
+    b2ref=xarray.open_rasterio("icor/ref_default_B02.tif")
+    b3ref=xarray.open_rasterio("icor/ref_default_B03.tif")
+    b4ref=xarray.open_rasterio("icor/ref_default_B04.tif")
+    b8ref=xarray.open_rasterio("icor/ref_default_B08.tif")
+
+    compare_xarrays(result.loc[date,"B02"],b2ref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date,"B03"],b3ref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date,"B04"],b4ref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
+
+
+def test_atmospheric_correction_constoverridenparams(auth_connection, api_version, tmp_path):         
+    # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
+    date = "2019-04-11"
+    bbox=(655000,5677000,660000,5685000)
+
+    l1c = (
+        auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
+            .filter_temporal(date,date)\
+            .filter_bbox(crs="EPSG:32631", **dict(zip(["west", "south", "east", "north"], bbox)))
+    )
+    l2a=l1c.process(
+        process_id="atmospheric_correction",
+        arguments={
+            "data": THIS,
+            # "missionId": "SENTINEL2", this is the default
+            "sza" : 43.5,
+            "vza" : 6.96,
+            "raa" : 117.,
+            "gnd" : 0.1,
+            "aot" : 0.2,
+            "cwv" : 2.0,
+        }
+    )
+    output = tmp_path / "icorvalidation_overriden.json"
+    l2a.download(output,format="json")
+    
+    result=datacube_from_file(output,fmt="json").get_array()
+    b2ref=xarray.open_rasterio("icor/ref_overriden_B02.tif")
+    b3ref=xarray.open_rasterio("icor/ref_overriden_B03.tif")
+    b4ref=xarray.open_rasterio("icor/ref_overriden_B04.tif")
+    b8ref=xarray.open_rasterio("icor/ref_overriden_B08.tif")
+
+    compare_xarrays(result.loc[date,"B02"],b2ref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date,"B03"],b3ref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date,"B04"],b4ref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
+            
+
+
