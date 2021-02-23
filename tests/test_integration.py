@@ -964,6 +964,45 @@ def compare_xarrays(xa1,xa2,max_nonmatch_ratio=0.01, tolerance=1.e-6):
     np.testing.assert_allclose(xa2.where(~diff), xa2.where(~diff), rtol=0., atol=tolerance, equal_nan=True)
 
 
+def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, tmp_path):         
+    # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
+    date = "2019-04-11"
+    bbox=(655000,5677000,660000,5685000)
+
+    l1c = (
+        auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
+            .filter_temporal(date,date)\
+            .filter_bbox(crs="EPSG:32631", **dict(zip(["west", "south", "east", "north"], bbox)))
+    )
+    l2a=l1c.process(
+        process_id="atmospheric_correction",
+        arguments={
+            "data": THIS,
+            # "missionId": "SENTINEL2", this is the default
+           "appendDebugBands" : 1
+        }
+    )
+    output = tmp_path / "icorvalidation_inputcheck.json"
+    l2a.download(output,format="json")
+    
+    result=datacube_from_file(output,fmt="json").get_array()
+
+    # note that debug bands are multiplied by 100 to store meaningful values as integers
+    szaref=xarray.open_rasterio("icor/ref_inputcheck_SZA.tif")
+    vzaref=xarray.open_rasterio("icor/ref_inputcheck_VZA.tif")
+    raaref=xarray.open_rasterio("icor/ref_inputcheck_RAA.tif")
+    demref=xarray.open_rasterio("icor/ref_inputcheck_DEM.tif")
+    aotref=xarray.open_rasterio("icor/ref_inputcheck_AOT.tif")
+    cwvref=xarray.open_rasterio("icor/ref_inputcheck_CWV.tif")
+
+    compare_xarrays(result.loc[date][-6],szaref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date][-5],vzaref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date][-4],raaref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date][-3],demref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date][-2],aotref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date][-1],cwvref[0].transpose("x","y"))
+
+
 def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tmp_path):
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
