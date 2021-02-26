@@ -963,7 +963,7 @@ def compare_xarrays(xa1,xa2,max_nonmatch_ratio=0.01, tolerance=1.e-6):
     assert(diff.where(diff).count()<=nmax)
     np.testing.assert_allclose(xa2.where(~diff), xa2.where(~diff), rtol=0., atol=tolerance, equal_nan=True)
 
-@pytest.skip
+@pytest.skip("layer not available")
 def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, tmp_path):         
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
@@ -1002,7 +1002,7 @@ def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, t
     compare_xarrays(result.loc[date][-2],aotref[0].transpose("x","y"))
     compare_xarrays(result.loc[date][-1],cwvref[0].transpose("x","y"))
 
-@pytest.skip
+@pytest.skip("layer not available")
 def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tmp_path):
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
@@ -1034,7 +1034,7 @@ def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tm
     compare_xarrays(result.loc[date,"B04"],b4ref[0].transpose("x","y"))
     compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
 
-@pytest.skip
+@pytest.skip("layer not available")
 def test_atmospheric_correction_constoverridenparams(auth_connection, api_version, tmp_path):         
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
