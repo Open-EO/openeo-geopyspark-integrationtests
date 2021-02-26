@@ -1073,4 +1073,13 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
     compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
             
 
+def test_discard_result_suppresses_batch_job_output_file(connection):
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
+    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M")  # everything
+    cube = cube.process("discard_result", arguments={"data": cube})
+
+    job = cube.execute_batch(max_poll_interval=BATCH_JOB_POLL_INTERVAL)
+    assets = job.get_results().get_assets()
+
+    assert len(assets) == 0, assets
