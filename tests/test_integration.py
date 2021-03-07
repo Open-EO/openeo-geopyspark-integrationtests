@@ -560,11 +560,11 @@ def test_fuzzy_mask(auth_connection, tmp_path):
 
 def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
     date = "2019-04-26"
-    mask = create_simple_mask(auth_connection, band_math_workaround=True)
+    mask = create_simple_mask(auth_connection,class_to_mask=3, band_math_workaround=False)
     mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
     s2_radiometry = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[ "blue", "green", "red"])
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[ "blue" ])
             .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
@@ -576,7 +576,13 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
     _dump_process_graph(masked, tmp_path)
     output_tiff = tmp_path / "masked_result.tiff"
     masked.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_shape=(3, 227, 350))
+    assert_geotiff_basics(output_tiff, expected_shape=(1, 227, 350))
+    with rasterio.open(output_tiff) as result_ds:
+        assert result_ds.dtypes == ('int16',)
+        with rasterio.open(get_path("reference/simple_cloud_masking.tiff")) as ref_ds:
+            ref_array = ref_ds.read(masked=False)
+            actual_array = result_ds.read(masked=False)
+            assert_array_equal(ref_array, actual_array)
 
 
 def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
