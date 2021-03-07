@@ -7,7 +7,8 @@ import time
 from typing import Callable, Union
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.ma.testutils import assert_array_approx_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 import xarray
 import pytest
 import rasterio
@@ -593,7 +594,7 @@ def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
     mask = mask.filter_bbox(**bbox)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
     s2_radiometry = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["blue", "green", "red"])
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["blue"])
             .filter_bbox(**bbox).filter_temporal(date, date)
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
@@ -606,11 +607,40 @@ def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
     masked.download(out_file, format='GTIFF')
-    assert_geotiff_basics(out_file, expected_shape=(3, 284, 660))
+    assert_geotiff_basics(out_file, expected_shape=(1, 284, 660))
     with rasterio.open(out_file) as result_ds:
-        assert result_ds.dtypes == ('int16', 'int16', 'int16',)
+        assert result_ds.dtypes == ('int16',)
         with rasterio.open(get_path("reference/advanced_cloud_masking.tiff")) as ref_ds:
-            assert_array_equal(ref_ds.read(masked=True), result_ds.read(masked=True))
+            assert_array_equal(ref_ds.read(masked=False), result_ds.read(masked=False))
+
+
+
+def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path):
+    """
+    Advanced masking above got replaced with more simple builting approach
+    @param auth_connection:
+    @param api_version:
+    @param tmp_path:
+    @return:
+    """
+    # Retie
+    bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
+    date = "2018-08-14"
+
+    s2_radiometry = (
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["blue","SCENECLASSIFICATION_20M"])
+            .filter_bbox(**bbox).filter_temporal(date, date)
+    )
+
+    masked = s2_radiometry.process("mask_scl_dilation",data=s2_radiometry,scl_band_name="SCENECLASSIFICATION_20M")
+
+    out_file = tmp_path / "masked_result.tiff"
+    masked.download(out_file, format='GTIFF')
+    #assert_geotiff_basics(out_file, expected_shape=(3, 284, 660))
+    with rasterio.open(out_file) as result_ds:
+        assert result_ds.dtypes == ('int16', 'int16',)
+        with rasterio.open(get_path("reference/advanced_cloud_masking_builtin.tiff")) as ref_ds:
+            assert_array_approx_equal(ref_ds.read(1,masked=False), result_ds.read(1,masked=False))
 
 
 def test_reduce_temporal_udf(auth_connection, tmp_path):

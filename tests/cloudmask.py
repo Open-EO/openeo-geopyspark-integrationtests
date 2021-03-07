@@ -9,7 +9,7 @@ _log = logging.getLogger(__name__)
 def makekernel(size: int) -> np.ndarray:
     # TODO move to kernel building module in openeo client. https://github.com/Open-EO/openeo-python-client/issues/106
     assert size % 2 == 1
-    kernel_vect = scipy.signal.windows.gaussian(size, std=size / 3.0, sym=True)
+    kernel_vect = scipy.signal.windows.gaussian(size, std=size / 6.0, sym=True)
     kernel = np.outer(kernel_vect, kernel_vect)
     kernel = kernel / kernel.sum()
     return kernel
@@ -42,7 +42,7 @@ def create_advanced_mask(start: str, end: str, connection: Connection, band_math
     # in openEO, 1 means mask (remove pixel) 0 means keep pixel
 
     # keep useful pixels, so set to 1 (remove) if smaller than threshold
-    first_mask = ~ ((classification == 4) | (classification == 5) | (classification == 6) | (classification == 7))
+    first_mask = ~ ((classification == 2) | (classification == 4) | (classification == 5) | (classification == 6) | (classification == 7))
     first_mask = first_mask.apply_kernel(makekernel(17))
     # remove pixels smaller than threshold, so pixels with a lot of neighbouring good pixels are retained?
     if band_math_workaround:
@@ -50,11 +50,11 @@ def create_advanced_mask(start: str, end: str, connection: Connection, band_math
     first_mask = first_mask > 0.057
 
     # remove cloud pixels so set to 1 (remove) if larger than threshold
-    second_mask = (classification == 3) | (classification == 8) | (classification == 9) | (classification == 10)
-    second_mask = second_mask.apply_kernel(makekernel(161))
+    second_mask = (classification == 3) | (classification == 8) | (classification == 9) | (classification == 10) | (classification == 11)
+    second_mask = second_mask.apply_kernel(makekernel(201))
     if band_math_workaround:
         second_mask = _add_band_dimension_workaround(second_mask)
-    second_mask = second_mask > 0.1
+    second_mask = second_mask > 0.025
 
     # TODO: the use of filter_temporal is a trick to make cube merging work, needs to be fixed in openeo client
     return first_mask.filter_temporal(start, end) | second_mask.filter_temporal(start, end)
