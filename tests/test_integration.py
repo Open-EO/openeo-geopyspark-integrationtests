@@ -1119,3 +1119,49 @@ def test_discard_result_suppresses_batch_job_output_file(connection):
     assets = job.get_results().get_assets()
 
     assert len(assets) == 0, assets
+
+def __reproject_polygon(polygon: Union[Polygon], srs, dest_srs):
+    from shapely.ops import transform
+    from functools import partial
+    import pyproj
+
+    project = partial(
+        pyproj.transform,
+        pyproj.Proj(srs),  # source coordinate system
+        pyproj.Proj(dest_srs))  # destination coordinate system
+
+    return transform(project, polygon)  # apply projection
+
+def test_merge_cubes(auth_connection):
+    # define ROI
+
+    import shapely, shapely.geometry, shapely.ops
+    size = 10 * 128
+    x = 640860.000
+    y = 5676170.000
+    poly = shapely.geometry.box(x, y, x + size, y + size)
+    poly= __reproject_polygon(poly,"EPSG:32631","EPSG:4326")
+    extent = dict(zip(["south","west", "north","east"], poly.bounds))
+    extent['crs'] = "EPSG:4326"
+
+    # define TOI
+    year = 2019
+
+    startdate = f"{year}-05-01"
+
+    enddate = f"{year}-05-15"
+    s2_bands = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["TOC-B04_10M", "TOC-B08_10M", "SCENECLASSIFICATION_20M"], spatial_extent=extent)
+    s2_bands = s2_bands.process("mask_scl_dilation", data=s2_bands, scl_band_name="SCENECLASSIFICATION_20M")
+    b4_band = s2_bands.band("TOC-B04_10M")
+    b8_band = s2_bands.band("TOC-B08_10M")
+    s2_ndvi = (b8_band - b4_band) / (b8_band + b4_band)
+    s2_ndvi = s2_ndvi.add_dimension("bands", "s2_ndvi", type="bands")
+
+    datacube = s2_ndvi
+    pv_ndvi = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M', bands=['NDVI'], spatial_extent=extent)
+    pv_ndvi = pv_ndvi.resample_cube_spatial(s2_ndvi)
+    #pv_ndvi = pv_ndvi.mask_polygon(poly)
+    datacube = datacube.merge_cubes(pv_ndvi)
+    # apply filters
+    datacube = datacube.filter_temporal(startdate, enddate)#.filter_bbox(**extent)
+    datacube.download("merged.nc", format="NetCDF")
