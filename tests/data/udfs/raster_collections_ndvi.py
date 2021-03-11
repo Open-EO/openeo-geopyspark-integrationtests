@@ -13,8 +13,8 @@ def apply_datacube(cube: DataCube, context: Dict) -> DataCube:
 
     """
     array: xarray.DataArray = cube.get_array()
-    red = array.sel(bands="TOC-B04_10M")
-    nir = array.sel(bands="TOC-B08_10M")
+    red = array.sel(bands="B04")
+    nir = array.sel(bands="B08")
     ndvi = (nir-red)/(nir+red)
     return DataCube(ndvi)
 
