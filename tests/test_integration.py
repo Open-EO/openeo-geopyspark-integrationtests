@@ -1165,3 +1165,40 @@ def test_merge_cubes(auth_connection):
     # apply filters
     datacube = datacube.filter_temporal(startdate, enddate)#.filter_bbox(**extent)
     datacube.download("merged.nc", format="NetCDF")
+
+
+def test_udp_simple_math(connection100, tmp_path):
+    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+
+    # Define UDP
+    from openeo.processes import divide, subtract, process
+    fahrenheit = Parameter.number("fahrenheit")
+    fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
+    connection100.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
+
+    # Use UDP
+    pg = process("fahrenheit_to_celcius", namespace="user", fahrenheit=50)
+    res = connection100.execute(pg)
+    assert res == 10.0
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_udp_simple_math_batch_job(connection100, tmp_path):
+    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+
+    # Define UDP
+    from openeo.processes import divide, subtract, process
+    fahrenheit = Parameter.number("fahrenheit")
+    fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
+    connection100.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
+
+    # Use UDP
+    pg = process("fahrenheit_to_celcius", namespace="user", fahrenheit=50)
+    job = connection100.create_job(pg)
+    job.run_synchronous()
+    results = job.get_results()
+    asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
+    assert asset.load_json() == 10.0
+
+
