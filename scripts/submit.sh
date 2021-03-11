@@ -19,6 +19,8 @@ backend_assembly=https://artifactory.vgt.vito.be/auxdata-public/openeo/geotrelli
 
 echo "Found backend assembly: ${backend_assembly}"
 
+pyfiles="tests/data/custom_processes.py"
+
 echo "Submitting Spark job ${jobName}"
 date
 ${SPARK_HOME}/bin/spark-submit \
@@ -46,8 +48,9 @@ ${SPARK_HOME}/bin/spark-submit \
  --conf spark.yarn.appMasterEnv.WMTS_BASE_URL_PATTERN=http://tsviewer-rest-test.vgt.vito.be/openeo/services/%s \
  --conf spark.executorEnv.AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} --conf spark.yarn.appMasterEnv.AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
  --conf spark.executorEnv.AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} --conf spark.yarn.appMasterEnv.AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+ --conf spark.yarn.appMasterEnv.OPENEO_SPARK_SUBMIT_PY_FILES="$pyfiles" \
  --files venv36/layercatalog.json,venv36/log4j.properties \
- --py-files tests/data/custom_processes.py \
+ --py-files "$pyfiles" \
  --archives "${hdfsVenvZip}#venv" \
  --conf spark.hadoop.security.authentication=kerberos --conf spark.yarn.maxAppAttempts=1 \
  --jars ${extensions},${backend_assembly} \

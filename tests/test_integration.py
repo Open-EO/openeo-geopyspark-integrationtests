@@ -684,6 +684,27 @@ def test_custom_processes(auth_connection):
     }
 
 
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+@pytest.mark.requires_custom_processes
+def test_custom_processes_in_batch_job(auth_connection):
+    process_graph = {
+        "foobar1": {
+            "process_id": "foobar",
+            "arguments": {"size": 123, "color": "green"},
+            "result": True,
+        }
+    }
+    job = auth_connection.create_job(process_graph)
+    job.run_synchronous()
+    results = job.get_results()
+    asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
+    assert asset.load_json() == {
+        "args": ["color", "size"],
+        "msg": "hello world",
+    }
+
+
 @pytest.mark.parametrize(["cid", "expected_dates"], [
     (
             'S2_FAPAR_V102_WEBMERCATOR2',
@@ -1167,35 +1188,31 @@ def test_merge_cubes(auth_connection):
     datacube.download("merged.nc", format="NetCDF")
 
 
-def test_udp_simple_math(connection100, tmp_path):
-    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
-
+def test_udp_simple_math(auth_connection, tmp_path):
     # Define UDP
     from openeo.processes import divide, subtract, process
     fahrenheit = Parameter.number("fahrenheit")
     fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
-    connection100.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
+    auth_connection.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
 
     # Use UDP
     pg = process("fahrenheit_to_celsius", namespace="user", fahrenheit=50)
-    res = connection100.execute(pg)
+    res = auth_connection.execute(pg)
     assert res == 10.0
 
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_udp_simple_math_batch_job(connection100, tmp_path):
-    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
-
+def test_udp_simple_math_batch_job(auth_connection, tmp_path):
     # Define UDP
     from openeo.processes import divide, subtract, process
     fahrenheit = Parameter.number("fahrenheit")
     fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
-    connection100.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
+    auth_connection.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
 
     # Use UDP
     pg = process("fahrenheit_to_celsius", namespace="user", fahrenheit=50)
-    job = connection100.create_job(pg)
+    job = auth_connection.create_job(pg)
     job.run_synchronous()
     results = job.get_results()
     asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
