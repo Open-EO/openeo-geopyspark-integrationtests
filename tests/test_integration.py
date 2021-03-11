@@ -1177,7 +1177,7 @@ def test_udp_simple_math(connection100, tmp_path):
     connection100.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
 
     # Use UDP
-    pg = process("fahrenheit_to_celcius", namespace="user", fahrenheit=50)
+    pg = process("fahrenheit_to_celsius", namespace="user", fahrenheit=50)
     res = connection100.execute(pg)
     assert res == 10.0
 
@@ -1194,7 +1194,7 @@ def test_udp_simple_math_batch_job(connection100, tmp_path):
     connection100.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
 
     # Use UDP
-    pg = process("fahrenheit_to_celcius", namespace="user", fahrenheit=50)
+    pg = process("fahrenheit_to_celsius", namespace="user", fahrenheit=50)
     job = connection100.create_job(pg)
     job.run_synchronous()
     results = job.get_results()
