@@ -1143,26 +1143,21 @@ def test_discard_result_suppresses_batch_job_output_file(connection):
 
 def __reproject_polygon(polygon: Union[Polygon], srs, dest_srs):
     from shapely.ops import transform
-    from functools import partial
-    import pyproj
+    from pyproj import Transformer
 
-    project = partial(
-        pyproj.transform,
-        pyproj.Proj(srs),  # source coordinate system
-        pyproj.Proj(dest_srs))  # destination coordinate system
-
-    return transform(project, polygon)  # apply projection
+    return transform(Transformer.from_crs(srs, dest_srs,always_xy=True).transform, polygon)  # apply projection
 
 def test_merge_cubes(auth_connection):
     # define ROI
 
     import shapely, shapely.geometry, shapely.ops
+    import xarray as xr
     size = 10 * 128
     x = 640860.000
     y = 5676170.000
     poly = shapely.geometry.box(x, y, x + size, y + size)
     poly= __reproject_polygon(poly,"EPSG:32631","EPSG:4326")
-    extent = dict(zip(["south","west", "north","east"], poly.bounds))
+    extent = dict(zip(["west","south","east","north"], poly.bounds))
     extent['crs'] = "EPSG:4326"
 
     # define TOI
@@ -1181,11 +1176,15 @@ def test_merge_cubes(auth_connection):
     datacube = s2_ndvi
     pv_ndvi = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M', bands=['NDVI'], spatial_extent=extent)
     pv_ndvi = pv_ndvi.resample_cube_spatial(s2_ndvi)
-    #pv_ndvi = pv_ndvi.mask_polygon(poly)
+    pv_ndvi = pv_ndvi.mask_polygon(poly)
     datacube = datacube.merge_cubes(pv_ndvi)
     # apply filters
     datacube = datacube.filter_temporal(startdate, enddate)#.filter_bbox(**extent)
     datacube.download("merged.nc", format="NetCDF")
+    timeseries = xr.open_dataset("merged.nc", engine="h5netcdf").mean(dim=['x', 'y'])
+
+    assert_array_almost_equal([207.79053, 185.98853, np.nan], timeseries.NDVI.values, 2)
+    assert_array_almost_equal([np.nan, np.nan, 0.5958494], timeseries.s2_ndvi.values, 5)
 
 
 def test_udp_simple_math(auth_connection, tmp_path):
