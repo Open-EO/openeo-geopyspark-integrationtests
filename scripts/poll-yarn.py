@@ -34,6 +34,11 @@ def main(argv: List[str]):
             App.from_job_name(job_name=job_name, states=["ACCEPTED", "RUNNING"]).kill()
         except AppNotFoundException as e:
             _log.info("No running app {n!r}: {e!r}".format(n=job_name, e=e))
+    elif cmd == 'kill-when-running-byid':
+        try:
+            App(app_id=job_name,yarn=Yarn()).kill()
+        except AppNotFoundException as e:
+            _log.info("No running app {n!r}: {e!r}".format(n=job_name, e=e))
     else:
         raise ValueError(cmd)
 
