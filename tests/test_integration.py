@@ -667,7 +667,7 @@ def test_reduce_temporal_udf(auth_connection, tmp_path):
     trend.download(output_file, format="GTIFF")
     assert_geotiff_basics(output_file, expected_band_count=12,min_height=48, min_width=140)
 
-
+@pytest.mark.skip(reason="Custom processes will be tested separately")
 @pytest.mark.requires_custom_processes
 def test_custom_processes(auth_connection):
     process_graph = {
@@ -683,7 +683,7 @@ def test_custom_processes(auth_connection):
         "msg": "hello world",
     }
 
-
+@pytest.mark.skip(reason="Custom processes will be tested separately")
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 @pytest.mark.requires_custom_processes
