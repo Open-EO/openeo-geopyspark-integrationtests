@@ -26,6 +26,9 @@ def main(argv: List[str]):
     elif cmd == 'get-webapp-url':
         app = App.from_job_name(job_name=job_name, states=["RUNNING"])
         print(app.get_webapp_url())
+    elif cmd == 'get-webapp-url-byid':
+        app = App(app_id=job_name,yarn=Yarn())
+        print(app.get_webapp_url())
     elif cmd == 'kill-when-running':
         try:
             App.from_job_name(job_name=job_name, states=["ACCEPTED", "RUNNING"]).kill()
