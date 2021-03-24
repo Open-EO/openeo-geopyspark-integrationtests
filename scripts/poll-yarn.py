@@ -23,6 +23,9 @@ def main(argv: List[str]):
     elif cmd == 'wait-for-webapp':
         app = App.from_job_name(job_name=job_name, states=["SUBMITTED", "ACCEPTED", "RUNNING"])
         app.wait_for_listening_webapp()
+    elif cmd == 'wait-for-webapp-byid':
+        app = App(app_id=job_name,yarn=Yarn())
+        app.wait_for_listening_webapp()
     elif cmd == 'get-webapp-url':
         app = App.from_job_name(job_name=job_name, states=["RUNNING"])
         print(app.get_webapp_url())
