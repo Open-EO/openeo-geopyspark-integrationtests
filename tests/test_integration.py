@@ -49,7 +49,7 @@ BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
 BBOX_NIEUWPOORT = _parse_bboxfinder_com("http://bboxfinder.com/#51.05,2.60,51.20,2.90")
 
 # TODO: real authenticaion?
-TEST_USER = "geopyspark-integrationtester"
+TEST_USER = "jenkins"
 TEST_PASSWORD = TEST_USER + "123"
 
 POLYGON01 = Polygon(shell=[
