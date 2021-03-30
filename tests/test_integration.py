@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 import os
 import time
-from typing import Callable, Union
+from typing import Callable, Union, Dict
 
 import numpy as np
 from numpy.ma.testutils import assert_array_approx_equal
@@ -229,12 +229,17 @@ def test_cog_execute_batch(auth_connection, tmp_path):
             .filter_bbox(west=2, south=51, east=3, north=52, crs='EPSG:4326')
     )
     output_file = tmp_path / "result.tiff"
-    job = cube.execute_batch(
-        output_file, out_format="GTIFF", max_poll_interval=BATCH_JOB_POLL_INTERVAL,
-        tiled=True, job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"))
+    job = cube.send_job("GTIFF", job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"))
+    job.run_synchronous(
+        print=print, max_poll_interval=BATCH_JOB_POLL_INTERVAL
+    )
+    job.download_results(target="./")
+    assets: Dict = job.get_results().get_metadata()['assets']
+    name,asset = assets.popitem()
+
     assert [j["status"] for j in auth_connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
-    assert_geotiff_basics(output_file, expected_band_count=1)
-    assert_cog(output_file)
+    assert_geotiff_basics(name, expected_band_count=1)
+    assert_cog(name)
 
 
 def _poll_job_status(
