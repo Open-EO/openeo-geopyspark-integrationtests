@@ -373,11 +373,7 @@ def test_batch_job_delete_job(connection):
             return time.time() - start
 
         def directory_exists() -> bool:
-            try:
-                with (Path("/data/projects/OpenEO") / job.job_id / "out").open("r"):
-                    exists = True
-            except FileNotFoundError:
-                exists = False
+            exists = (Path("/data/projects/OpenEO") / job.job_id).exists()
 
             print("job {j} directory exists ({e:.2f}s): {d}".format(j=job.job_id, e=elapsed(), d=exists))
             return exists
