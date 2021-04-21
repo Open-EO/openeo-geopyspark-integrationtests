@@ -8,7 +8,7 @@ def pre_test_script = ''
 def pylint_results = 'test_results/pylint.out'
 def pytest_results = 'test_results/pytest_results.xml'
 def jobName = "OpenEO-GeoPySpark-IntegrationTests-${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
-def deploy = ("${BRANCH_NAME}" == 'master') ? true : false
+def deploy = true // ("${BRANCH_NAME}" == 'master') ? true : false
 def pylint = false
 def run_tests = true
 def test_coverage = false
