@@ -123,6 +123,11 @@ def test_aggregate_spatial_polygon(auth_connection):
             .execute()
     )
     print(timeseries)
+
+    # TODO remove this cleanup https://github.com/Open-EO/openeo-geopyspark-driver/issues/75
+    timeseries = {k: v for (k, v) in timeseries.items() if v != [[]]}
+    print(timeseries)
+
     expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
     assert sorted(timeseries.keys()) == sorted(expected_dates)
     expected_schema = schema.Schema({str: [[float]]})
@@ -733,6 +738,11 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
     )
     ts_mean = cube.polygonal_mean_timeseries(polygon).execute()
     print("mean", ts_mean)
+
+    # TODO remove this cleanup https://github.com/Open-EO/openeo-geopyspark-driver/issues/75
+    ts_mean = {k: v for (k, v) in ts_mean.items() if v != [[]]}
+    print("mean", ts_mean)
+
     ts_median = cube.polygonal_median_timeseries(polygon).execute()
     print("median", ts_median)
     ts_sd = cube.polygonal_standarddeviation_timeseries(polygon).execute()
