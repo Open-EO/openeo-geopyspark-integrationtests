@@ -87,7 +87,7 @@ pipeline {
                   }
                 ]
               }
-            """.stripIndent(), null)
+            """.stripIndent(), 100)
           }
         }
       }
