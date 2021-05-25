@@ -1,6 +1,4 @@
 openeo_geopyspark>=0.3.0a1.*
-openeo-udf>=1.0.0rc2
 intel-tensorflow==2.3.0
-openeo>=0.4.8a2.*
 pyjwt==2.1.0
 cryptography==3.4.7
