@@ -231,10 +231,10 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         auth_connection
             .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
             .filter_temporal("2017-11-21", "2017-11-21")
-            .filter_bbox(west=2, south=51, east=3, north=52, crs='EPSG:4326')
+            .filter_bbox(west=2, south=51, east=4, north=53, crs='EPSG:4326')
     )
     output_file = tmp_path / "result.tiff"
-    job = cube.send_job("GTIFF", job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"))
+    job = cube.send_job("GTIFF", job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"), tile_grid="one_degree")
     job.run_synchronous(
         print=print, max_poll_interval=BATCH_JOB_POLL_INTERVAL
     )
