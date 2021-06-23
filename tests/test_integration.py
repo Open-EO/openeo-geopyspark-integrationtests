@@ -325,6 +325,40 @@ def test_batch_job_execute_batch(connection, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_batch_job_signed_urls(connection, tmp_path):
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+
+    job = timeseries.execute_batch(
+        max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+        job_options=batch_default_options(driverMemory="1G", driverMemoryOverhead="512m")
+    )
+
+    results = job.get_results()
+    # TODO: check results metadata?
+    print("results metadata", results.get_metadata())
+
+    assets = results.get_assets()
+    print("assets", assets)
+    assert len(assets) >= 1
+    data = None
+    for asset in assets:
+        # Download directly without credentials
+        resp = requests.get(asset.href)
+        resp.raise_for_status()
+        assert resp.status_code == 200
+        if asset.name.endswith(".json"):
+            assert data is None
+            data = resp.json()
+    expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
+    assert sorted(data.keys()) == sorted(expected_dates)
+    expected_schema = schema.Schema({str: [[float]]})
+    assert expected_schema.validate(data)
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_cancel(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
