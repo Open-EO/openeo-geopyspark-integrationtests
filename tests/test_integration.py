@@ -8,7 +8,7 @@ from typing import Callable, Union, Dict
 
 import numpy as np
 from numpy.ma.testutils import assert_array_approx_equal
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 import xarray
 import pytest
 import rasterio
@@ -1225,11 +1225,11 @@ def test_merge_cubes(auth_connection):
     datacube = datacube.merge_cubes(pv_ndvi)
     # apply filters
     datacube = datacube.filter_temporal(startdate, enddate)#.filter_bbox(**extent)
-    datacube.download("merged.nc", format="NetCDF")
-    timeseries = xr.open_dataset("merged.nc").mean(dim=['x', 'y'])
+    datacube.download("merged.nc", format="NetCDF",options={"stitch":True})
+    timeseries = xr.open_dataset("merged.nc", engine="h5netcdf").mean(dim=['x', 'y'])
 
     assert_array_almost_equal([207.79053, 185.98853, np.nan], timeseries.NDVI.values, 2)
-    assert_array_almost_equal([np.nan, np.nan, 0.5958494], timeseries.s2_ndvi.values, 5)
+    assert_allclose([np.nan, np.nan, 0.5958494], timeseries.s2_ndvi.values, atol=0.005)
 
 
 def test_udp_simple_math(auth_connection, tmp_path):
