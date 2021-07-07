@@ -16,8 +16,6 @@ tests_require = [
 setup(
     name='openeo-integration-tests',
     test_suite='tests',
-    setup_requires=['pytest-runner'],
-    tests_require=tests_require,
     extras_require={
         "dev": tests_require,
     },
