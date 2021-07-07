@@ -1,7 +1,9 @@
-import scipy.signal
-import numpy as np
-from openeo import Connection, ImageCollection
 import logging
+
+import numpy as np
+import scipy.signal
+
+from openeo import Connection, ImageCollection
 
 _log = logging.getLogger(__name__)
 

@@ -1,29 +1,33 @@
 import imghdr
 import json
-from pathlib import Path
-import re
 import os
+import re
 import time
+from pathlib import Path
 from typing import Callable, Union, Dict
 
 import numpy as np
-from numpy.ma.testutils import assert_array_approx_equal
-from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
-import xarray
 import pytest
 import rasterio
 import requests
 import schema
+import shapely.geometry
+import shapely.ops
+import xarray
+from numpy.ma.testutils import assert_array_approx_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 from shapely.geometry import shape, Polygon
+import pyproj
 
+from openeo.rest.connection import OpenEoApiError
+from openeo.rest.conversions import datacube_from_file
 from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.imagecollectionclient import ImageCollectionClient
 from openeo.rest.job import RESTJob
 from openeo.rest.udp import Parameter
-from openeo.rest.connection import OpenEoApiError
-from openeo.rest.conversions import datacube_from_file
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
+
 
 def _dump_process_graph(cube: Union[DataCube, ImageCollectionClient], tmp_path: Path, name="process_graph.json"):
     """Dump a cube's process graph as json to a temp file"""
@@ -1186,17 +1190,17 @@ def test_discard_result_suppresses_batch_job_output_file(connection):
 
     assert len(assets) == 0, assets
 
-def __reproject_polygon(polygon: Union[Polygon], srs, dest_srs):
-    from shapely.ops import transform
-    from pyproj import Transformer
 
-    return transform(Transformer.from_crs(srs, dest_srs,always_xy=True).transform, polygon)  # apply projection
+def __reproject_polygon(polygon: Union[Polygon], srs, dest_srs):
+    # apply projection
+    return shapely.ops.transform(
+        pyproj.Transformer.from_crs(srs, dest_srs, always_xy=True).transform,
+        polygon
+    )
+
 
 def test_merge_cubes(auth_connection):
     # define ROI
-
-    import shapely, shapely.geometry, shapely.ops
-    import xarray as xr
     size = 10 * 128
     x = 640860.000
     y = 5676170.000
@@ -1226,7 +1230,7 @@ def test_merge_cubes(auth_connection):
     # apply filters
     datacube = datacube.filter_temporal(startdate, enddate)#.filter_bbox(**extent)
     datacube.download("merged.nc", format="NetCDF",options={"stitch":True})
-    timeseries = xr.open_dataset("merged.nc", engine="h5netcdf").mean(dim=['x', 'y'])
+    timeseries = xarray.open_dataset("merged.nc", engine="h5netcdf").mean(dim=['x', 'y'])
 
     assert_array_almost_equal([207.79053, 185.98853, np.nan], timeseries.NDVI.values, 2)
     assert_allclose([np.nan, np.nan, 0.5958494], timeseries.s2_ndvi.values, atol=0.005)
