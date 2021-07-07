@@ -16,5 +16,6 @@ setup(
         "pytest-xdist",
         "xarray",
         "pyproj",
+        "h5netcdf",
     ],
 )
