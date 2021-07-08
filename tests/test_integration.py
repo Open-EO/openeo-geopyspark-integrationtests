@@ -84,6 +84,15 @@ def batch_default_options(driverMemoryOverhead="1G", driverMemory="2G"):
         }
 
 
+def test_root(connection):
+    r = connection.get("/")
+    assert r.status_code == 200
+    capabilities = r.json()
+    assert "api_version" in capabilities
+    assert "stac_version" in capabilities
+    assert "endpoints" in capabilities
+
+
 def test_health(connection):
     r = connection.get("/health")
     assert r.status_code == 200
