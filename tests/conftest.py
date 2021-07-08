@@ -1,6 +1,7 @@
 import os
 
 import pytest
+import requests
 
 import openeo
 from openeo.capabilities import ComparableVersion
@@ -30,21 +31,34 @@ def api_base_url(api_version):
 
 
 @pytest.fixture
-def connection(api_base_url) -> openeo.Connection:
-    return openeo.connect(api_base_url)
+def requests_session(request) -> requests.Session:
+    """
+    Fixture to create a `requests.Session` that automatically injects a query parameter in API URLs
+    referencing the currently running test.
+    Simplifies cross-referencing between integration tests and flask/YARN logs
+    """
+    session = requests.Session()
+    session.params["_origin"] = f"{request.session.name}/{request.node.name}"
+    return session
 
 
 @pytest.fixture
-def connection100() -> openeo.Connection:
-    return openeo.connect(get_openeo_base_url("1.0.0"))
+def connection(api_base_url, requests_session) -> openeo.Connection:
+    return openeo.connect(api_base_url, session=requests_session)
+
+
+@pytest.fixture
+def connection100(requests_session) -> openeo.Connection:
+    return openeo.connect(get_openeo_base_url("1.0.0"), session=requests_session)
+
 
 # TODO: real authenticaion?
 TEST_USER = "geopyspark-integrationtester"
 TEST_PASSWORD = TEST_USER + "123"
 
+
 @pytest.fixture
 def auth_connection(connection) -> openeo.Connection:
     """Connection fixture to a backend of given version with some image collections."""
-    connection.authenticate_basic(TEST_USER,TEST_PASSWORD)
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     return connection
-
