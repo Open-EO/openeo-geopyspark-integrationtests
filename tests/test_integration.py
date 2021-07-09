@@ -1277,10 +1277,10 @@ def test_udp_simple_math_batch_job(auth_connection, tmp_path):
     assert asset.load_json() == 10.0
 
 
-@pytest.mark.parametrize("library", [
-    "tensorflow",
-    "biopar",
-])
+_EXPECTED_LIBRARIES = os.environ.get("OPENEO_GEOPYSPARK_INTEGRATIONTESTS_EXPECTED_LIBRARIES", "tensorflow").split(",")
+
+
+@pytest.mark.parametrize("library", _EXPECTED_LIBRARIES)
 def test_library_availability(auth_connection, library):
     """Use UDF to check if library can be imported"""
     udf = textwrap.dedent("""\
