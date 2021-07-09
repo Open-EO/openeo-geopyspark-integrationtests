@@ -1308,5 +1308,5 @@ def test_library_availability(auth_connection, library):
         }
     }
     res = auth_connection.execute(pg)
-    print(res)
-    assert res["success"] is True
+    if not res.get("success"):
+        raise ValueError(res)
