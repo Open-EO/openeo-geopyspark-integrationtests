@@ -2,6 +2,7 @@ import imghdr
 import json
 import os
 import re
+import textwrap
 import time
 from pathlib import Path
 from typing import Callable, Union, Dict
@@ -1276,3 +1277,36 @@ def test_udp_simple_math_batch_job(auth_connection, tmp_path):
     assert asset.load_json() == 10.0
 
 
+@pytest.mark.parametrize("library", [
+    "tensorflow",
+    "biopar",
+])
+def test_library_availability(auth_connection, library):
+    """Use UDF to check if library can be imported"""
+    udf = textwrap.dedent("""\
+        from openeo_udf.api.udf_data import UdfData
+        from openeo_udf.api.structured_data import StructuredData
+
+        def transform(data: UdfData) -> UdfData:
+            data.del_feature_collection_list()
+            try:
+                import {library}
+                result = dict(success=True, path=str({library}))
+            except ImportError as e:
+                result = dict(success=False, error=str(e))
+            data.set_structured_data_list([StructuredData("result", result, "dict")])
+    """.format(library=library))
+    pg = {
+        "udf": {
+            "process_id": "run_udf",
+            "arguments": {
+                "data": {"type": "Polygon", "coordinates": [[(2, 1), (2, 3), (0, 3), (0, 1), (2, 3)]]},
+                "udf": udf,
+                "runtime": "Python"
+            },
+            "result": True
+        }
+    }
+    res = auth_connection.execute(pg)
+    print(res)
+    assert res["success"] is True
