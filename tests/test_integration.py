@@ -1363,3 +1363,29 @@ def test_udf_support_structured_data(auth_connection, udf_code):
     }
     res = auth_connection.execute(process_graph)
     assert res == [1, 4, 9, 25, 64]
+
+
+def test_udp_public_sharing_url_namespace(auth_connection):
+    """Test public sharing of UDPs and backend-side resolving of URL based namespace"""
+
+    # Build and store UDP
+    f = Parameter.number("f", description="Degrees Fahrenheit.")
+    pg = {
+        'subtract1': {'arguments': {'x': {'from_parameter': 'f'}, 'y': 32}, 'process_id': 'subtract'},
+        'divide1': {'arguments': {'x': {'from_node': 'subtract1'}, 'y': 1.8}, 'process_id': 'divide', 'result': True},
+    }
+    udp = auth_connection.save_user_defined_process(
+        "fahrenheit_to_celsius", process_graph=pg, parameters=[f], public=True
+    )
+
+    # "canonical" link from metadata should be public
+    metadata = udp.describe()
+    public_url = next(l for l in metadata["links"] if l["rel"] == "canonical")["href"]
+    r = requests.get(public_url)
+    assert r.status_code == 200
+
+    # Use url as namespace to use UDP
+    # TODO: this should be done by a different user
+    cube = auth_connection.datacube_from_process("fahrenheit_to_celsius", namespace=public_url, f=86)
+    celsius = cube.execute()
+    assert celsius == 30
