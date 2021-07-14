@@ -1310,3 +1310,44 @@ def test_library_availability(auth_connection, library):
     res = auth_connection.execute(pg)
     if not res.get("success"):
         raise ValueError(res)
+
+
+@pytest.mark.parametrize("udf_code", [
+    # Old style UDFs (based on openeo_udf imports)
+    """
+        from openeo_udf.api.udf_data import UdfData  # Old style openeo_udf API
+        from openeo_udf.api.structured_data import StructuredData   # Old style openeo_udf API
+        def transform(data: UdfData) -> UdfData:
+            res = [
+                StructuredData(description="res", data=[x * x for x in sd.data], type="list")
+                for sd in data.get_structured_data_list()
+            ]
+            data.set_structured_data_list(res)
+    """,
+    # New style UDFs (based on openeo.udf imports)
+    """
+        from openeo.udf import UdfData, StructuredData
+        def transform(data: UdfData) -> UdfData:
+            res = [
+                StructuredData(description="res", data=[x * x for x in sd.data], type="list")
+                for sd in data.get_structured_data_list()
+            ]
+            data.set_structured_data_list(res)
+    """,
+])
+def test_udf_support_structured_data(auth_connection, udf_code):
+    """Test for non-callback usage of UDFs"""
+    udf_code = textwrap.dedent(udf_code)
+    process_graph = {
+        "udf": {
+            "process_id": "run_udf",
+            "arguments": {
+                "data": [1, 2, 3, 5, 8],
+                "udf": udf_code,
+                "runtime": "Python"
+            },
+            "result": True
+        }
+    }
+    res = auth_connection.execute(process_graph)
+    assert res == [1, 4, 9, 25, 64]
