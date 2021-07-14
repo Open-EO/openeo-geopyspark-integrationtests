@@ -174,8 +174,12 @@ def test_histogram_timeseries(auth_connection):
         assert len(histograms[0][0]) > 10
 
 
-def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path):
-    udf_code = read_data("udfs/raster_collections_ndvi.py")
+@pytest.mark.parametrize("udf_file", [
+    "udfs/raster_collections_ndvi_old.py",
+    "udfs/raster_collections_ndvi.py",
+])
+def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
+    udf_code = read_data(udf_file)
 
     cube = (
         auth_connection.load_collection('TERRASCOPE_S2_TOC_V2',bands=['TOC-B04_10M','TOC-B08_10M'])
@@ -484,12 +488,16 @@ def test_create_wtms_service(connection):
 
 
 @pytest.mark.skip(reason="SENTINEL1_GAMMA0_SENTINELHUB requires secret #EP-3050")
-def test_ep3048_sentinel1_udf(auth_connection):
+@pytest.mark.parametrize("udf_file", [
+    "udfs/smooth_savitsky_golay_old.py",
+    "udfs/smooth_savitsky_golay.py",
+])
+def test_ep3048_sentinel1_udf(auth_connection, udf_file):
     # http://bboxfinder.com/#-4.745000,-55.700000,-4.740000,-55.695000
     N, E, S, W = (-4.740, -55.695, -4.745, -55.7)
     polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
 
-    udf_code = read_data('udfs/smooth_savitsky_golay.py')
+    udf_code = read_data(udf_file)
 
     ts = (
         auth_connection.load_collection("SENTINEL1_GAMMA0_SENTINELHUB")
@@ -697,7 +705,11 @@ def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path):
             assert_array_approx_equal(ref_ds.read(1,masked=False), result_ds.read(1,masked=False))
 
 
-def test_reduce_temporal_udf(auth_connection, tmp_path):
+@pytest.mark.parametrize("udf_file", [
+    "udfs/udf_temporal_slope_old.py",
+    "udfs/udf_temporal_slope.py",
+])
+def test_reduce_temporal_udf(auth_connection, tmp_path, udf_file):
     bbox = {
         "west": 6.8371137,
         "north": 50.5647147,
@@ -712,7 +724,7 @@ def test_reduce_temporal_udf(auth_connection, tmp_path):
             .filter_bbox(**bbox)
     )
 
-    udf_code = read_data("udfs/udf_temporal_slope.py")
+    udf_code = read_data(udf_file)
     print(udf_code)
 
     trend = cube.reduce_temporal_udf(udf_code, runtime="Python", version="latest")
