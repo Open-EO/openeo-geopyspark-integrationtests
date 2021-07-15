@@ -1296,17 +1296,16 @@ _EXPECTED_LIBRARIES = os.environ.get("OPENEO_GEOPYSPARK_INTEGRATIONTESTS_EXPECTE
 def test_library_availability(auth_connection, library):
     """Use UDF to check if library can be imported"""
     udf = textwrap.dedent("""\
-        from openeo_udf.api.udf_data import UdfData
-        from openeo_udf.api.structured_data import StructuredData
+        from openeo.udf import UdfData, StructuredData
 
-        def transform(data: UdfData) -> UdfData:
+        def transform(data: UdfData):
             data.set_feature_collection_list(None)
             try:
                 import {library}
                 result = dict(success=True, path=str({library}))
             except ImportError as e:
                 result = dict(success=False, error=str(e))
-            data.set_structured_data_list([StructuredData("result", result, "dict")])
+            data.set_structured_data_list([StructuredData(data=result, type="dict")])
     """.format(library=library))
     pg = {
         "udf": {
@@ -1320,7 +1319,7 @@ def test_library_availability(auth_connection, library):
         }
     }
     res = auth_connection.execute(pg)
-    if not res.get("success"):
+    if not (isinstance(res, dict) and res.get("success")):
         raise ValueError(res)
 
 
