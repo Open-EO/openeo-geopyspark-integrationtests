@@ -1300,6 +1300,7 @@ def test_library_availability(auth_connection, library):
         from openeo_udf.api.structured_data import StructuredData
 
         def transform(data: UdfData) -> UdfData:
+            data.set_feature_collection_list(None)
             try:
                 import {library}
                 result = dict(success=True, path=str({library}))
