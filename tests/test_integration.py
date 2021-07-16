@@ -1279,9 +1279,11 @@ def test_udp_simple_math_batch_job(auth_connection, tmp_path):
     fahrenheit = Parameter.number("fahrenheit")
     fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
     auth_connection.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
+    the_udp = auth_connection.user_defined_process("fahrenheit_to_celsius")
+    print(the_udp)
 
     # Use UDP
-    pg = process("fahrenheit_to_celsius", namespace="user", fahrenheit=50)
+    pg = process("fahrenheit_to_celsius", namespace="user", fahrenheit=50, f=50)#somehow our parameter name breaks??
     job = auth_connection.create_job(pg)
     job.run_synchronous()
     results = job.get_results()
