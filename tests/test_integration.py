@@ -834,7 +834,7 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
             else:
                 rtol = 0.02
                 np.testing.assert_allclose(np.ma.mean(data, axis=(-1, -2)), ts_mean[date][0], rtol=rtol)
-                np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median[date][0], atol=1.0)
+                np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median[date][0], atol=2.2) #TODO EP-4025
                 np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd[date][0], rtol=rtol)
 
 
