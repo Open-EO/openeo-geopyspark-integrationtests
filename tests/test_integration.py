@@ -773,7 +773,7 @@ def test_custom_processes_in_batch_job(auth_connection):
 
 @pytest.mark.parametrize(["cid", "expected_dates"], [
     (
-            'S2_FAPAR_V102_WEBMERCATOR2',
+            'TERRASCOPE_S2_FAPAR_V2',
             [
                 '2017-11-01T00:00:00Z', '2017-11-02T00:00:00Z', '2017-11-04T00:00:00Z', '2017-11-06T00:00:00Z',
                 '2017-11-07T00:00:00Z', '2017-11-09T00:00:00Z', '2017-11-11T00:00:00Z', '2017-11-12T00:00:00Z',
