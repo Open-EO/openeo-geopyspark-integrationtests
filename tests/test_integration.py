@@ -21,7 +21,7 @@ from shapely.geometry import shape, Polygon
 import pyproj
 
 from openeo.rest.connection import OpenEoApiError
-from openeo.rest.conversions import datacube_from_file
+from openeo.rest.conversions import datacube_from_file, timeseries_json_to_pandas
 from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.imagecollectionclient import ImageCollectionClient
 from openeo.rest.job import RESTJob
@@ -798,14 +798,17 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
     )
     ts_mean = cube.polygonal_mean_timeseries(polygon).execute()
     print("mean", ts_mean)
+    ts_mean_df = timeseries_json_to_pandas(ts_mean)
 
     # TODO remove this cleanup https://github.com/Open-EO/openeo-geopyspark-driver/issues/75
     ts_mean = {k: v for (k, v) in ts_mean.items() if v != [[]]}
     print("mean", ts_mean)
 
     ts_median = cube.polygonal_median_timeseries(polygon).execute()
-    print("median", ts_median)
+    ts_median_df = timeseries_json_to_pandas(ts_median)
+    print("median", ts_median_df)
     ts_sd = cube.polygonal_standarddeviation_timeseries(polygon).execute()
+    ts_sd_df = timeseries_json_to_pandas(ts_sd)
     print("sd", ts_sd)
 
     assert sorted(ts_mean.keys()) == expected_dates
@@ -833,9 +836,9 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
                 assert ts_sd[date] == [[None] * band_count]
             else:
                 rtol = 0.02
-                np.testing.assert_allclose(np.ma.mean(data, axis=(-1, -2)), ts_mean[date][0], rtol=rtol)
-                np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median[date][0], atol=2.2) #TODO EP-4025
-                np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd[date][0], rtol=rtol)
+                np.testing.assert_allclose(np.ma.mean(data, axis=(-1, -2)), ts_mean_df.loc[date], rtol=rtol)
+                np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median_df.loc[date], atol=2.2) #TODO EP-4025
+                np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd_df.loc[date], rtol=rtol)
 
 
 def test_ndvi(auth_connection, tmp_path):
