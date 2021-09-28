@@ -780,11 +780,7 @@ def test_custom_processes_in_batch_job(auth_connection):
                 '2017-11-14T00:00:00Z', '2017-11-16T00:00:00Z', '2017-11-19T00:00:00Z',
                 '2017-11-21T00:00:00Z'
             ]
-    ),
-    (
-            'PROBAV_L3_S10_TOC_NDVI_333M',
-            ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-    ),
+    )
 ])
 def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, api_version):
     expected_dates = sorted(expected_dates)
