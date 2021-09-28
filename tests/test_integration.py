@@ -548,7 +548,7 @@ def assert_cog(output_tiff: str):
 
 
 def test_mask_polygon(auth_connection, api_version, tmp_path):
-    bbox = {"west": 7.0, "south": 51.28, "east": 7.7, "north": 51.8, "crs": "EPSG:4326"}
+    bbox = {"west": 7.0, "south": 51.28, "east": 7.1, "north": 51.4, "crs": "EPSG:4326"}
     date = "2017-11-01"
     collection_id = 'PROBAV_L3_S10_TOC_333M'
     cube = auth_connection.load_collection(collection_id,bands=["NDVI"]).filter_bbox(**bbox).filter_temporal(date, date)
@@ -559,7 +559,7 @@ def test_mask_polygon(auth_connection, api_version, tmp_path):
 
     output_tiff = tmp_path / "masked.tiff"
     masked.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_shape=(1, 176, 236))
+    assert_geotiff_basics(output_tiff, expected_shape=(1, 2239, 1166))
 
 
 def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
