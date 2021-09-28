@@ -559,7 +559,7 @@ def test_mask_polygon(auth_connection, api_version, tmp_path):
 
     output_tiff = tmp_path / "masked.tiff"
     masked.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_shape=(1, 2239, 1166),min_width=32, min_height=32)
+    assert_geotiff_basics(output_tiff, expected_shape=(1, 89, 38),min_width=32, min_height=32)
 
 
 def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
@@ -577,8 +577,8 @@ def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
     masked_path = tmp_path / "probav_masked.tiff"
     probav_masked.download(masked_path, format='GTiff')
 
-    assert_geotiff_basics(probav_path, expected_shape=(1, 1854, 1166),min_width=32, min_height=32)
-    assert_geotiff_basics(masked_path, expected_shape=(1, 1854, 1166),min_width=32, min_height=32)
+    assert_geotiff_basics(probav_path, expected_shape=(1, 73, 37),min_width=32, min_height=32)
+    assert_geotiff_basics(masked_path, expected_shape=(1, 73, 37),min_width=32, min_height=32)
     with rasterio.open(probav_path) as probav_ds, rasterio.open(masked_path) as masked_ds:
         probav_data = probav_ds.read(1)
         #assert np.all(probav_data != 255)
@@ -601,8 +601,8 @@ def test_mask_out_all_data_int(auth_connection, api_version, tmp_path):
     masked_path = tmp_path / "probav_masked.tiff"
     probav_masked.download(masked_path, format='GTiff')
 
-    assert_geotiff_basics(probav_path, expected_shape=(1, 1854, 1166),min_width=32, min_height=32)
-    assert_geotiff_basics(masked_path, expected_shape=(1, 1854, 1166),min_width=32, min_height=32)
+    assert_geotiff_basics(probav_path, expected_shape=(1, 73, 37),min_width=32, min_height=32)
+    assert_geotiff_basics(masked_path, expected_shape=(1, 73, 37),min_width=32, min_height=32)
     with rasterio.open(probav_path) as probav_ds, rasterio.open(masked_path) as masked_ds:
         probav_data = probav_ds.read(1)
         #assert np.all(probav_data != 255)
