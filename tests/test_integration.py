@@ -1231,7 +1231,7 @@ def test_merge_cubes(auth_connection):
     datacube.download("merged.nc", format="NetCDF",options={"stitch":True})
     timeseries = xarray.open_dataset("merged.nc", engine="h5netcdf").mean(dim=['x', 'y'])
 
-    assert_array_almost_equal([207.79053, 185.98853, np.nan], timeseries.NDVI.values, 2)
+    assert_array_almost_equal([210.29, 191.75, np.nan], timeseries.NDVI.values, 2)
     assert_allclose([np.nan, np.nan, 0.5958494], timeseries.s2_ndvi.values, atol=0.005)
 
 
