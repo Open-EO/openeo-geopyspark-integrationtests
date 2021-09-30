@@ -1367,3 +1367,16 @@ def test_udp_public_sharing_url_namespace(auth_connection):
     cube = auth_connection.datacube_from_process("fahrenheit_to_celsius", namespace=public_url, f=86)
     celsius = cube.execute()
     assert celsius == 30
+
+
+def test_validation_missing_product(connection):
+    """
+    EP-4012, https://github.com/openEOPlatform/architecture-docs/issues/85
+    """
+    cube = connection.load_collection("TERRASCOPE_S2_TOC_V2")
+    cube = cube.filter_temporal("2021-02-01", "2021-02-10")
+    cube = cube.filter_bbox(west=90, south=60, east=90.1, north=60.1)
+    errors = cube.validate()
+    print(errors)
+    assert len(errors) > 0
+    assert "MissingProduct" in {e["code"] for e in errors}
