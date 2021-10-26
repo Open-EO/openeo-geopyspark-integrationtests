@@ -293,7 +293,7 @@ def _poll_job_status(
 def test_batch_job_basic(connection, api_version, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+    timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     job = timeseries.send_job(job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"))
     assert job.job_id
@@ -346,7 +346,7 @@ def test_batch_job_execute_batch(connection, tmp_path):
 def test_batch_job_signed_urls(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+    timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     job = timeseries.execute_batch(
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
