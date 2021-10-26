@@ -328,7 +328,7 @@ def test_batch_job_basic(connection, api_version, tmp_path):
 def test_batch_job_execute_batch(connection, tmp_path):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+    timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     output_file = tmp_path / "ts.json"
     timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"))
