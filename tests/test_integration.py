@@ -252,7 +252,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
             .filter_bbox(west=2, south=51, east=4, north=53, crs='EPSG:4326')
     )
     output_file = tmp_path / "result.tiff"
-    job = cube.send_job("GTIFF", job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"), tile_grid="one_degree")
+    job = cube.send_job("GTIFF", job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"), tile_grid="one_degree",title="cog")
     job.run_synchronous(
         print=print, max_poll_interval=BATCH_JOB_POLL_INTERVAL
     )
@@ -295,7 +295,7 @@ def test_batch_job_basic(connection, api_version, tmp_path):
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
-    job = timeseries.send_job(job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"))
+    job = timeseries.send_job(job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"),title="basic")
     assert job.job_id
 
     job.start_job()
@@ -331,7 +331,7 @@ def test_batch_job_execute_batch(connection, tmp_path):
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     output_file = tmp_path / "ts.json"
-    timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"))
+    timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"), title="execute-batch")
 
     with output_file.open("r") as f:
         data = json.load(f)
@@ -350,7 +350,8 @@ def test_batch_job_signed_urls(connection, tmp_path):
 
     job = timeseries.execute_batch(
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
-        job_options=batch_default_options(driverMemory="1G", driverMemoryOverhead="512m")
+        job_options=batch_default_options(driverMemory="1G", driverMemoryOverhead="512m"),
+        title = "signed-urls"
     )
 
     results = job.get_results()
@@ -390,7 +391,7 @@ def test_batch_job_cancel(connection, tmp_path):
 
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
-    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="1g"))
+    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="1g"),title="cancel")
     assert job.job_id
     job.start_job()
 
@@ -415,7 +416,7 @@ def test_batch_job_delete_job(connection):
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
-    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="1g"))
+    job = timeseries.send_job(out_format="GTIFF", job_options=batch_default_options(driverMemory="512m",driverMemoryOverhead="1g"),title="delete")
     assert job.job_id
     job.start_job()
 
