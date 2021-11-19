@@ -1003,7 +1003,7 @@ def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tm
     with pytest.raises(OpenEoApiError) as excinfo:
         s2_fapar.download(out_file, format="GTIFF")
 
-    assert excinfo.value.code == 'ProcessGraphComplexity'
+    assert excinfo.value.code == 'MissingSpatialFilter'
 
 
 @pytest.mark.skip(reason="DELETEing a service doesn't work because it's being proxied to the WMTS Jetty server")
@@ -1182,7 +1182,7 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
 def test_discard_result_suppresses_batch_job_output_file(connection):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
-    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M")  # everything
+    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_bbox(5, 6, 52, 51, 'EPSG:4326')
     cube = cube.process("discard_result", arguments={"data": cube})
 
     job = cube.execute_batch(max_poll_interval=BATCH_JOB_POLL_INTERVAL)
