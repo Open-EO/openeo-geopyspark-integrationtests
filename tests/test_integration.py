@@ -295,7 +295,7 @@ def test_batch_job_basic(connection, api_version, tmp_path):
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
-    job = timeseries.send_job(job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"),title="basic")
+    job = timeseries.send_job(job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"),title="basic")
     assert job.job_id
 
     job.start_job()
