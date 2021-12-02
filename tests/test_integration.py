@@ -331,7 +331,7 @@ def test_batch_job_execute_batch(connection, tmp_path):
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     output_file = tmp_path / "ts.json"
-    timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1G",driverMemoryOverhead="512m"), title="execute-batch")
+    timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"), title="execute-batch")
 
     with output_file.open("r") as f:
         data = json.load(f)
