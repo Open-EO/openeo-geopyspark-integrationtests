@@ -114,7 +114,7 @@ def test_terrascope_download_latlon(auth_connection, tmp_path):
     )
     out_file = tmp_path / "result.tiff"
     s2_fapar.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file, expected_shape=(1, 270, 111))
+    assert_geotiff_basics(out_file, expected_shape=(1, 270, 126))
 
 
 def test_terrascope_download_webmerc(auth_connection, tmp_path):
@@ -125,7 +125,7 @@ def test_terrascope_download_webmerc(auth_connection, tmp_path):
     )
     out_file = tmp_path / "result.tiff"
     s2_fapar.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file, expected_shape=(1, 216, 434))
+    assert_geotiff_basics(out_file, expected_shape=(1, 216, 446))
 
 
 def test_aggregate_spatial_polygon(auth_connection):
@@ -191,7 +191,7 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
 
     out_file = tmp_path / "ndvi-udf.tiff"
     res.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file, min_height=40, expected_shape=(1, 49, 141))
+    assert_geotiff_basics(out_file, min_height=40, expected_shape=(1, 57, 141))
     with rasterio.open(out_file) as ds:
         ndvi = ds.read(1)
         assert 0.35 < ndvi.min(axis=None)
@@ -220,7 +220,7 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
 
     out_file = tmp_path / "ndvi.tiff"
     ndvi.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file,min_height=40, expected_shape=(1, 324, 365))
+    assert_geotiff_basics(out_file,min_height=40, expected_shape=(1, 344, 365))
     with rasterio.open(out_file) as ds:
         x = ds.read(1)
         assert 0.08 < np.nanmin(x, axis=None)
@@ -640,7 +640,7 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
     _dump_process_graph(masked, tmp_path)
     output_tiff = tmp_path / "masked_result.tiff"
     masked.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_shape=(1, 227, 350))
+    assert_geotiff_basics(output_tiff, expected_shape=(1, 227, 354))
     with rasterio.open(output_tiff) as result_ds:
         assert result_ds.dtypes == ('int16',)
         with rasterio.open(get_path("reference/simple_cloud_masking.tiff")) as ref_ds:
@@ -670,7 +670,7 @@ def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
     masked.download(out_file, format='GTIFF')
-    assert_geotiff_basics(out_file, expected_shape=(1, 284, 660))
+    assert_geotiff_basics(out_file, expected_shape=(1, 284, 675))
     with rasterio.open(out_file) as result_ds:
         assert result_ds.dtypes == ('int16',)
         with rasterio.open(get_path("reference/advanced_cloud_masking.tiff")) as ref_ds:
