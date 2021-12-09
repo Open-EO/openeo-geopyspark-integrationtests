@@ -488,7 +488,6 @@ def test_create_wtms_service(connection):
     assert wmts_url in get_capabilities
 
 
-@pytest.mark.skip(reason="SENTINEL1_GAMMA0_SENTINELHUB requires secret #EP-3050")
 @pytest.mark.parametrize("udf_file", [
     "udfs/smooth_savitsky_golay_old.py",
     "udfs/smooth_savitsky_golay.py",
@@ -1057,7 +1056,6 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
 
-@pytest.mark.skip(reason="SENTINEL1_GAMMA0_SENTINELHUB requires secret #EP-3050")
 def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
     # FIXME: a separate filter_bands call drops the mask and local_incidence_angle bands
     sar_backscatter = (auth_connection
@@ -1081,7 +1079,7 @@ def compare_xarrays(xa1,xa2,max_nonmatch_ratio=0.01, tolerance=1.e-6):
     assert(diff.where(diff).count()<=nmax)
     np.testing.assert_allclose(xa2.where(~diff), xa2.where(~diff), rtol=0., atol=tolerance, equal_nan=True)
 
-@pytest.mark.skip(reason = "layer not available")
+
 def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, tmp_path):         
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
@@ -1120,7 +1118,7 @@ def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, t
     compare_xarrays(result.loc[date][-2],aotref[0].transpose("x","y"))
     compare_xarrays(result.loc[date][-1],cwvref[0].transpose("x","y"))
 
-@pytest.mark.skip(reason = "layer not available")
+
 def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tmp_path):
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
@@ -1152,7 +1150,7 @@ def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tm
     compare_xarrays(result.loc[date,"B04"],b4ref[0].transpose("x","y"))
     compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
 
-@pytest.mark.skip(reason = "layer not available")
+
 def test_atmospheric_correction_constoverridenparams(auth_connection, api_version, tmp_path):         
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
