@@ -1156,7 +1156,7 @@ def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tm
     compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
 
 
-def test_atmospheric_correction_constoverridenparams(auth_connection, api_version, tmp_path):         
+def test_atmospheric_correction_constoverridenparams(auth_connection, api_version, tmp_path):
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
     bbox=(655000,5677000,660000,5685000)
@@ -1183,16 +1183,16 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
     l2a.download(output,format="json")
     
     result=datacube_from_file(output,fmt="json").get_array()
-    b2ref=xarray.open_rasterio("icor/ref_overriden_B02.tif")
-    b3ref=xarray.open_rasterio("icor/ref_overriden_B03.tif")
-    b4ref=xarray.open_rasterio("icor/ref_overriden_B04.tif")
-    b8ref=xarray.open_rasterio("icor/ref_overriden_B08.tif")
+    b2ref=xarray.open_rasterio(get_path("icor/ref_overriden_B02.tif"))
+    b3ref=xarray.open_rasterio(get_path("icor/ref_overriden_B03.tif"))
+    b4ref=xarray.open_rasterio(get_path("icor/ref_overriden_B04.tif"))
+    b8ref=xarray.open_rasterio(get_path("icor/ref_overriden_B08.tif"))
 
     compare_xarrays(result.loc[date,"B02"],b2ref[0].transpose("x","y"))
     compare_xarrays(result.loc[date,"B03"],b3ref[0].transpose("x","y"))
     compare_xarrays(result.loc[date,"B04"],b4ref[0].transpose("x","y"))
     compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
-            
+
 
 def test_discard_result_suppresses_batch_job_output_file(connection):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
