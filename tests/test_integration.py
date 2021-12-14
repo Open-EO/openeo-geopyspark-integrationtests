@@ -1109,12 +1109,12 @@ def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, t
     result=datacube_from_file(output,fmt="json").get_array()
 
     # note that debug bands are multiplied by 100 to store meaningful values as integers
-    szaref=xarray.open_rasterio("icor/ref_inputcheck_SZA.tif")
-    vzaref=xarray.open_rasterio("icor/ref_inputcheck_VZA.tif")
-    raaref=xarray.open_rasterio("icor/ref_inputcheck_RAA.tif")
-    demref=xarray.open_rasterio("icor/ref_inputcheck_DEM.tif")
-    aotref=xarray.open_rasterio("icor/ref_inputcheck_AOT.tif")
-    cwvref=xarray.open_rasterio("icor/ref_inputcheck_CWV.tif")
+    szaref=xarray.open_rasterio(get_path("icor/ref_inputcheck_SZA.tif"))
+    vzaref=xarray.open_rasterio(get_path("icor/ref_inputcheck_VZA.tif"))
+    raaref=xarray.open_rasterio(get_path("icor/ref_inputcheck_RAA.tif"))
+    demref=xarray.open_rasterio(get_path("icor/ref_inputcheck_DEM.tif"))
+    aotref=xarray.open_rasterio(get_path("icor/ref_inputcheck_AOT.tif"))
+    cwvref=xarray.open_rasterio(get_path("icor/ref_inputcheck_CWV.tif"))
 
     compare_xarrays(result.loc[date][-6],szaref[0].transpose("x","y"))
     compare_xarrays(result.loc[date][-5],vzaref[0].transpose("x","y"))
@@ -1145,10 +1145,10 @@ def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tm
     l2a.download(output,format="json")
     
     result=datacube_from_file(output,fmt="json").get_array()
-    b2ref=xarray.open_rasterio("icor/ref_default_B02.tif")
-    b3ref=xarray.open_rasterio("icor/ref_default_B03.tif")
-    b4ref=xarray.open_rasterio("icor/ref_default_B04.tif")
-    b8ref=xarray.open_rasterio("icor/ref_default_B08.tif")
+    b2ref=xarray.open_rasterio(get_path("icor/ref_default_B02.tif"))
+    b3ref=xarray.open_rasterio(get_path("icor/ref_default_B03.tif"))
+    b4ref=xarray.open_rasterio(get_path("icor/ref_default_B04.tif"))
+    b8ref=xarray.open_rasterio(get_path("icor/ref_default_B08.tif"))
 
     compare_xarrays(result.loc[date,"B02"],b2ref[0].transpose("x","y"))
     compare_xarrays(result.loc[date,"B03"],b3ref[0].transpose("x","y"))
