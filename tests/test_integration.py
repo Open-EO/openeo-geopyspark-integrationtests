@@ -1052,7 +1052,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
 
     output_tiff = tmp_path / "test_sentinel_hub_batch_job.tif"
 
-    sar_backscatter.execute_batch(output_tiff, out_format='GTiff')
+    sar_backscatter.execute_batch(output_tiff, out_format='GTiff', title="SentinelhubBatch")
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
 
@@ -1063,7 +1063,7 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
                        .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
                        .filter_temporal(extent=["2019-10-10", "2019-10-10"])
                        .sar_backscatter(mask=True, local_incidence_angle=True))
-    job = sar_backscatter.execute_batch(out_format='GTiff')
+    job = sar_backscatter.execute_batch(out_format='GTiff', title="SentinelhubSarBackscatterBatch")
 
     assets = job.download_results(tmp_path)
     assert len(assets) > 1
