@@ -1045,14 +1045,14 @@ def test_resolution_merge(auth_connection,tmp_path):
 
 
 def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
-    sar_backscatter = (auth_connection
+    data_cube = (auth_connection
                        .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
                        .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
                        .filter_temporal(extent=["2019-10-10", "2019-10-10"]))
 
     output_tiff = tmp_path / "test_sentinel_hub_batch_job.tif"
 
-    sar_backscatter.execute_batch(output_tiff, out_format='GTiff', title="SentinelhubBatch")
+    data_cube.execute_batch(output_tiff, out_format='GTiff', title="SentinelhubBatch")
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
 
@@ -1062,7 +1062,8 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
                        .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
                        .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
                        .filter_temporal(extent=["2019-10-10", "2019-10-10"])
-                       .sar_backscatter(mask=True, local_incidence_angle=True))
+                       .sar_backscatter(mask=True, local_incidence_angle=True, elevation_model='COPERNICUS_30'))
+
     job = sar_backscatter.execute_batch(out_format='GTiff', title="SentinelhubSarBackscatterBatch")
 
     assets = job.download_results(tmp_path)
