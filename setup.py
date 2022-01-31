@@ -17,5 +17,6 @@ setup(
         "xarray",
         "pyproj",
         "h5netcdf",
+        "geopandas"
     ],
 )
