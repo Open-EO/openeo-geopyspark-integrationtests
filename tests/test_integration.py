@@ -1044,6 +1044,8 @@ def test_resolution_merge(auth_connection,tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
 
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     data_cube = (auth_connection
                        .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
@@ -1056,6 +1058,8 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
 
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
     # FIXME: a separate filter_bands call drops the mask and local_incidence_angle bands
     sar_backscatter = (auth_connection
@@ -1195,6 +1199,8 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
     compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
 
 
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_discard_result_suppresses_batch_job_output_file(connection):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
