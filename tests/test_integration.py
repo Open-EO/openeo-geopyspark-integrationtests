@@ -17,7 +17,8 @@ import shapely.ops
 import xarray
 from numpy.ma.testutils import assert_array_approx_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
-from shapely.geometry import shape, Polygon
+from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
+from shapely.geometry.base import BaseGeometry
 import pyproj
 
 from openeo.rest.connection import OpenEoApiError
@@ -1403,3 +1404,90 @@ def test_validation_missing_product(connection):
     print(errors)
     assert len(errors) > 0
     assert "MissingProduct" in {e["code"] for e in errors}
+
+
+def test_point_timeseries(auth_connection):
+    data_cube = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2",
+                                                bands=["B04", "B03", "B02"],
+                                                temporal_extent=["2019-09-21", "2019-09-21"])
+
+    point_1 = Point(2.7355173308599805, 51.1281683702743)
+    point_2 = Point(2.7360208332538605, 51.12843633048261)
+    polygon_1 = Polygon.from_bounds(2.735048532485962, 51.128338699445216, 2.7353382110595703, 51.128501978822754)
+    polygon_2 = Polygon.from_bounds(2.7358558773994446, 51.12789094066447, 2.7361643314361572, 51.128060954848046)
+
+    def as_feature(geometry: BaseGeometry) -> dict:
+        return {
+            'type': 'Feature',
+            'properties': {},
+            'geometry': mapping(geometry)
+        }
+
+    def aggregate_single_point():
+        means = (data_cube
+                 .aggregate_spatial(point_1, "mean")
+                 .execute())
+
+        assert means == {"2019-09-21T00:00:00.000Z": [[1076.0, 948.0, 705.0]]}
+
+    aggregate_single_point()
+
+    def aggregates_single_point():
+        from openeo.processes import min, count, array_create
+
+        aggregates = (data_cube
+                      .aggregate_spatial(point_1,
+                                         lambda point_values: array_create([min(point_values), count(point_values)]))
+                      .execute())
+
+        assert aggregates == {"2019-09-21T00:00:00.000Z": [[1076.0, 1, 948.0, 1, 705.0, 1]]}
+
+    aggregates_single_point()
+
+    def aggregate_heterogeneous_geometry_collection():
+        means = (data_cube
+                 .aggregate_spatial(GeometryCollection([point_1, point_2, polygon_1, polygon_2]), "mean")
+                 .execute())
+
+        assert means == {"2019-09-21T00:00:00.000Z": [
+            [1076.0, 948.0,  705.0],
+            [945.0,  951.0,  847.0],
+            [459.25, 484.75, 316.75],
+            [1232.5, 994.5,  809.5]
+        ]}
+
+    aggregate_heterogeneous_geometry_collection()
+
+    def aggregate_single_point_feature():
+        means = (data_cube
+                 .aggregate_spatial(as_feature(point_1), "mean")
+                 .execute())
+
+        assert means == {"2019-09-21T00:00:00.000Z": [[1076.0, 948.0, 705.0]]}
+
+    aggregate_single_point_feature()
+
+    def aggregate_heterogeneous_feature_collection():
+        feature_collection = {
+            'type': 'FeatureCollection',
+            'properties': {},
+            'features': [
+                as_feature(point_1),
+                as_feature(point_2),
+                as_feature(polygon_1),
+                as_feature(polygon_2)
+            ]
+        }
+
+        counts = (data_cube
+                  .aggregate_spatial(feature_collection, "count")
+                  .execute())
+
+        assert counts == {"2019-09-21T00:00:00.000Z": [
+            [1, 1, 1],
+            [1, 1, 1],
+            [4, 4, 4],
+            [4, 4, 4]
+        ]}
+
+    aggregate_heterogeneous_feature_collection()
