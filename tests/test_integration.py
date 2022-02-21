@@ -1440,7 +1440,7 @@ def test_point_timeseries(auth_connection):
                                          lambda point_values: array_create([min(point_values), count(point_values)]))
                       .execute())
 
-        assert aggregates == {"2019-09-21T00:00:00.000Z": [[1076.0, 1, 948.0, 1, 705.0, 1]]}
+        assert aggregates == {"2019-09-21T00:00:00Z": [[1076, 1, 948, 1, 705, 1]]}
 
     aggregates_single_point()
 
