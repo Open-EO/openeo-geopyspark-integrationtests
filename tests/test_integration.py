@@ -311,7 +311,7 @@ def test_batch_job_basic(connection, api_version, tmp_path):
 
     expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
     assert sorted(data.keys()) == sorted(expected_dates)
-    expected_schema = schema.Schema({str: [[float]]})
+    expected_schema = schema.Schema({str: [[int]]})
     assert expected_schema.validate(data)
 
     if api_version >= "1.0.0":
@@ -338,7 +338,7 @@ def test_batch_job_execute_batch(connection, tmp_path):
         data = json.load(f)
     expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
     assert sorted(data.keys()) == sorted(expected_dates)
-    expected_schema = schema.Schema({str: [[float]]})
+    expected_schema = schema.Schema({str: [[int]]})
     assert expected_schema.validate(data)
 
 
@@ -373,7 +373,7 @@ def test_batch_job_signed_urls(connection, tmp_path):
             data = resp.json()
     expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
     assert sorted(data.keys()) == sorted(expected_dates)
-    expected_schema = schema.Schema({str: [[float]]})
+    expected_schema = schema.Schema({str: [[int]]})
     assert expected_schema.validate(data)
 
 
@@ -835,7 +835,7 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
                 rtol = 0.02
                 np.testing.assert_allclose(np.ma.mean(data, axis=(-1, -2)), ts_mean_df.loc[date], rtol=rtol)
                 np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median_df.loc[date], atol=2.2) #TODO EP-4025
-                np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd_df.loc[date], rtol=rtol)
+                np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd_df.loc[date], rtol=rtol, atol=0.03)
 
 
 def test_ndvi(auth_connection, tmp_path):
@@ -1428,7 +1428,7 @@ def test_point_timeseries(auth_connection):
                  .aggregate_spatial(point_1, "mean")
                  .execute())
 
-        assert means == {"2019-09-21T00:00:00.000Z": [[1076.0, 948.0, 705.0]]}
+        assert means == {"2019-09-21T00:00:00Z": [[1076.0, 948.0, 705.0]]}
 
     aggregate_single_point()
 
