@@ -1449,7 +1449,7 @@ def test_point_timeseries(auth_connection):
                  .aggregate_spatial(GeometryCollection([point_1, point_2, polygon_1, polygon_2]), "mean")
                  .execute())
 
-        assert means == {"2019-09-21T00:00:00.000Z": [
+        assert means == {"2019-09-21T00:00:00Z": [
             [1076.0, 948.0,  705.0],
             [945.0,  951.0,  847.0],
             [459.25, 484.75, 316.75],
@@ -1463,7 +1463,7 @@ def test_point_timeseries(auth_connection):
                  .aggregate_spatial(as_feature(point_1), "mean")
                  .execute())
 
-        assert means == {"2019-09-21T00:00:00.000Z": [[1076.0, 948.0, 705.0]]}
+        assert means == {"2019-09-21T00:00:00Z": [[1076.0, 948.0, 705.0]]}
 
     aggregate_single_point_feature()
 
@@ -1483,7 +1483,7 @@ def test_point_timeseries(auth_connection):
                   .aggregate_spatial(feature_collection, "count")
                   .execute())
 
-        assert counts == {"2019-09-21T00:00:00.000Z": [
+        assert counts == {"2019-09-21T00:00:00Z": [
             [1, 1, 1],
             [1, 1, 1],
             [4, 4, 4],
