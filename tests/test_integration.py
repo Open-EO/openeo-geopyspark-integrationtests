@@ -831,11 +831,13 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
                 assert ts_mean[date] == [[None] * band_count]
                 assert ts_median[date] == [[None] * band_count]
                 assert ts_sd[date] == [[None] * band_count]
-            else:
+            elif data[0].count() > 20:
                 rtol = 0.02
                 np.testing.assert_allclose(np.ma.mean(data, axis=(-1, -2)), ts_mean_df.loc[date], rtol=rtol)
-                np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median_df.loc[date], atol=2.2) #TODO EP-4025
-                np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd_df.loc[date], rtol=rtol, atol=0.03)
+                np.testing.assert_allclose(np.ma.median(data, axis=(-1, -2)), ts_median_df.loc[date], atol=0.001)
+                np.testing.assert_allclose(np.ma.std(data, axis=(-1, -2)), ts_sd_df.loc[date], rtol=0.02)
+            else:
+                print("VERY LITTLE DATA " + str(date) + " " + str(data[0].count()))
 
 
 def test_ndvi(auth_connection, tmp_path):
