@@ -1493,3 +1493,26 @@ def test_point_timeseries(auth_connection):
         ]}
 
     aggregate_heterogeneous_feature_collection()
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_point_timeseries_from_batch_process(auth_connection):
+    large_polygon = Polygon.from_bounds(2.640329849675133, 49.745440618122501, 3.297496358117944, 50.317367956014152)
+    center_point = large_polygon.centroid
+
+    geometries = GeometryCollection([large_polygon, center_point])
+
+    data_cube = (auth_connection.load_collection('SENTINEL2_L1C_SENTINELHUB', bands=["B04", "B03", "B02"])
+                 .filter_temporal(extent=["2019-09-26", "2019-09-26"])
+                 .aggregate_spatial(geometries, "mean"))
+
+    job = data_cube.execute_batch()
+
+    timeseries = job.get_results().get_assets()[0].load_json()
+
+    expected_schema = schema.Schema({str: [[float]]})
+    assert expected_schema.validate(timeseries)
+
+    _, geometry_values = list(timeseries.items())[0]
+    assert len(geometry_values) == len(geometries.geoms)
