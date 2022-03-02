@@ -351,7 +351,7 @@ def test_batch_job_signed_urls(connection, tmp_path):
 
     job = timeseries.execute_batch(
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
-        job_options=batch_default_options(driverMemory="1G", driverMemoryOverhead="512m"),
+        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="512m"),
         title = "signed-urls"
     )
 
