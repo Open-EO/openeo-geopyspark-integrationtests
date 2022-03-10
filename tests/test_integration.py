@@ -1277,16 +1277,17 @@ def test_udp_simple_math(auth_connection, tmp_path):
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_udp_simple_math_batch_job(auth_connection, tmp_path):
+    # Use unique UDP name (for this test)
+    udp_name = f"f2c_omxu38tkfdujeu3o0843"
+
     # Define UDP
     from openeo.processes import divide, subtract, process
     fahrenheit = Parameter.number("fahrenheit")
     fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
-    auth_connection.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
-    the_udp = auth_connection.user_defined_process("fahrenheit_to_celsius")
-    print(the_udp)
+    auth_connection.save_user_defined_process(udp_name, fahrenheit_to_celsius, parameters=[fahrenheit])
 
     # Use UDP
-    pg = process("fahrenheit_to_celsius", namespace="user", fahrenheit=50, f=50)#somehow our parameter name breaks??
+    pg = process(udp_name, namespace="user", fahrenheit=50)
     job = auth_connection.create_job(pg)
     job.run_synchronous()
     results = job.get_results()
