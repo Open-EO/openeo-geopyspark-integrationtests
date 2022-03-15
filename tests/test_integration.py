@@ -1048,7 +1048,7 @@ def test_resolution_merge(auth_connection,tmp_path):
 
 
 @pytest.mark.batchjob
-@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+@pytest.mark.timeout(40 * 60)
 def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     data_cube = (auth_connection
                        .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
@@ -1062,7 +1062,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
 
 
 @pytest.mark.batchjob
-@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+@pytest.mark.timeout(40 * 60)
 def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
     # FIXME: a separate filter_bands call drops the mask and local_incidence_angle bands
     sar_backscatter = (auth_connection
