@@ -54,7 +54,7 @@ BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.102
 BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
 BBOX_NIEUWPOORT = _parse_bboxfinder_com("http://bboxfinder.com/#51.05,2.60,51.20,2.90")
 
-# TODO: real authenticaion?
+# TODO: real authentication?
 TEST_USER = "jenkins"
 TEST_PASSWORD = TEST_USER + "123"
 
@@ -184,8 +184,8 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
 
     cube = (
         auth_connection.load_collection('TERRASCOPE_S2_TOC_V2',bands=['TOC-B04_10M','TOC-B08_10M'])
-            .date_range_filter(start_date="2020-11-05", end_date="2020-11-05")
-            .bbox_filter(left=761104, right=763281, bottom=6543830, top=6544655, srs="EPSG:3857")
+            .filter_temporal(start_date="2020-11-05", end_date="2020-11-05")
+            .filter_bbox(west=761104, east=763281, south=6543830, north=6544655, crs="EPSG:3857")
     )
     # cube.download(tmp_path / "cube.tiff", format="GTIFF")
     res = cube.reduce_bands_udf(udf_code)
