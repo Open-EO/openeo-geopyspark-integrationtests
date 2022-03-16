@@ -252,7 +252,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
             .filter_temporal("2017-11-21", "2017-11-21")
             .filter_bbox(west=2, south=51, east=4, north=53, crs='EPSG:4326')
     )
-    output_file = tmp_path / "result.tiff"
+
     job = cube.send_job("GTIFF", job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"), tile_grid="one_degree",title="cog")
     job.run_synchronous(
         print=print, max_poll_interval=BATCH_JOB_POLL_INTERVAL
@@ -264,6 +264,20 @@ def test_cog_execute_batch(auth_connection, tmp_path):
     assert [j["status"] for j in auth_connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
     assert_geotiff_basics(name, expected_band_count=1)
     assert_cog(name)
+
+    cube_from_result = (auth_connection
+                        .load_result(job.job_id)
+                        .filter_bbox([2.59003, 51.069, 2.8949, 51.2206])
+                        .save_result("GTiff"))
+
+    load_result_output_file = tmp_path / "load_result.tiff"
+    cube_from_result.download(load_result_output_file, format="GTiff")
+
+    with rasterio.open(load_result_output_file) as load_result_ds:
+        assert load_result_ds.count == 1
+        probav_data = load_result_ds.read(1)
+        no_data = 255
+        assert np.all(probav_data != no_data)
 
 
 def _poll_job_status(
