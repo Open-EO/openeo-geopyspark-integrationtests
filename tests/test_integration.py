@@ -253,18 +253,18 @@ def test_cog_execute_batch(auth_connection, tmp_path):
             .filter_bbox(west=2, south=51, east=4, north=53, crs='EPSG:4326')
     )
 
-    job = cube.send_job("GTIFF", job_options=batch_default_options(driverMemoryOverhead="1G",driverMemory="1G"), tile_grid="one_degree",title="cog")
-    job.run_synchronous(
-        print=print, max_poll_interval=BATCH_JOB_POLL_INTERVAL
-    )
-    job.download_results(target="./")
-    assets: Dict = job.get_results().get_metadata()['assets']
-    name,asset = assets.popitem()
-
+    job = cube.execute_batch(out_format="GTIFF", max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+                             job_options=batch_default_options(driverMemoryOverhead="1G", driverMemory="1G"),
+                             tile_grid="one_degree", title="cog")
     assert [j["status"] for j in auth_connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
-    assert_geotiff_basics(name, expected_band_count=1)
-    assert_cog(name)
 
+    job.download_results(target=tmp_path)
+    arbitrary_geotiff_path = tmp_path / job.get_results().get_assets()[0].name
+
+    assert_geotiff_basics(arbitrary_geotiff_path, expected_band_count=1)
+    assert_cog(arbitrary_geotiff_path)
+
+    # conveniently tacked on test for load_result because it needs a batch job that won't be removed in the near future
     cube_from_result = (auth_connection
                         .load_result(job.job_id)
                         .filter_bbox([2.59003, 51.069, 2.8949, 51.2206])
@@ -557,7 +557,7 @@ def assert_geotiff_basics(
             assert dataset.count == expected_band_count
 
 
-def assert_cog(output_tiff: str):
+def assert_cog(output_tiff: Union[str, Path]):
     # FIXME: check if actually a COG
     pass
 
