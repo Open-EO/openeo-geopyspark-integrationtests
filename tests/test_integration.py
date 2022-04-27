@@ -1,4 +1,5 @@
 import imghdr
+import itertools
 import json
 import os
 import re
@@ -1531,3 +1532,40 @@ def test_point_timeseries_from_batch_process(auth_connection):
 
     _, geometry_values = list(timeseries.items())[0]
     assert len(geometry_values) == len(geometries.geoms)
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_load_collection_references_correct_batch_process_id(auth_connection, tmp_path):
+    bbox = [2.640329849675133, 49.745440618122501, 3.297496358117944, 50.317367956014152]
+
+    collection = 'SENTINEL1_GRD'
+    spatial_extent = {'west': bbox[0], 'east': bbox[2], 'south': bbox[1], 'north': bbox[3], 'crs': 'EPSG:4326'}
+    temporal_extent = ["2018-01-01", "2018-01-01"]
+    bands = ["VV", "VH"]
+
+    s1 = auth_connection.load_collection(collection, spatial_extent=spatial_extent, bands=bands,
+                                         temporal_extent=temporal_extent)
+    s1_sigma = s1.sar_backscatter(coefficient="sigma0-ellipsoid").rename_labels(dimension='bands',
+                                                                                target=["VV_sigma0", "VH_sigma0"],
+                                                                                source=["VV", "VH"])
+    s1_gamma = s1.sar_backscatter(coefficient="gamma0-terrain").rename_labels(dimension='bands',
+                                                                              target=["VV_gamma0", "VH_gamma0"],
+                                                                              source=["VV", "VH"])
+    result = s1_sigma.merge_cubes(s1_gamma)
+
+    output_tiff = tmp_path / "merged_batch_large.tif"
+
+    result.execute_batch(output_tiff, out_format="GTiff",
+                         title="test_load_collection_references_correct_batch_process_id")
+
+    assert_geotiff_basics(output_tiff, expected_band_count=4)
+
+    with rasterio.open(output_tiff) as ds:
+        sigma0_vv = ds.read(1)
+        sigma0_vh = ds.read(2)
+        gamma0_vv = ds.read(3)
+        gamma0_vh = ds.read(4)
+
+        for band1, band2 in itertools.combinations([sigma0_vv, sigma0_vh, gamma0_vv, gamma0_vh], 2):
+            assert not np.array_equal(band1, band2)
