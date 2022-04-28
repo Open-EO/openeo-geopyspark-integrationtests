@@ -1077,11 +1077,12 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
 
 
 @pytest.mark.batchjob
-@pytest.mark.timeout(40 * 60)
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
     # FIXME: a separate filter_bands call drops the mask and local_incidence_angle bands
     sar_backscatter = (auth_connection
-                       .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
+                       .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"],
+                                        properties={"timeliness": lambda t: t == "NRT3h"})
                        .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
                        .filter_temporal(extent=["2019-10-10", "2019-10-10"])
                        .sar_backscatter(mask=True, local_incidence_angle=True, elevation_model='COPERNICUS_30'))
@@ -1089,7 +1090,7 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
     job = sar_backscatter.execute_batch(out_format='GTiff', title="SentinelhubSarBackscatterBatch")
 
     assets = job.download_results(tmp_path)
-    assert len(assets) > 1
+    assert len(assets) > 1  # includes original tile and CARD4L metadata
 
     result_asset_paths = [path for path in assets.keys() if path.name.startswith("openEO")]
     assert len(result_asset_paths) == 1
@@ -1567,5 +1568,6 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
         gamma0_vv = ds.read(3)
         gamma0_vh = ds.read(4)
 
+        # all bands should be different, otherwise one batch process was inadvertently re-used and the other one ignored
         for band1, band2 in itertools.combinations([sigma0_vv, sigma0_vh, gamma0_vv, gamma0_vh], 2):
             assert not np.array_equal(band1, band2)
