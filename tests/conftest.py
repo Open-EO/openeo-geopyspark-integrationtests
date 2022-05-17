@@ -7,7 +7,7 @@ import openeo
 from openeo.capabilities import ComparableVersion
 
 
-def get_openeo_base_url(version: str = "1.0.0"):
+def get_openeo_base_url(version: str = "1.1.0"):
     try:
         endpoint = os.environ["ENDPOINT"].rstrip("/")
     except Exception:
@@ -19,7 +19,7 @@ def get_openeo_base_url(version: str = "1.0.0"):
 
 @pytest.fixture(params=[
     # "0.4.2",
-    "1.0.0",
+    "1.1.0",
 ])
 def api_version(request) -> ComparableVersion:
     return ComparableVersion(request.param)
