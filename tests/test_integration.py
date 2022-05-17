@@ -18,6 +18,7 @@ import shapely.ops
 import xarray
 from numpy.ma.testutils import assert_array_approx_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
+from pystac import Collection
 from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 import pyproj
@@ -1066,14 +1067,29 @@ def test_resolution_merge(auth_connection,tmp_path):
 @pytest.mark.timeout(40 * 60)
 def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     data_cube = (auth_connection
-                       .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
-                       .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
-                       .filter_temporal(extent=["2019-10-10", "2019-10-10"]))
+                 .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
+                 .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
+                 .filter_temporal(extent=["2019-10-10", "2019-10-10"]))
 
     output_tiff = tmp_path / "test_sentinel_hub_batch_job.tif"
 
-    data_cube.execute_batch(output_tiff, out_format='GTiff', title="SentinelhubBatch")
+    job = data_cube.execute_batch(output_tiff, out_format='GTiff', title="SentinelhubBatch")
     assert_geotiff_basics(output_tiff, expected_band_count=2)
+
+    # conveniently tacked on test for load_result because it needs a batch job that won't be removed in the near future
+    job_results_info = Collection.from_dict(job.get_results().get_metadata())
+    job_results_canonical_url = next(link.href for link in job_results_info.links if link.rel == "canonical")
+    source_id = job_results_canonical_url
+
+    cube_from_result = (auth_connection
+                        .load_result(source_id)
+                        .filter_bbox({'west': 2.69003, 'south': 51.169, 'east': 2.7949, 'north': 51.2006})
+                        .save_result("GTiff"))
+
+    load_result_output_tiff = tmp_path / "load_result_small.tiff"
+    cube_from_result.download(load_result_output_tiff, format="GTiff")
+
+    assert_geotiff_basics(load_result_output_tiff, expected_band_count=2)
 
 
 @pytest.mark.batchjob
