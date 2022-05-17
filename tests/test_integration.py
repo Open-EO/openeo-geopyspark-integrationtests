@@ -6,7 +6,7 @@ import re
 import textwrap
 import time
 from pathlib import Path
-from typing import Callable, Union, Dict
+from typing import Callable, Union
 
 import numpy as np
 import pytest
@@ -1242,7 +1242,7 @@ def test_discard_result_suppresses_batch_job_output_file(connection):
     cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_bbox(5, 6, 52, 51, 'EPSG:4326')
     cube = cube.process("discard_result", arguments={"data": cube})
 
-    job = cube.execute_batch(max_poll_interval=BATCH_JOB_POLL_INTERVAL)
+    job = cube.execute_batch(max_poll_interval=BATCH_JOB_POLL_INTERVAL, title="test_discard_result_suppresses_batch_job_output_file")
     assets = job.get_results().get_assets()
 
     assert len(assets) == 0, assets
@@ -1540,7 +1540,7 @@ def test_point_timeseries_from_batch_process(auth_connection):
                  .filter_temporal(extent=["2019-09-26", "2019-09-26"])
                  .aggregate_spatial(geometries, "mean"))
 
-    job = data_cube.execute_batch()
+    job = data_cube.execute_batch(title="test_point_timeseries_from_batch_process")
 
     timeseries = job.get_results().get_assets()[0].load_json()
 
