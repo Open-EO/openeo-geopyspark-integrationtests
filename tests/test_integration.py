@@ -330,9 +330,14 @@ def test_batch_job_basic(connection, api_version, tmp_path):
     expected_schema = schema.Schema({str: [[int]]})
     assert expected_schema.validate(data)
 
-    if api_version >= "1.0.0":
+    if api_version >= "1.1.0":
+        job_results = Collection.from_dict(job.list_results())
+        assert job_results.extent.spatial.bboxes[0] == POLYGON01_BBOX
+        assert job_results.extent.temporal.to_dict()['interval'] == [["2017-11-01T00:00:00Z", "2017-11-21T00:00:00Z"]]
+    elif api_version >= "1.0.0":
         job_results = job.list_results()
         print(job_results)
+        assert job_results["type"] == 'Feature'
         geometry = shape(job_results['geometry'])
         assert geometry.equals_exact(POLYGON01, tolerance=0.0001)
         assert job_results["bbox"] == POLYGON01_BBOX
