@@ -279,7 +279,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         assert load_result_ds.count == 1
         probav_data = load_result_ds.read(1)
         no_data = 255
-        assert np.all(probav_data != no_data)
+        assert np.any(probav_data != no_data)
 
 
 def _poll_job_status(
