@@ -1277,10 +1277,10 @@ def test_merge_cubes(auth_connection):
     startdate = f"{year}-05-01"
 
     enddate = f"{year}-05-15"
-    s2_bands = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["TOC-B04_10M", "TOC-B08_10M", "SCENECLASSIFICATION_20M"], spatial_extent=extent)
+    s2_bands = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["B04", "B08", "SCENECLASSIFICATION_20M"], spatial_extent=extent)
     s2_bands = s2_bands.process("mask_scl_dilation", data=s2_bands, scl_band_name="SCENECLASSIFICATION_20M")
-    b4_band = s2_bands.band("TOC-B04_10M")
-    b8_band = s2_bands.band("TOC-B08_10M")
+    b4_band = s2_bands.band("B04")
+    b8_band = s2_bands.band("B08")
     s2_ndvi = (b8_band - b4_band) / (b8_band + b4_band)
     s2_ndvi = s2_ndvi.add_dimension("bands", "s2_ndvi", type="bands")
 
@@ -1291,11 +1291,11 @@ def test_merge_cubes(auth_connection):
     datacube = datacube.merge_cubes(pv_ndvi)
     # apply filters
     datacube = datacube.filter_temporal(startdate, enddate)#.filter_bbox(**extent)
-    datacube.download("merged.nc", format="NetCDF",options={"stitch":True})
+    datacube.download("merged.nc", format="NetCDF")
     timeseries = xarray.open_dataset("merged.nc", engine="h5netcdf").mean(dim=['x', 'y'])
 
     assert_array_almost_equal([210.29, 191.75, np.nan], timeseries.NDVI.values, 2)
-    assert_allclose([np.nan, np.nan, 0.5958494], timeseries.s2_ndvi.values, atol=0.005)
+    assert_allclose([np.nan, np.nan, 0.64593], timeseries.s2_ndvi.values, atol=0.005)
 
 
 def test_udp_simple_math(auth_connection, tmp_path):
