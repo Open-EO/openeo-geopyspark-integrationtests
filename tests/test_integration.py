@@ -1292,10 +1292,11 @@ def test_merge_cubes(auth_connection):
     # apply filters
     datacube = datacube.filter_temporal(startdate, enddate)#.filter_bbox(**extent)
     datacube.download("merged.nc", format="NetCDF")
-    timeseries = xarray.open_dataset("merged.nc", engine="h5netcdf").mean(dim=['x', 'y'])
+    dataset = xarray.open_dataset("merged.nc", engine="h5netcdf").drop_vars("crs")
+    timeseries = dataset.mean(dim=['x', 'y'])
 
     assert_array_almost_equal([210.29, 191.75, np.nan], timeseries.NDVI.values, 2)
-    assert_allclose([np.nan, np.nan, 0.64593], timeseries.s2_ndvi.values, atol=0.005)
+    assert_allclose([np.nan, np.nan, 0.604237], timeseries.s2_ndvi.values, atol=0.005)
 
 
 def test_udp_simple_math(auth_connection, tmp_path):
