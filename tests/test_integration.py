@@ -1593,3 +1593,8 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
         # all bands should be different, otherwise one batch process was inadvertently re-used and the other one ignored
         for band1, band2 in itertools.combinations([sigma0_vv, sigma0_vh, gamma0_vv, gamma0_vh], 2):
             assert not np.array_equal(band1, band2)
+
+
+def test_tsservice_health(tsservice_base_url):
+    tsservice_status = requests.get(f"{tsservice_base_url}/internal/health").text.strip()
+    assert tsservice_status == "OK"
