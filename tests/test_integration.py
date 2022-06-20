@@ -1595,6 +1595,23 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
             assert not np.array_equal(band1, band2)
 
 
-def test_tsservice_health(tsservice_base_url):
-    tsservice_status = requests.get(f"{tsservice_base_url}/internal/health").text.strip()
-    assert tsservice_status == "OK"
+def test_tsservice_geometry_mean(tsservice_base_url):
+    time_series = requests.post(
+        f"{tsservice_base_url}/v1.0/ts/S2_FAPAR_FILE/geometry?startDate=2020-04-05&endDate=2020-04-05",
+        json={
+            "type": "Polygon",
+            "coordinates": [
+                [[1.90283, 50.9579], [1.90283, 51.0034], [1.97116, 51.0034], [1.97116, 50.9579],
+                 [1.90283, 50.9579]]]
+        }).json()
+
+    expected_schema = schema.Schema({'results': [{
+        'date': str,
+        'result': {
+            'average': float,
+            'totalCount': int,
+            'validCount': int
+        }}]
+    })
+
+    assert expected_schema.validate(time_series)
