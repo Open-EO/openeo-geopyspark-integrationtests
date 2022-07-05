@@ -73,7 +73,7 @@ POLYGON01_BBOX = [7.00, 51.30, 7.60, 51.75]
 
 
 BATCH_JOB_POLL_INTERVAL = 10
-BATCH_JOB_TIMEOUT = 30 * 60
+BATCH_JOB_TIMEOUT = 60 * 60
 
 
 def batch_default_options(driverMemoryOverhead="1G", driverMemory="2G"):
@@ -537,7 +537,7 @@ def test_ep3048_sentinel1_udf(auth_connection, udf_file):
 def test_load_collection_from_disk(auth_connection, tmp_path):
     fapar = auth_connection.load_disk_collection(
         format='GTiff',
-        glob_pattern='/data/MTDA/CGS_S2/CGS_S2_FAPAR/2019/04/24/*/*/10M/*_FAPAR_10M_V102.tif',
+        glob_pattern='/data/MTDA/TERRASCOPE_Sentinel2/FAPAR_V2/2019/04/24/*/10M/*_FAPAR_10M_V200.tif',
         options={
             'date_regex': r".*\/S2._(\d{4})(\d{2})(\d{2})T.*"
         }
@@ -547,7 +547,7 @@ def test_load_collection_from_disk(auth_connection, tmp_path):
 
     output_file = tmp_path / "fapar_from_disk.tiff"
     fapar.download(output_file, format="GTiff")
-    assert_geotiff_basics(output_file, expected_shape=(1, 2786, 3496))
+    assert_geotiff_basics(output_file, expected_shape=(1, 1677, 2106))
 
 
 def assert_geotiff_basics(
