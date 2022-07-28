@@ -14,7 +14,7 @@ setup(
         "shapely",
         "openeo>=0.8.3a2.*",
         "pytest-xdist",
-        "xarray",
+        "xarray<2022.6.0",
         "pyproj",
         "h5netcdf",
         "geopandas",

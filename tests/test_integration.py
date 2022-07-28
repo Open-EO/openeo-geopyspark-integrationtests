@@ -1125,7 +1125,7 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
 def compare_xarrays(xa1,xa2,max_nonmatch_ratio=0.01, tolerance=1.e-6):
     np.testing.assert_allclose(xa1.shape,xa2.shape)
     nmax=xa1.shape[-1]*xa1.shape[-2]*max_nonmatch_ratio
-    diff=xarray.ufuncs.fabs(xa1-xa2)>tolerance
+    diff=xarray.ufuncs.fabs(xa1-xa2)>tolerance  # TODO: replace with numpy's ufuncs and uncap xarray
     assert(diff.where(diff).count()<=nmax)
     np.testing.assert_allclose(xa2.where(~diff), xa2.where(~diff), rtol=0., atol=tolerance, equal_nan=True)
 
