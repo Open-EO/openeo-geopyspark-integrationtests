@@ -36,7 +36,7 @@ from .data import get_path, read_data
 def _dump_process_graph(cube: Union[DataCube, ImageCollectionClient], tmp_path: Path, name="process_graph.json"):
     """Dump a cube's process graph as json to a temp file"""
     with (tmp_path / name).open("w") as fp:
-        json.dump(cube.graph, fp, indent=2)
+        json.dump(cube.flat_graph(), fp, indent=2)
 
 
 def _parse_bboxfinder_com(url: str) -> dict:
