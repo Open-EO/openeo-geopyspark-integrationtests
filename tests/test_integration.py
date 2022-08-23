@@ -1096,6 +1096,20 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     assert_geotiff_basics(load_result_output_tiff, expected_band_count=2)
 
 
+def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_path):
+    data_cube = (auth_connection.load_collection("SENTINEL1_GRD")
+                 .filter_bands(["VV", "VH"])
+                 .filter_bbox([2.59003, 51.069, 2.8949, 51.2206])
+                 .filter_temporal(["2019-10-10", "2019-10-10"]))
+
+    output_tiff = tmp_path / "test_sentinel_hub_default_sar_backscatter_synchronous.tif"
+    data_cube.download(output_tiff)
+
+    with rasterio.open(output_tiff) as dataset:
+        assert dataset.crs == "EPSG:32631"
+        assert dataset.res == (10, 10)
+
+
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
