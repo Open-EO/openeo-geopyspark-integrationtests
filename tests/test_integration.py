@@ -267,8 +267,8 @@ def test_cog_execute_batch(auth_connection, tmp_path):
 
     # conveniently tacked on test for load_result because it needs a batch job that won't be removed in the near future
     cube_from_result = (auth_connection
-                        .load_result(job.job_id)
-                        .filter_bbox([2.59003, 51.069, 2.8949, 51.2206])
+                        .load_result(job.job_id, spatial_extent={'west': 2.59003,
+                                                                 'south': 51.069, 'east': 2.8949, 'north': 51.2206})
                         .save_result("GTiff"))
 
     load_result_output_file = tmp_path / "load_result.tiff"
