@@ -1086,14 +1086,14 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     source_id = job_results_canonical_url
 
     cube_from_result = (auth_connection
-                        .load_result(source_id)
+                        .load_result(source_id, bands=['VV'])
                         .filter_bbox({'west': 2.69003, 'south': 51.169, 'east': 2.7949, 'north': 51.2006})
                         .save_result("GTiff"))
 
     load_result_output_tiff = tmp_path / "load_result_small.tiff"
     cube_from_result.download(load_result_output_tiff, format="GTiff")
 
-    assert_geotiff_basics(load_result_output_tiff, expected_band_count=2)
+    assert_geotiff_basics(load_result_output_tiff, expected_band_count=1)
 
 
 def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_path):
