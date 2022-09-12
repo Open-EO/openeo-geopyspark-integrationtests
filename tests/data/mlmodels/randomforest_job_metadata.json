@@ -1,70 +1,64 @@
 {
   "assets": {
-    "randomforest.model.tar.gz": {
-      "file:nodata": [
-        null
-      ],
+    "model": {
       "href": "https://github.com/Open-EO/openeo-geopyspark-integrationtests/raw/master/tests/data/mlmodels/randomforest.model.tar.gz",
       "roles": [
-        "data"
+        "ml-model:checkpoint"
       ],
-      "title": "randomforest.model.tar.gz",
+      "title": "org.apache.spark.mllib.tree.model.RandomForestModel",
       "type": "application/octet-stream"
     }
   },
-  "description": "Results for batch job j-c8574e9c2e6b44c6a4d04db514c0a972",
-  "extent": {
-    "spatial": {
-      "bbox": [
-        [
-          4.79,
-          51.26,
-          5.22,
-          51.38
-        ]
-      ]
-    },
-    "temporal": {
-      "interval": [
-        [
-          "2017-11-01T00:00:00Z",
-          "2017-11-01T00:00:00Z"
-        ]
-      ]
-    }
-  },
-  "id": "j-c8574e9c2e6b44c6a4d04db514c0a972",
-  "license": "proprietary",
-  "links": [
-    {
-      "href": "https://openeo-dev.vito.be/openeo/1.1.0/jobs/j-c8574e9c2e6b44c6a4d04db514c0a972/results",
-      "rel": "self",
-      "type": "application/json"
-    },
-    {
-      "href": "https://openeo-dev.vito.be/openeo/1.1.0/jobs/j-c8574e9c2e6b44c6a4d04db514c0a972/results/amVua2lucw%3D%3D/843d8ba0301b73b290728019688abe5b?expires=1663073648",
-      "rel": "canonical",
-      "type": "application/json"
-    },
-    {
-      "href": "http://ceos.org/ard/files/PFS/SR/v5.0/CARD4L_Product_Family_Specification_Surface_Reflectance-v5.0.pdf",
-      "rel": "card4l-document",
-      "type": "application/pdf"
-    }
+  "bbox": [
+    -179.999,
+    -89.999,
+    179.999,
+    89.999
   ],
-  "stac_extensions": ["eo", "file", "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json"],
-  "stac_version": "1.0.0",
-  "title": "test_predict_random_forest",
-  "summaries": {
-    "ml-model:architecture": [
-      "random-forest"
+  "collection": "j-57bd02e55b364f9d9c9cc919e5fd4afc",
+  "geometry": {
+    "coordinates": [
+      [
+        [
+          -179.999,
+          -89.999
+        ],
+        [
+          179.999,
+          -89.999
+        ],
+        [
+          179.999,
+          89.999
+        ],
+        [
+          -179.999,
+          89.999
+        ],
+        [
+          -179.999,
+          -89.999
+        ]
+      ]
     ],
-    "ml-model:learning_approach": [
-      "supervised"
-    ],
-    "ml-model:prediction_type": [
-      "classification"
-    ]
+    "type": "Polygon"
   },
-  "type": "Collection"
+  "id": "rf-75d1ab88d490417c9ba8ecdf59bb13ad",
+  "links": [],
+  "properties": {
+    "datetime": null,
+    "end_datetime": "9999-12-31T23:59:59Z",
+    "ml-model:architecture": "random-forest",
+    "ml-model:learning_approach": "supervised",
+    "ml-model:prediction_type": "classification",
+    "ml-model:training-os": "linux",
+    "ml-model:training-processor-type": "cpu",
+    "ml-model:type": "ml-model",
+    "start_datetime": "1970-01-01T00:00:00Z"
+  },
+  "stac_extensions": [
+    "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json"
+  ],
+  "stac_version": "1.0.0",
+  "type": "Feature"
 }
