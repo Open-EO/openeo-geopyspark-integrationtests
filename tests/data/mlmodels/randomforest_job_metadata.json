@@ -52,11 +52,19 @@
       "type": "application/pdf"
     }
   ],
-  "stac_extensions": [
-    "eo",
-    "file"
-  ],
+  "stac_extensions": ["eo", "file", "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json"],
   "stac_version": "1.0.0",
   "title": "test_predict_random_forest",
+  "summaries": {
+    "ml-model:architecture": [
+      "random-forest"
+    ],
+    "ml-model:learning_approach": [
+      "supervised"
+    ],
+    "ml-model:prediction_type": [
+      "classification"
+    ]
+  },
   "type": "Collection"
 }
