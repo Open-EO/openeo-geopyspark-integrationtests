@@ -613,12 +613,19 @@ def test_random_forest_train_and_load_from_jobid(connection: openeo.Connection, 
         spatial_extent = {"west": 4.825919, "east": 4.859629, "south": 51.259766, "north": 51.307638},
         temporal_extent = ["2017-11-01", "2017-11-01"])
     topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
-    predicted = topredict_cube_xyb.predict_random_forest(
+    predicted: DataCube = topredict_cube_xyb.predict_random_forest(
         model=job.job_id,
         dimension="bands"
     )
+    inference_job = predicted.create_job(title="test_random_forest_train_and_load_from_jobid-inference_step")
+    # Wait until job is finished
+    assert inference_job.job_id
+    inference_job.start_job()
+    status = _poll_job_status(inference_job, until=lambda s: s in ['canceled', 'finished', 'error'])
+    assert status == "finished"
+    # Check the resulting geotiff filled with predictions.
     output_file = tmp_path / "predicted.tiff"
-    predicted.download(output_file, format="GTiff")
+    inference_job.download_result(output_file)
     assert_geotiff_basics(output_file, min_width = 1, min_height = 1)
 
 
