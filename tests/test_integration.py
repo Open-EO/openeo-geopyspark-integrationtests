@@ -504,6 +504,124 @@ def test_random_forest_load_from_http(connection: openeo.Connection, tmp_path):
     assert_geotiff_basics(with_link_output_file, min_width = 15, min_height = 15)
 
 
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_random_forest_train_and_load_from_jobid(connection: openeo.Connection, tmp_path):
+    # 1. Train a random forest model.
+    FEATURE_COLLECTION_1 = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {"target": 3},
+                "geometry": {"type": "Polygon", "coordinates": [[[4.79, 51.26], [4.81, 51.26], [4.81, 51.30], [4.79, 51.30], [4.79, 51.26]]]}
+            },
+            {
+                "type": "Feature",
+                "properties": {"target": 5},
+                "geometry": {"type": "Polygon", "coordinates": [[[4.85, 51.26], [4.90, 51.26], [4.90, 51.30], [4.85, 51.30], [4.85, 51.26]]]}
+            },
+
+        ]
+    }
+
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    cube_xybt: DataCube = connection.load_collection(
+        "PROBAV_L3_S10_TOC_NDVI_333M",
+        spatial_extent={"west": 4.78, "east": 4.91, "south": 51.25, "north": 51.31},
+        temporal_extent=["2017-11-01", "2017-11-01"]
+    )
+    cube_xyb: DataCube = cube_xybt.reduce_dimension(dimension="t", reducer="mean")
+    predictors: DataCube = cube_xyb.aggregate_spatial(FEATURE_COLLECTION_1, reducer="mean", target_dimension="bands")
+    model: MlModel = predictors.fit_class_random_forest(target=FEATURE_COLLECTION_1, num_trees=3, seed=42)
+    model: MlModel = model.save_ml_model()
+    job: BatchJob = model.create_job(title="test_random_forest_train_and_load_from_jobid-training_step")
+    assert job.job_id
+    job.start_job()
+
+    # Wait until job is finished
+    status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+    assert status == "finished"
+
+    # Check the job metadata.
+    collection_results = job.list_results()
+    assert collection_results.get('assets', {}).get('randomforest.model.tar.gz', {}).get('href', None) is not None
+    summaries = collection_results.get('summaries', {})
+    assert summaries.get('ml-model:architecture', None) == ['random-forest']
+    assert summaries.get('ml-model:learning_approach', None) == ['supervised']
+    assert summaries.get('ml-model:prediction_type', None) == ['classification']
+    links = collection_results.get('links', [])
+    ml_model_metadata_links = [link for link in links if "ml_model_metadata.json" in link.get('href', "")]
+    assert len(ml_model_metadata_links) == 1
+
+    # Check the ml_model_metadata.json file.
+    ml_model_metadata = requests.get(ml_model_metadata_links[0].get('href', "")).json()
+    ml_model_assets = ml_model_metadata.get('assets', {})
+    assert ml_model_assets.get('model', {}).get('roles', None) == ['ml-model:checkpoint']
+    assert ml_model_assets.get('model', {}).get('title', None) == 'org.apache.spark.mllib.tree.model.RandomForestModel'
+    ml_model_properties = ml_model_metadata.get('properties', {})
+    assert ml_model_properties.get('ml-model:architecture', None) == 'random-forest'
+    assert ml_model_properties.get('ml-model:learning_approach', None) == 'supervised'
+    assert ml_model_properties.get('ml-model:prediction_type', None) == 'classification'
+    assert ml_model_properties.get('ml-model:training-os', None) == 'linux'
+    assert ml_model_properties.get('ml-model:training-processor-type', None) == 'cpu'
+    assert ml_model_properties.get('ml-model:type', None) == 'ml-model'
+
+    def job_directory_exists(expected: bool) -> bool:
+        start = time.time()
+        def elapsed():
+            return time.time() - start
+        def directory_exists() -> bool:
+            exists = (Path("/data/projects/OpenEO") / job.job_id).exists()
+
+            print("job {j} directory exists ({e:.2f}s): {d}".format(j=job.job_id, e=elapsed(), d=exists))
+            return exists
+
+        while elapsed() < 300:
+            if directory_exists() == expected:
+                return expected
+            time.sleep(10)
+        return directory_exists()
+
+    assert job_directory_exists(True)
+
+    # List files in job directory.
+    modelPath = Path("/data/projects/OpenEO") / job.job_id / "randomforest.model.tar.gz"
+    metadataPath = Path("/data/projects/OpenEO") / job.job_id / "job_metadata.json"
+    assert(modelPath.exists())
+    # Download modelPath to tmp
+    modelPathTmp = tmp_path / "randomforest.model.tar.gz"
+    modelPathTmp.write_bytes(modelPath.read_bytes())
+    assert(modelPath.stat().st_size > 1024)
+    assert(metadataPath.exists())
+
+    # Check job_metadata.json.
+    with open(metadataPath, "r") as f:
+        metadata = json.load(f)
+        assert metadata["geometry"].get("type", "") == "GeometryCollection"
+        actual_geometries = metadata["geometry"].get("geometries", [{}])
+        assert len(actual_geometries) == 2
+        assert actual_geometries[0].get("type", "") == "Polygon"
+        assert actual_geometries[1].get("type", "") == "Polygon"
+        assert actual_geometries[0].get("coordinates", [{}]) == FEATURE_COLLECTION_1["features"][0]["geometry"]["coordinates"]
+        assert actual_geometries[1].get("coordinates", [{}]) == FEATURE_COLLECTION_1["features"][1]["geometry"]["coordinates"]
+        assert metadata.get("assets", {}).get("randomforest.model.tar.gz", {}).get("href", "") == "/data/projects/OpenEO/{jobid}/randomforest.model.tar.gz".format(jobid=job.job_id)
+
+    # 2. Load the model using its job id and make predictions.
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    topredict_xybt = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M",
+        spatial_extent = {"west": 4.825919, "east": 4.859629, "south": 51.259766, "north": 51.307638},
+        temporal_extent = ["2017-11-01", "2017-11-01"])
+    topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
+    predicted = topredict_cube_xyb.predict_random_forest(
+        model=job.job_id,
+        dimension="bands"
+    )
+    output_file = tmp_path / "predicted.tiff"
+    predicted.download(output_file, format="GTiff")
+    assert_geotiff_basics(output_file, min_width = 1, min_height = 1)
+
+
 @pytest.mark.skip(reason="Requires proxying to work properly")
 def test_create_wtms_service(connection):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
