@@ -18,16 +18,18 @@ import shapely.ops
 import xarray
 from numpy.ma.testutils import assert_array_approx_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
+from openeo.rest.mlmodel import MlModel
 from pystac import Collection
 from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 import pyproj
 
+import openeo
 from openeo.rest.connection import OpenEoApiError
 from openeo.rest.conversions import datacube_from_file, timeseries_json_to_pandas
 from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.imagecollectionclient import ImageCollectionClient
-from openeo.rest.job import RESTJob
+from openeo.rest.job import RESTJob, BatchJob
 from openeo.rest.udp import Parameter
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
@@ -478,6 +480,28 @@ def test_batch_job_delete_job(connection):
         assert e.http_status_code == 404
 
     assert not job_directory_exists(False)
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_random_forest_load_from_http(connection: openeo.Connection, tmp_path):
+    """
+    Make predictions with the random forest model using an http link to a ml_model_metadata.json file.
+    """
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    topredict_xybt = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M",
+        spatial_extent = {"west": 4.785919, "east": 4.909629, "south": 51.259766, "north": 51.307638},
+        temporal_extent = ["2017-11-01", "2017-11-01"])
+    topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
+    # Make predictions with the random forest model using http link.
+    random_forest_metadata_link = "https://github.com/Open-EO/openeo-geopyspark-integrationtests/raw/master/tests/data/mlmodels/randomforest_ml_model_metadata.json"
+    predicted_with_link = topredict_cube_xyb.predict_random_forest(
+        model=random_forest_metadata_link,
+        dimension="bands"
+    )
+    with_link_output_file = tmp_path / "predicted_with_link.tiff"
+    predicted_with_link.download(with_link_output_file, format="GTiff")
+    assert_geotiff_basics(with_link_output_file, min_width = 15, min_height = 15)
 
 
 @pytest.mark.skip(reason="Requires proxying to work properly")
