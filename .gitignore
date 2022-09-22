@@ -110,5 +110,6 @@ ENV/
 *.tif
 *.tiff
 *.geotiff
+*.aux.xml
 
 tmp
