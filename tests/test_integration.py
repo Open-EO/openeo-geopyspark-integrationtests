@@ -818,7 +818,7 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
             assert_array_equal(ref_array, actual_array)
 
 
-def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
+def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
     date = "2018-08-14"
@@ -842,7 +842,7 @@ def test_advanced_cloud_masking(auth_connection, api_version, tmp_path):
     assert_geotiff_basics(out_file, expected_shape=(1, 284, 675))
     with rasterio.open(out_file) as result_ds:
         assert result_ds.dtypes == ('int16',)
-        with rasterio.open(get_path("reference/advanced_cloud_masking.tiff")) as ref_ds:
+        with rasterio.open(get_path("reference/advanced_cloud_masking_diy.tiff")) as ref_ds:
             assert_array_equal(ref_ds.read(masked=False), result_ds.read(masked=False))
 
 
