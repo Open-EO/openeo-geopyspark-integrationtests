@@ -598,13 +598,10 @@ def test_random_forest_train_and_load_from_jobid(connection: openeo.Connection, 
     # Check job_metadata.json.
     with open(metadataPath, "r") as f:
         metadata = json.load(f)
-        assert metadata["geometry"].get("type", "") == "GeometryCollection"
-        actual_geometries = metadata["geometry"].get("geometries", [{}])
-        assert len(actual_geometries) == 2
-        assert actual_geometries[0].get("type", "") == "Polygon"
-        assert actual_geometries[1].get("type", "") == "Polygon"
-        assert actual_geometries[0].get("coordinates", [{}]) == FEATURE_COLLECTION_1["features"][0]["geometry"]["coordinates"]
-        assert actual_geometries[1].get("coordinates", [{}]) == FEATURE_COLLECTION_1["features"][1]["geometry"]["coordinates"]
+        assert metadata["geometry"] == {
+            "type": "Polygon",
+            "coordinates": [[[4.79, 51.26], [4.79, 51.30], [4.90, 51.30], [4.90, 51.26], [4.79, 51.26]]],
+        }
         assert metadata.get("assets", {}).get("randomforest.model.tar.gz", {}).get("href", "") == "/data/projects/OpenEO/{jobid}/randomforest.model.tar.gz".format(jobid=job.job_id)
 
     # 2. Load the model using its job id and make predictions.
