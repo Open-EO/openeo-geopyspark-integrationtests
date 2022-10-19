@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable, Union
 
 import numpy as np
+import pyproj
 import pytest
 import rasterio
 import requests
@@ -18,11 +19,9 @@ import shapely.ops
 import xarray
 from numpy.ma.testutils import assert_array_approx_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
-from openeo.rest.mlmodel import MlModel
 from pystac import Collection
 from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
 from shapely.geometry.base import BaseGeometry
-import pyproj
 
 import openeo
 from openeo.rest.connection import OpenEoApiError
@@ -30,6 +29,7 @@ from openeo.rest.conversions import datacube_from_file, timeseries_json_to_panda
 from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.imagecollectionclient import ImageCollectionClient
 from openeo.rest.job import RESTJob, BatchJob
+from openeo.rest.mlmodel import MlModel
 from openeo.rest.udp import Parameter
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
@@ -1606,91 +1606,72 @@ def test_validation_missing_product(connection):
     assert "MissingProduct" in {e["code"] for e in errors}
 
 
-def test_point_timeseries(auth_connection):
-    data_cube = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2",
-                                                bands=["B04", "B03", "B02"],
-                                                temporal_extent=["2019-09-21", "2019-09-21"])
+def test_aggregate_spatial_point_handling(auth_connection):
+    data_cube = auth_connection.load_collection(
+        "TERRASCOPE_S2_TOC_V2",
+        bands=["B04", "B03", "B02"],
+        temporal_extent=["2019-09-25", "2019-09-30"],
+    )
+    means = data_cube.aggregate_spatial(Point(2.7355, 51.1281), "mean").execute()
 
-    point_1 = Point(2.7355173308599805, 51.1281683702743)
-    point_2 = Point(2.7360208332538605, 51.12843633048261)
-    polygon_1 = Polygon.from_bounds(2.735048532485962, 51.128338699445216, 2.7353382110595703, 51.128501978822754)
-    polygon_2 = Polygon.from_bounds(2.7358558773994446, 51.12789094066447, 2.7361643314361572, 51.128060954848046)
+    assert means == {
+        "2019-09-26T00:00:00Z": [[6832.0, 6708.0, 6600.0]],
+        "2019-09-28T00:00:00Z": [[976.0, 843.0, 577.0]],
+    }
 
-    def as_feature(geometry: BaseGeometry) -> dict:
-        return {
-            'type': 'Feature',
-            'properties': {},
-            'geometry': mapping(geometry)
-        }
 
-    def aggregate_single_point():
-        means = (data_cube
-                 .aggregate_spatial(point_1, "mean")
-                 .execute())
+def as_feature(geometry: BaseGeometry) -> dict:
+    return {
+        "type": "Feature",
+        "properties": {},
+        "geometry": mapping(geometry),
+    }
 
-        assert means == {"2019-09-21T00:00:00Z": [[1076.0, 948.0, 705.0]]}
 
-    aggregate_single_point()
+def as_feature_collection(*geometries: BaseGeometry) -> dict:
+    return {
+        "type": "FeatureCollection",
+        "properties": {},
+        "features": [as_feature(g) for g in geometries],
+    }
 
-    def aggregates_single_point():
-        from openeo.processes import min, count, array_create
 
-        aggregates = (data_cube
-                      .aggregate_spatial(point_1,
-                                         lambda point_values: array_create([min(point_values), count(point_values)]))
-                      .execute())
+def test_aggregate_spatial_feature_collection_heterogeneous_multiple_aggregates(
+    auth_connection,
+):
+    data_cube = auth_connection.load_collection(
+        "TERRASCOPE_S2_TOC_V2",
+        bands=["B04", "B03", "B02"],
+        temporal_extent=["2019-09-25", "2019-09-30"],
+    )
 
-        assert aggregates == {"2019-09-21T00:00:00Z": [[1076, 1, 948, 1, 705, 1]]}
+    geometry = as_feature_collection(
+        Point(2.7355, 51.1281),
+        Point(2.7360, 51.1284),
+        Polygon.from_bounds(2.7350, 51.1283, 2.7353, 51.1285),
+        Polygon.from_bounds(2.7358, 51.1278, 2.7361, 51.1280),
+    )
 
-    aggregates_single_point()
+    from openeo.processes import array_create
 
-    def aggregate_heterogeneous_geometry_collection():
-        means = (data_cube
-                 .aggregate_spatial(GeometryCollection([point_1, point_2, polygon_1, polygon_2]), "mean")
-                 .execute())
+    result = data_cube.aggregate_spatial(
+        geometry, lambda d: array_create(d.min(), d.count())
+    ).execute()
 
-        assert means == {"2019-09-21T00:00:00Z": [
-            [1076.0, 948.0,  705.0],
-            [945.0,  951.0,  847.0],
-            [459.25, 484.75, 316.75],
-            [1232.5, 994.5,  809.5]
-        ]}
-
-    aggregate_heterogeneous_geometry_collection()
-
-    def aggregate_single_point_feature():
-        means = (data_cube
-                 .aggregate_spatial(as_feature(point_1), "mean")
-                 .execute())
-
-        assert means == {"2019-09-21T00:00:00Z": [[1076.0, 948.0, 705.0]]}
-
-    aggregate_single_point_feature()
-
-    def aggregate_heterogeneous_feature_collection():
-        feature_collection = {
-            'type': 'FeatureCollection',
-            'properties': {},
-            'features': [
-                as_feature(point_1),
-                as_feature(point_2),
-                as_feature(polygon_1),
-                as_feature(polygon_2)
-            ]
-        }
-
-        counts = (data_cube
-                  .aggregate_spatial(feature_collection, "count")
-                  .execute())
-
-        assert counts == {"2019-09-21T00:00:00Z": [
-            [1, 1, 1],
-            [1, 1, 1],
-            [4, 4, 4],
-            [4, 4, 4]
-        ]}
-
-    aggregate_heterogeneous_feature_collection()
+    assert result == {
+        "2019-09-26T00:00:00Z": [
+            [6832, 1, 6708, 1, 6600, 1],
+            [6888, 1, 6756, 1, 6576, 1],
+            [6748, 4, 6616, 4, 6512, 4],
+            [6820, 4, 6680, 4, 6556, 4],
+        ],
+        "2019-09-28T00:00:00Z": [
+            [976, 1, 843, 1, 577, 1],
+            [1082, 1, 1070, 1, 611, 1],
+            [358, 4, 474, 4, 267, 4],
+            [1018, 4, 793, 4, 607, 4],
+        ],
+    }
 
 
 @pytest.mark.batchjob
