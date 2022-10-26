@@ -828,10 +828,9 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
 
-    if api_version >= "1.0.0":
-        masked = s2_radiometry.mask(mask=mask)
-    else:
-        masked = s2_radiometry.mask(rastermask=mask)
+
+    masked = s2_radiometry.mask(mask=mask.resample_cube_spatial(s2_radiometry))
+
 
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
