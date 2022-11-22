@@ -308,9 +308,8 @@ def _poll_job_status(
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_basic(connection, api_version, tmp_path):
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
-    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+def test_batch_job_basic(auth_connection, api_version, tmp_path):
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     job = timeseries.send_job(job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"),title="basic")
@@ -348,9 +347,8 @@ def test_batch_job_basic(connection, api_version, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_execute_batch(connection, tmp_path):
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
-    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+def test_batch_job_execute_batch(auth_connection, tmp_path):
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     output_file = tmp_path / "ts.json"
@@ -366,9 +364,8 @@ def test_batch_job_execute_batch(connection, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_signed_urls(connection, tmp_path):
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
-    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+def test_batch_job_signed_urls(auth_connection, tmp_path):
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     job = timeseries.execute_batch(
@@ -401,10 +398,9 @@ def test_batch_job_signed_urls(connection, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_cancel(connection, tmp_path):
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+def test_batch_job_cancel(auth_connection, tmp_path):
 
-    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     if isinstance(cube, DataCube):
         cube = cube.process("sleep", arguments={"data": cube, "seconds": 30})
     elif isinstance(cube, ImageCollectionClient):
@@ -433,10 +429,9 @@ def test_batch_job_cancel(connection, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_delete_job(connection):
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+def test_batch_job_delete_job(auth_connection):
 
-    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
     job = timeseries.send_job(out_format="GTIFF",
@@ -486,12 +481,12 @@ def test_batch_job_delete_job(connection):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_random_forest_load_from_http(connection: openeo.Connection, tmp_path):
+def test_random_forest_load_from_http(auth_connection: openeo.Connection, tmp_path):
     """
     Make predictions with the random forest model using an http link to a ml_model_metadata.json file.
     """
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
-    topredict_xybt = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M",
+
+    topredict_xybt = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M",
         spatial_extent = {"west": 4.785919, "east": 4.909629, "south": 51.259766, "north": 51.307638},
         temporal_extent = ["2017-11-01", "2017-11-01"])
     topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
@@ -508,7 +503,7 @@ def test_random_forest_load_from_http(connection: openeo.Connection, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_random_forest_train_and_load_from_jobid(connection: openeo.Connection, tmp_path):
+def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connection, tmp_path):
     # 1. Train a random forest model.
     FEATURE_COLLECTION_1 = {
         "type": "FeatureCollection",
@@ -527,8 +522,7 @@ def test_random_forest_train_and_load_from_jobid(connection: openeo.Connection, 
         ]
     }
 
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
-    cube_xybt: DataCube = connection.load_collection(
+    cube_xybt: DataCube = auth_connection.load_collection(
         "PROBAV_L3_S10_TOC_NDVI_333M",
         spatial_extent={"west": 4.78, "east": 4.91, "south": 51.25, "north": 51.31},
         temporal_extent=["2017-11-01", "2017-11-01"]
@@ -607,8 +601,8 @@ def test_random_forest_train_and_load_from_jobid(connection: openeo.Connection, 
         assert metadata.get("assets", {}).get("randomforest.model.tar.gz", {}).get("href", "") == "/data/projects/OpenEO/{jobid}/randomforest.model.tar.gz".format(jobid=job.job_id)
 
     # 2. Load the model using its job id and make predictions.
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
-    topredict_xybt = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M",
+
+    topredict_xybt = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M",
         spatial_extent = {"west": 4.825919, "east": 4.859629, "south": 51.259766, "north": 51.307638},
         temporal_extent = ["2017-11-01", "2017-11-01"])
     topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
@@ -629,10 +623,9 @@ def test_random_forest_train_and_load_from_jobid(connection: openeo.Connection, 
 
 
 @pytest.mark.skip(reason="Requires proxying to work properly")
-def test_create_wtms_service(connection):
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+def test_create_wtms_service(auth_connection):
     s2_fapar = (
-        connection
+        auth_connection
             .load_collection('S2_FAPAR_V102_WEBMERCATOR2')
             .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
             .filter_temporal(start_date="2019-04-01", end_date="2019-04-01")
@@ -645,7 +638,7 @@ def test_create_wtms_service(connection):
     service_url = res["url"]
     assert '/services/{s}'.format(s=service_id) in service_url
 
-    wmts_metadata = connection.get(service_url).json()
+    wmts_metadata = auth_connection.get(service_url).json()
     print("wmts metadata", wmts_metadata)
     assert "url" in wmts_metadata
     wmts_url = wmts_metadata["url"]

@@ -64,7 +64,7 @@ def connection100(requests_session) -> openeo.Connection:
 
 
 # TODO: real authenticaion?
-TEST_USER = "geopyspark-integrationtester"
+TEST_USER = "jenkins"
 TEST_PASSWORD = TEST_USER + "123"
 
 
