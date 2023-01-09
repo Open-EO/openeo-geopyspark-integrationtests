@@ -829,7 +829,7 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
 
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
-    masked.download(out_file, format='GTIFF')
+    masked.execute_batch(out_file,title="diy_mask")
     assert_geotiff_basics(out_file, expected_shape=(1, 284, 675))
     with rasterio.open(out_file) as result_ds:
         assert result_ds.dtypes == ('int16',)
