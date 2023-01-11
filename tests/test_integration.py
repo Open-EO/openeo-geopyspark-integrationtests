@@ -829,7 +829,13 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
 
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
-    masked.execute_batch(out_file,title="diy_mask")
+    job = masked.execute_batch(out_file,title="diy_mask")
+    links = job.get_results().get_metadata()['links']
+    derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
+    v210_links = [link for link in derived_from if "V210" in link ]
+    assert len(set(v210_links)) == 1
+    assert v210_links == derived_from
+
     assert_geotiff_basics(out_file, expected_shape=(1, 284, 675))
     with rasterio.open(out_file) as result_ds:
         assert result_ds.dtypes == ('int16',)

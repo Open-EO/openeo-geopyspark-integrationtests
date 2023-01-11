@@ -59,4 +59,4 @@ def create_advanced_mask(start: str, end: str, connection: Connection, band_math
     second_mask = second_mask > 0.025
 
     # TODO: the use of filter_temporal is a trick to make cube merging work, needs to be fixed in openeo client
-    return first_mask.filter_temporal(start, end) | second_mask.filter_temporal(start, end).resample_cube_spatial(first_mask)
+    return first_mask.filter_temporal(start, end) | second_mask.filter_temporal(start, end)
