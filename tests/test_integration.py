@@ -256,10 +256,14 @@ def test_cog_execute_batch(auth_connection, tmp_path):
             .filter_bbox(west=2, south=51, east=4, north=53, crs='EPSG:4326')
     )
 
-    job = cube.execute_batch(out_format="GTIFF", max_poll_interval=BATCH_JOB_POLL_INTERVAL,
-                             job_options=batch_default_options(driverMemoryOverhead="1G", driverMemory="1G"),
-                             tile_grid="one_degree", title="cog")
-    assert [j["status"] for j in auth_connection.list_jobs() if j['id'] == job.job_id] == ["finished"]
+    job = cube.execute_batch(
+        out_format="GTIFF",
+        max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+        job_options=batch_default_options(driverMemoryOverhead="1G", driverMemory="1G"),
+        tile_grid="one_degree",
+        title="test_cog_execute_batch",
+    )
+    assert job.status() == "finished"
 
     job.download_results(target=tmp_path)
     arbitrary_geotiff_path = tmp_path / job.get_results().get_assets()[0].name
