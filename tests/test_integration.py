@@ -1297,7 +1297,7 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
     output_tiff = result_asset_paths[0]
     assert_geotiff_basics(output_tiff, expected_band_count=4)  # VV, VH, mask and local_incidence_angle
 
-    
+
 # this function checks that only up to a portion of values do not match within tolerance
 # there always are few pixels with reflections, ... etc on images which is sensitive to very small changes in the code
 def compare_xarrays(xa1,xa2,max_nonmatch_ratio=0.01, tolerance=1.e-6):
@@ -1308,7 +1308,7 @@ def compare_xarrays(xa1,xa2,max_nonmatch_ratio=0.01, tolerance=1.e-6):
     np.testing.assert_allclose(xa2.where(~diff), xa2.where(~diff), rtol=0., atol=tolerance, equal_nan=True)
 
 @pytest.mark.skip(reason="Temporary skip to get tests through")
-def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, tmp_path):         
+def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, tmp_path):
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
     bbox=(655000,5677000,660000,5685000)
@@ -1328,7 +1328,7 @@ def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, t
     )
     output = tmp_path / "icorvalidation_inputcheck.json"
     l2a.download(output,format="json")
-    
+
     result=datacube_from_file(output,fmt="json").get_array()
 
     # note that debug bands are multiplied by 100 to store meaningful values as integers
@@ -1366,7 +1366,7 @@ def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tm
     )
     output = tmp_path / "icorvalidation_default.json"
     l2a.download(output,format="json")
-    
+
     result=datacube_from_file(output,fmt="json").get_array()
     b2ref=xarray.open_rasterio(get_path("icor/ref_default_B02.tif"))
     b3ref=xarray.open_rasterio(get_path("icor/ref_default_B03.tif"))
@@ -1404,7 +1404,7 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
     )
     output = tmp_path / "icorvalidation_overriden.json"
     l2a.download(output,format="json")
-    
+
     result=datacube_from_file(output,fmt="json").get_array()
     b2ref=xarray.open_rasterio(get_path("icor/ref_overriden_B02.tif"))
     b3ref=xarray.open_rasterio(get_path("icor/ref_overriden_B03.tif"))
