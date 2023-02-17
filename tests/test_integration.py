@@ -19,7 +19,7 @@ import shapely.ops
 import xarray
 from numpy.ma.testutils import assert_array_approx_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
-from pystac import Collection
+import pystac
 from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 
@@ -340,9 +340,13 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
     assert expected_schema.validate(data)
 
     if api_version >= "1.1.0":
-        job_results = Collection.from_dict(job.list_results())
-        assert job_results.extent.spatial.bboxes[0] == POLYGON01_BBOX
-        assert job_results.extent.temporal.to_dict()['interval'] == [["2017-11-01T00:00:00Z", "2017-11-21T00:00:00Z"]]
+        job_results_stac: pystac.Collection = pystac.Collection.from_dict(
+            job.list_results()
+        )
+        assert job_results_stac.extent.spatial.bboxes[0] == POLYGON01_BBOX
+        assert job_results_stac.extent.temporal.to_dict()["interval"] == [
+            ["2017-11-01T00:00:00Z", "2017-11-21T00:00:00Z"]
+        ]
     elif api_version >= "1.0.0":
         job_results = job.list_results()
         print(job_results)
@@ -1246,8 +1250,12 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
     # conveniently tacked on test for load_result because it needs a batch job that won't be removed in the near future
-    job_results_info = Collection.from_dict(job.get_results().get_metadata())
-    job_results_canonical_url = next(link.href for link in job_results_info.links if link.rel == "canonical")
+    job_results_stac: pystac.Collection = pystac.Collection.from_dict(
+        job.get_results().get_metadata()
+    )
+    job_results_canonical_url = next(
+        link.href for link in job_results_stac.links if link.rel == "canonical"
+    )
     source_id = job_results_canonical_url
 
     cube_from_result = (auth_connection
