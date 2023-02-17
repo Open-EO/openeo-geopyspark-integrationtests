@@ -253,11 +253,10 @@ def test_cog_synchronous(auth_connection, tmp_path):
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_cog_execute_batch(auth_connection, tmp_path):
-    cube = (
-        auth_connection
-            .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
-            .filter_temporal("2017-11-21", "2017-11-21")
-            .filter_bbox(west=2, south=51, east=4, north=53, crs='EPSG:4326')
+    cube = auth_connection.load_collection(
+        "PROBAV_L3_S10_TOC_NDVI_333M",
+        temporal_extent=["2017-11-21", "2017-11-21"],
+        spatial_extent={"west": 2, "south": 51, "east": 4, "north": 53},
     )
 
     job = cube.execute_batch(
@@ -269,17 +268,21 @@ def test_cog_execute_batch(auth_connection, tmp_path):
     )
     assert job.status() == "finished"
 
-    job.download_results(target=tmp_path)
-    arbitrary_geotiff_path = tmp_path / job.get_results().get_assets()[0].name
+    job_results: JobResults = job.get_results()
+    downloaded = job_results.download_files(
+        tmp_path / "job1", include_stac_metadata=True
+    )
+    _log.info(f"{len(downloaded)=} {downloaded=}")
 
+    arbitrary_geotiff_path = downloaded[0]
     assert_geotiff_basics(arbitrary_geotiff_path, expected_band_count=1)
     assert_cog(arbitrary_geotiff_path)
 
     # conveniently tacked on test for load_result because it needs a batch job that won't be removed in the near future
-    cube_from_result = (auth_connection
-                        .load_result(job.job_id, spatial_extent={'west': 2.59003,
-                                                                 'south': 51.069, 'east': 2.8949, 'north': 51.2206})
-                        .save_result("GTiff"))
+    cube_from_result = auth_connection.load_result(
+        job.job_id,
+        spatial_extent={"west": 2.6, "south": 51.1, "east": 2.9, "north": 51.3},
+    )
 
     load_result_output_file = tmp_path / "load_result.tiff"
     cube_from_result.download(load_result_output_file, format="GTiff")
