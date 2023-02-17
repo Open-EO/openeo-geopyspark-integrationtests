@@ -337,11 +337,15 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 
     job_results: JobResults = job.get_results()
     job_results_metadata: dict = job_results.get_metadata()
+    (tmp_path / "job_results_metadata.json").write_text(
+        json.dumps(job_results_metadata, indent=2)
+    )
 
     assets = job_results.get_assets()
     _log.info(f"{assets}")
     assert len(assets) == 1
     assert assets[0].name.endswith(".json")
+    assets[0].download(tmp_path)
     data = assets[0].load_json()
     _log.info(f"{data}")
 
