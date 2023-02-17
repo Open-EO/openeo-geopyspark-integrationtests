@@ -1,6 +1,6 @@
-import imghdr
 import itertools
 import json
+import logging
 import os
 import re
 import textwrap
@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import Callable, Union
 
+import imghdr
 import numpy as np
 import pyproj
 import pytest
@@ -28,11 +29,14 @@ from openeo.rest.connection import OpenEoApiError
 from openeo.rest.conversions import datacube_from_file, timeseries_json_to_pandas
 from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.imagecollectionclient import ImageCollectionClient
-from openeo.rest.job import RESTJob, BatchJob
+from openeo.rest.job import BatchJob, JobResults
 from openeo.rest.mlmodel import MlModel
 from openeo.rest.udp import Parameter
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
+
+
+_log = logging.getLogger(__name__)
 
 
 def _dump_process_graph(cube: Union[DataCube, ImageCollectionClient], tmp_path: Path, name="process_graph.json"):
@@ -288,8 +292,11 @@ def test_cog_execute_batch(auth_connection, tmp_path):
 
 
 def _poll_job_status(
-        job: RESTJob, until: Callable = lambda s: s == "finished",
-        sleep: int = BATCH_JOB_POLL_INTERVAL, max_poll_time=30 * 60) -> str:
+    job: BatchJob,
+    until: Callable = lambda s: s == "finished",
+    sleep: int = BATCH_JOB_POLL_INTERVAL,
+    max_poll_time=30 * 60,
+) -> str:
     """Helper to poll the status of a job until some condition is reached."""
     start = time.time()
 
@@ -328,11 +335,15 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
     status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
     assert status == "finished"
 
-    assets = job.download_results(tmp_path)
-    assert len(assets) == 1
+    job_results: JobResults = job.get_results()
+    job_results_metadata: dict = job_results.get_metadata()
 
-    with open(list(assets.keys())[0]) as f:
-        data = json.load(f)
+    assets = job_results.get_assets()
+    _log.info(f"{assets}")
+    assert len(assets) == 1
+    assert assets[0].name.endswith(".json")
+    data = assets[0].load_json()
+    _log.info(f"{data}")
 
     expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
     assert sorted(data.keys()) == sorted(expected_dates)
@@ -340,22 +351,26 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
     assert expected_schema.validate(data)
 
     if api_version >= "1.1.0":
+        assert job_results_metadata["type"] == "Collection"
         job_results_stac: pystac.Collection = pystac.Collection.from_dict(
-            job.list_results()
+            job_results_metadata
         )
         assert job_results_stac.extent.spatial.bboxes[0] == POLYGON01_BBOX
         assert job_results_stac.extent.temporal.to_dict()["interval"] == [
             ["2017-11-01T00:00:00Z", "2017-11-21T00:00:00Z"]
         ]
     elif api_version >= "1.0.0":
-        job_results = job.list_results()
-        print(job_results)
-        assert job_results["type"] == 'Feature'
-        geometry = shape(job_results['geometry'])
+        assert job_results_metadata["type"] == "Feature"
+        geometry = shape(job_results_metadata["geometry"])
         assert geometry.equals_exact(POLYGON01, tolerance=0.0001)
-        assert job_results["bbox"] == POLYGON01_BBOX
-        assert job_results['properties']['start_datetime'] == "2017-11-01T00:00:00Z"
-        assert job_results['properties']['end_datetime'] == "2017-11-21T00:00:00Z"
+        assert job_results_metadata["bbox"] == POLYGON01_BBOX
+        assert (
+            job_results_metadata["properties"]["start_datetime"]
+            == "2017-11-01T00:00:00Z"
+        )
+        assert (
+            job_results_metadata["properties"]["end_datetime"] == "2017-11-21T00:00:00Z"
+        )
 
 
 @pytest.mark.batchjob
