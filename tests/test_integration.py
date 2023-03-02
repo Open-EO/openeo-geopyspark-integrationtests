@@ -78,7 +78,7 @@ POLYGON01_BBOX = [7.00, 51.30, 7.60, 51.75]
 
 
 BATCH_JOB_POLL_INTERVAL = 10
-BATCH_JOB_TIMEOUT = 20 * 60
+BATCH_JOB_TIMEOUT = 25 * 60
 
 
 def batch_default_options(driverMemoryOverhead="1G", driverMemory="2G"):
