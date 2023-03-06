@@ -110,7 +110,7 @@ def test_health(connection):
 def test_collections(connection):
     image_collections = connection.list_collections()
     product_ids = [entry.get("id") for entry in image_collections]
-    assert "PROBAV_L3_S10_TOC_NDVI_333M" in product_ids
+    assert "PROBAV_L3_S10_TOC_333M" in product_ids
 
 
 def test_terrascope_download_latlon(auth_connection, tmp_path):
@@ -139,7 +139,7 @@ def test_terrascope_download_webmerc(auth_connection, tmp_path):
 def test_aggregate_spatial_polygon(auth_connection):
     timeseries = (
         auth_connection
-            .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
+            .load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"])
             .filter_temporal(start_date="2017-11-01", end_date="2017-11-21")
             .polygonal_mean_timeseries(POLYGON01)
             .execute()
@@ -159,7 +159,7 @@ def test_aggregate_spatial_polygon(auth_connection):
 def test_histogram_timeseries(auth_connection):
     probav = (
         auth_connection
-            .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
+            .load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"])
             .filter_bbox(5, 6, 52, 51, 'EPSG:4326')
             .filter_temporal(['2017-11-21', '2017-12-21'])
     )
@@ -239,13 +239,13 @@ def test_ndvi_band_math(auth_connection, tmp_path, api_version):
 def test_cog_synchronous(auth_connection, tmp_path):
     cube = (
         auth_connection
-            .load_collection('PROBAV_L3_S10_TOC_NDVI_333M')
+            .load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"])
             .filter_temporal("2017-11-21", "2017-11-21")
             .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
     )
 
     out_file = tmp_path / "cog.tiff"
-    cube.download(out_file, format="GTIFF", options={"tiled": True})
+    cube.download(out_file)
     assert_geotiff_basics(out_file, expected_shape=(1, 1681, 1681))
     assert_cog(out_file)
 
@@ -254,7 +254,8 @@ def test_cog_synchronous(auth_connection, tmp_path):
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_cog_execute_batch(auth_connection, tmp_path):
     cube = auth_connection.load_collection(
-        "PROBAV_L3_S10_TOC_NDVI_333M",
+        "PROBAV_L3_S10_TOC_333M",
+        bands = ["NDVI"],
         temporal_extent=["2017-11-21", "2017-11-21"],
         spatial_extent={"west": 2, "south": 51, "east": 4, "north": 53},
     )
@@ -323,7 +324,7 @@ def _poll_job_status(
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_basic(auth_connection, api_version, tmp_path):
-    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     job = timeseries.create_job(
@@ -381,7 +382,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_execute_batch(auth_connection, tmp_path):
-    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     output_file = tmp_path / "ts.json"
@@ -398,7 +399,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path):
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_signed_urls(auth_connection, tmp_path):
-    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_median_timeseries(POLYGON01)
 
     job = timeseries.execute_batch(
@@ -433,7 +434,7 @@ def test_batch_job_signed_urls(auth_connection, tmp_path):
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_cancel(auth_connection, tmp_path):
 
-    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     if isinstance(cube, DataCube):
         cube = cube.process("sleep", arguments={"data": cube, "seconds": 30})
     elif isinstance(cube, ImageCollectionClient):
@@ -470,7 +471,7 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_delete_job(auth_connection):
 
-    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.polygonal_mean_timeseries(POLYGON01)
 
     job = timeseries.create_job(
@@ -529,7 +530,7 @@ def test_random_forest_load_from_http(auth_connection: openeo.Connection, tmp_pa
     Make predictions with the random forest model using an http link to a ml_model_metadata.json file.
     """
 
-    topredict_xybt = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M",
+    topredict_xybt = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"],
         spatial_extent = {"west": 4.785919, "east": 4.909629, "south": 51.259766, "north": 51.307638},
         temporal_extent = ["2017-11-01", "2017-11-01"])
     topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
