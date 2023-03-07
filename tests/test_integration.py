@@ -567,7 +567,7 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
     }
 
     cube_xybt: DataCube = auth_connection.load_collection(
-        "PROBAV_L3_S10_TOC_NDVI_333M",
+        "PROBAV_L3_S10_TOC_333M", bands=["NDVI"],
         spatial_extent={"west": 4.78, "east": 4.91, "south": 51.25, "north": 51.31},
         temporal_extent=["2017-11-01", "2017-11-01"]
     )
