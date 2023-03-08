@@ -29,7 +29,6 @@ def get_tsservice_base_url():
 
 
 @pytest.fixture(params=[
-    # "0.4.2",
     "1.1.0",
 ])
 def api_version(request) -> ComparableVersion:
@@ -63,7 +62,7 @@ def connection100(requests_session) -> openeo.Connection:
     return openeo.connect(get_openeo_base_url("1.0.0"), session=requests_session)
 
 
-# TODO: real authenticaion?
+# TODO: real authentication?
 TEST_USER = "jenkins"
 TEST_PASSWORD = TEST_USER + "123"
 
