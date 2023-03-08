@@ -28,7 +28,6 @@ import openeo
 from openeo.rest.connection import OpenEoApiError
 from openeo.rest.conversions import datacube_from_file, timeseries_json_to_pandas
 from openeo.rest.datacube import DataCube, THIS
-from openeo.rest.imagecollectionclient import ImageCollectionClient
 from openeo.rest.job import BatchJob, JobResults
 from openeo.rest.mlmodel import MlModel
 from openeo.rest.udp import Parameter
@@ -39,7 +38,9 @@ from .data import get_path, read_data
 _log = logging.getLogger(__name__)
 
 
-def _dump_process_graph(cube: Union[DataCube, ImageCollectionClient], tmp_path: Path, name="process_graph.json"):
+def _dump_process_graph(
+    cube: Union[DataCube], tmp_path: Path, name="process_graph.json"
+):
     """Dump a cube's process graph as json to a temp file"""
     (tmp_path / name).write_text(cube.to_json(indent=2))
 
@@ -438,8 +439,6 @@ def test_batch_job_cancel(auth_connection, tmp_path):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     if isinstance(cube, DataCube):
         cube = cube.process("sleep", arguments={"data": cube, "seconds": 30})
-    elif isinstance(cube, ImageCollectionClient):
-        cube = cube.graph_add_process("sleep", args={"data": {"from_node": cube.node_id}, "seconds": 30})
     else:
         raise ValueError(cube)
 
