@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import scipy.signal
 
-from openeo import Connection, ImageCollection
+from openeo import Connection, DataCube
 
 _log = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ def makekernel(size: int) -> np.ndarray:
     return kernel
 
 
-def _add_band_dimension_workaround(cube: ImageCollection) -> ImageCollection:
+def _add_band_dimension_workaround(cube: DataCube) -> DataCube:
     # TODO: avoid "add_dimension" workaround #EP-3402 #EP-3404
     _log.warning("Doing 'add_dimension' workaround")
     return cube.add_dimension("bands", "mask", type="bands").band("mask")
