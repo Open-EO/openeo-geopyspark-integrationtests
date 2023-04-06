@@ -31,6 +31,7 @@ from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.job import BatchJob, JobResults
 from openeo.rest.mlmodel import MlModel
 from openeo.rest.udp import Parameter
+from openeo_driver.testing import DictSubSet
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
 
@@ -272,8 +273,9 @@ def test_cog_execute_batch(auth_connection, tmp_path):
     assert job.status() == "finished"
 
     job_results: JobResults = job.get_results()
+    downloaded_job_dir = tmp_path / "job1"
     downloaded = job_results.download_files(
-        tmp_path / "job1", include_stac_metadata=True
+        downloaded_job_dir, include_stac_metadata=True
     )
     _log.info(f"{len(downloaded)=} {downloaded=}")
 
@@ -295,6 +297,377 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         probav_data = load_result_ds.read(1)
         no_data = 255
         assert np.any(probav_data != no_data)
+
+    # Verify projection metadata.
+    job_metadata = job_results.get_metadata()
+    assert job_metadata == DictSubSet(
+        {
+            "epsg": 4326,
+            "assets": {
+                "openEO_2017-11-21Z_N51E002.tif": DictSubSet(
+                    {
+                        "proj:shape": [365, 728],
+                        "proj:bbox": [1.9995067, 51.0012761, 3.0020091, 52.0010318],
+                    }
+                ),
+                "openEO_2017-11-21Z_N51E003.tif": DictSubSet(
+                    {
+                        "proj:shape": [364, 728],
+                        "proj:bbox": [2.9992625, 51.0012761, 3.9990183, 52.0010318],
+                    }
+                ),
+                "openEO_2017-11-21Z_N52E002.tif": DictSubSet(
+                    {
+                        "proj:shape": [365, 729],
+                        "proj:bbox": [1.9995067, 51.9996585, 3.0020091, 53.0007876],
+                    }
+                ),
+                "openEO_2017-11-21Z_N52E003.tif": DictSubSet(
+                    {
+                        "proj:shape": [364, 729],
+                        "proj:bbox": [2.9992625, 51.9996585, 3.9990183, 53.0007876],
+                    }
+                ),
+            },
+        }
+    )
+
+
+def test_check_projection_metadata_fails():
+    """Temporary test to test the new assertion itself without waiting for batch jobs.
+
+    TODO: Remove this temporary test.
+    """
+
+    job_metadata = {
+        "assets": {
+            "openEO_2017-11-21Z_N51E002.tif": {
+                "eo:bands": [{"name": "NDVI"}],
+                "file:nodata": [255],
+                "file:size": 43341,
+                "href": "https://openeo.vito.be/openeo/1.1.0/jobs/j-5a69d1217695447c929af4a4a36892e3/results/assets/amVua2lucw%3D%3D/806e6272ed6b64a546115eb98e214b57/openEO_2017-11-21Z_N51E002.tif?expires=1681374033",
+                "roles": ["data"],
+                "title": "openEO_2017-11-21Z_N51E002.tif",
+                "type": "image/tiff; application=geotiff",
+            },
+            "openEO_2017-11-21Z_N51E003.tif": {
+                "eo:bands": [{"name": "NDVI"}],
+                "file:nodata": [255],
+                "file:size": 87956,
+                "href": "https://openeo.vito.be/openeo/1.1.0/jobs/j-5a69d1217695447c929af4a4a36892e3/results/assets/amVua2lucw%3D%3D/9800d8848eefc5188a929eb96495ac61/openEO_2017-11-21Z_N51E003.tif?expires=1681374033",
+                "roles": ["data"],
+                "title": "openEO_2017-11-21Z_N51E003.tif",
+                "type": "image/tiff; application=geotiff",
+            },
+            "openEO_2017-11-21Z_N52E002.tif": {
+                "eo:bands": [{"name": "NDVI"}],
+                "file:nodata": [255],
+                "file:size": 40058,
+                "href": "https://openeo.vito.be/openeo/1.1.0/jobs/j-5a69d1217695447c929af4a4a36892e3/results/assets/amVua2lucw%3D%3D/383d375b4213c2b2b1fb3ffa9189267e/openEO_2017-11-21Z_N52E002.tif?expires=1681374033",
+                "roles": ["data"],
+                "title": "openEO_2017-11-21Z_N52E002.tif",
+                "type": "image/tiff; application=geotiff",
+            },
+            "openEO_2017-11-21Z_N52E003.tif": {
+                "eo:bands": [{"name": "NDVI"}],
+                "file:nodata": [255],
+                "file:size": 74872,
+                "href": "https://openeo.vito.be/openeo/1.1.0/jobs/j-5a69d1217695447c929af4a4a36892e3/results/assets/amVua2lucw%3D%3D/7f10dd41cfed5ae7b87403370f022902/openEO_2017-11-21Z_N52E003.tif?expires=1681374033",
+                "roles": ["data"],
+                "title": "openEO_2017-11-21Z_N52E003.tif",
+                "type": "image/tiff; application=geotiff",
+            },
+        },
+        "description": "Results for batch job j-5a69d1217695447c929af4a4a36892e3",
+        "extent": {
+            "spatial": {"bbox": [[2, 51, 4, 53]]},
+            "temporal": {
+                "interval": [["2017-11-21T00:00:00Z", "2017-11-21T00:00:00Z"]]
+            },
+        },
+        "id": "j-5a69d1217695447c929af4a4a36892e3",
+        "license": "proprietary",
+        "links": [],
+        "stac_extensions": ["eo", "file"],
+        "stac_version": "1.0.0",
+        "title": "test_cog_execute_batch",
+        "type": "Collection",
+        "epsg": 4326,
+    }
+
+    #
+    # Verify projection metadata.
+    #
+    assert job_metadata != DictSubSet(
+        {
+            "assets": {
+                "openEO_2017-11-21Z_N51E002.tif": DictSubSet(
+                    {"proj:shape": [365, 728]}
+                ),
+            }
+        }
+    )
+
+    assert job_metadata != DictSubSet(
+        {
+            "assets": {
+                "openEO_2017-11-21Z_N51E003.tif": DictSubSet(
+                    {"proj:shape": [364, 728]}
+                ),
+            }
+        }
+    )
+    assert job_metadata != DictSubSet(
+        {
+            "assets": {
+                "openEO_2017-11-21Z_N52E002.tif": DictSubSet(
+                    {"proj:shape": [365, 729]}
+                ),
+            }
+        }
+    )
+    assert job_metadata != DictSubSet(
+        {
+            "assets": {
+                "openEO_2017-11-21Z_N52E003.tif": DictSubSet(
+                    {"proj:shape": [364, 729]}
+                ),
+            }
+        }
+    )
+    report = validate_projection_metadata(job_metadata)
+    assert report["is_proj_metadata_present"] is False
+
+
+def test_check_projection_metadata():
+    """Temporary test to test the new assertion itself without waiting for batch jobs.
+
+    TODO: Remove this temporary test.
+    """
+    job_metadata = {
+        "assets": {
+            "openEO_2017-11-21Z_N51E002.tif": {
+                "eo:bands": [{"name": "NDVI"}],
+                "file:nodata": [255],
+                "file:size": 43341,
+                "href": "https://openeo.vito.be/openeo/1.1.0/jobs/j-5a69d1217695447c929af4a4a36892e3/results/assets/amVua2lucw%3D%3D/806e6272ed6b64a546115eb98e214b57/openEO_2017-11-21Z_N51E002.tif?expires=1681374033",
+                "roles": ["data"],
+                "title": "openEO_2017-11-21Z_N51E002.tif",
+                "type": "image/tiff; application=geotiff",
+                "proj:shape": [365, 728],
+                "proj:bbox": [1.9995067, 51.0012761, 3.0020091, 52.0010318],
+            },
+            "openEO_2017-11-21Z_N51E003.tif": {
+                "eo:bands": [{"name": "NDVI"}],
+                "file:nodata": [255],
+                "file:size": 87956,
+                "href": "https://openeo.vito.be/openeo/1.1.0/jobs/j-5a69d1217695447c929af4a4a36892e3/results/assets/amVua2lucw%3D%3D/9800d8848eefc5188a929eb96495ac61/openEO_2017-11-21Z_N51E003.tif?expires=1681374033",
+                "roles": ["data"],
+                "title": "openEO_2017-11-21Z_N51E003.tif",
+                "type": "image/tiff; application=geotiff",
+                "proj:shape": [364, 728],
+                "proj:bbox": [2.9992625, 51.0012761, 3.9990183, 52.0010318],
+            },
+            "openEO_2017-11-21Z_N52E002.tif": {
+                "eo:bands": [{"name": "NDVI"}],
+                "file:nodata": [255],
+                "file:size": 40058,
+                "href": "https://openeo.vito.be/openeo/1.1.0/jobs/j-5a69d1217695447c929af4a4a36892e3/results/assets/amVua2lucw%3D%3D/383d375b4213c2b2b1fb3ffa9189267e/openEO_2017-11-21Z_N52E002.tif?expires=1681374033",
+                "roles": ["data"],
+                "title": "openEO_2017-11-21Z_N52E002.tif",
+                "type": "image/tiff; application=geotiff",
+                "proj:shape": [365, 729],
+                "proj:bbox": [1.9995067, 51.9996585, 3.0020091, 53.0007876],
+            },
+            "openEO_2017-11-21Z_N52E003.tif": {
+                "eo:bands": [{"name": "NDVI"}],
+                "file:nodata": [255],
+                "file:size": 74872,
+                "href": "https://openeo.vito.be/openeo/1.1.0/jobs/j-5a69d1217695447c929af4a4a36892e3/results/assets/amVua2lucw%3D%3D/7f10dd41cfed5ae7b87403370f022902/openEO_2017-11-21Z_N52E003.tif?expires=1681374033",
+                "roles": ["data"],
+                "title": "openEO_2017-11-21Z_N52E003.tif",
+                "type": "image/tiff; application=geotiff",
+                "proj:shape": [364, 729],
+                "proj:bbox": [2.9992625, 51.9996585, 3.9990183, 53.0007876],
+            },
+        },
+        "description": "Results for batch job j-5a69d1217695447c929af4a4a36892e3",
+        "extent": {
+            "spatial": {"bbox": [[2, 51, 4, 53]]},
+            "temporal": {
+                "interval": [["2017-11-21T00:00:00Z", "2017-11-21T00:00:00Z"]]
+            },
+        },
+        "id": "j-5a69d1217695447c929af4a4a36892e3",
+        "license": "proprietary",
+        "links": [],
+        "stac_extensions": ["eo", "file"],
+        "stac_version": "1.0.0",
+        "title": "test_cog_execute_batch",
+        "type": "Collection",
+        "epsg": 4326,
+    }
+
+    #
+    # Verify projection metadata.
+    #
+    assert job_metadata == DictSubSet(
+        {
+            "epsg": 4326,
+            "assets": {
+                "openEO_2017-11-21Z_N51E002.tif": DictSubSet(
+                    {
+                        "proj:shape": [365, 728],
+                        "proj:bbox": [1.9995067, 51.0012761, 3.0020091, 52.0010318],
+                    }
+                ),
+                "openEO_2017-11-21Z_N51E003.tif": DictSubSet(
+                    {
+                        "proj:shape": [364, 728],
+                        "proj:bbox": [2.9992625, 51.0012761, 3.9990183, 52.0010318],
+                    }
+                ),
+                "openEO_2017-11-21Z_N52E002.tif": DictSubSet(
+                    {
+                        "proj:shape": [365, 729],
+                        "proj:bbox": [1.9995067, 51.9996585, 3.0020091, 53.0007876],
+                    }
+                ),
+                "openEO_2017-11-21Z_N52E003.tif": DictSubSet(
+                    {
+                        "proj:shape": [364, 729],
+                        "proj:bbox": [2.9992625, 51.9996585, 3.9990183, 53.0007876],
+                    }
+                ),
+            },
+        }
+    )
+
+    assert_projection_metadata_present(job_metadata)
+
+
+def assert_projection_metadata_present(metadata: dict) -> dict:
+    """Check all elements of the STAC projection metadata.
+
+    If the assert fails then include the report in the assert message so we have
+    some information to start troubleshooting.
+    """
+    report = validate_projection_metadata(metadata)
+    from pprint import pformat
+
+    message = f"Projection metadata verification report:\n{pformat(report)}"
+    _log.info(message)
+
+    assert report[
+        "is_proj_metadata_present"
+    ], f"Projection metadata verification FAILED:\n{pformat(report)}"
+
+
+def validate_projection_metadata(metadata: dict) -> dict:
+    """Verify that some sensible projection metadata is present.
+
+    When the validation PASSES, then is_proj_metadata_present will be True.
+
+    The validation PASSES when the metadata contains a value for each of the
+    three properties epsg, bbox and shape.
+    It can be present at the top level, or at the asset level, or even at both
+    levels.
+    Or in other words, the validation FAILS when for any of the propeties
+    properties epsg, bbox and shape no value could be found at the top leval and
+    at the asset level.
+
+    Top and asset level don't necessarily exclusive each other.
+    For example a bbox could already be present at the top level,
+    while each asset also has its own different bbox, which is then also added
+    at the asset level.
+
+    :param metadata: dict with the job's metadata.
+
+    :return:
+        Dict with a report that has the structure described below.
+
+        "is_proj_metadata_present" is main information and is True when
+        the validation passes
+
+        The other elements are for logging this as a report so the integration
+        test can be more informative about why it fails.
+
+        {
+            // True if it PASSES; False if it FAILS
+            "is_proj_metadata_present": is_proj_metadata_present,
+
+            // The individual elements of the checks; where were the projection
+            // properties present or not
+            "report": {
+                "has_crs_on_top_level": has_crs_on_top_level,
+                "has_bbox_on_top_level": has_bbox_on_top_level,
+                "has_shape_on_top_level": has_shape_on_top_level,
+                "has_crs_on_assets": has_crs_on_assets,
+                "has_bbox_on_assets": has_bbox_on_assets,
+                "has_shapes_on_assets": has_shapes_on_assets
+            }
+
+            // The actual values found, for troubleshooting when the test fails.
+            "values": {
+                "crs_on_top_level": metadata.get("epsg"),
+                "bbox_on_top_level": metadata.get("bbox"),
+                "shape_on_top_level": metadata.get("proj:shape"),
+                "asset_crss": asset_crss,
+                "asset_bboxes": asset_bboxes,
+                "asset_shapes": asset_shapes
+            },
+
+        }
+    """
+    # Are projection metdata keys present at the top level (job as a whole)
+    has_crs_on_top_level = bool(metadata.get("epsg"))
+    has_bbox_on_top_level = bool(metadata.get("bbox"))
+    has_shape_on_top_level = bool(metadata.get("proj:shape"))
+
+    # Collect asset level metadata.
+    # Also used to show in report for troubleshooting.
+    assets_metadata = metadata.get("assets", {})
+    asset_crss = {
+        asset: asset_md.get("proj:epsg") for asset, asset_md in assets_metadata.items()
+    }
+    asset_bboxes = {
+        asset: asset_md.get("proj:bbox") for asset, asset_md in assets_metadata.items()
+    }
+    asset_shapes = {
+        asset: asset_md.get("proj:shape") for asset, asset_md in assets_metadata.items()
+    }
+
+    # Are the asset level metadata present.
+    has_crs_on_assets = any(asset_crss.values())
+    has_bbox_on_assets = any(asset_bboxes.values())
+    has_shapes_on_assets = any(asset_shapes.values())
+
+    # Does it pass or fail?
+    is_proj_metadata_present = (
+        (has_crs_on_top_level or has_crs_on_assets)
+        and (has_bbox_on_top_level or has_bbox_on_assets)
+        and (has_shape_on_top_level or has_shapes_on_assets)
+    )
+
+    return {
+        "is_proj_metadata_present": is_proj_metadata_present,
+        "values": {
+            "crs_on_top_level": metadata.get("epsg"),
+            "bbox_on_top_level": metadata.get("bbox"),
+            "shape_on_top_level": metadata.get("proj:shape"),
+            "asset_crss": asset_crss,
+            "asset_bboxes": asset_bboxes,
+            "asset_shapes": asset_shapes,
+        },
+        "report": {
+            "has_crs_on_top_level": has_crs_on_top_level,
+            "has_bbox_on_top_level": has_bbox_on_top_level,
+            "has_shape_on_top_level": has_shape_on_top_level,
+            "has_crs_on_assets": has_crs_on_assets,
+            "has_bbox_on_assets": has_bbox_on_assets,
+            "has_shapes_on_assets": has_shapes_on_assets,
+        },
+    }
 
 
 def _poll_job_status(
@@ -1289,6 +1662,10 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
 
     assert_geotiff_basics(load_result_output_tiff, expected_band_count=1)
 
+    # Verify projection metadata.
+    job_results: JobResults = job.get_results()
+    assert_projection_metadata_present(job_results.get_metadata())
+
 
 def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_path):
     data_cube = (auth_connection.load_collection("SENTINEL1_GRD")
@@ -1325,6 +1702,10 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
 
     output_tiff = result_asset_paths[0]
     assert_geotiff_basics(output_tiff, expected_band_count=4)  # VV, VH, mask and local_incidence_angle
+
+    # Verify projection metadata.
+    job_results: JobResults = job.get_results()
+    assert_projection_metadata_present(job_results.get_metadata())
 
 
 # this function checks that only up to a portion of values do not match within tolerance
@@ -1767,8 +2148,11 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
 
     output_tiff = tmp_path / "merged_batch_large.tif"
 
-    result.execute_batch(output_tiff, out_format="GTiff",
-                         title="test_load_collection_references_correct_batch_process_id")
+    job = result.execute_batch(
+        output_tiff,
+        out_format="GTiff",
+        title="test_load_collection_references_correct_batch_process_id",
+    )
 
     assert_geotiff_basics(output_tiff, expected_band_count=4)
 
@@ -1781,6 +2165,10 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
         # all bands should be different, otherwise one batch process was inadvertently re-used and the other one ignored
         for band1, band2 in itertools.combinations([sigma0_vv, sigma0_vh, gamma0_vv, gamma0_vh], 2):
             assert not np.array_equal(band1, band2)
+
+    # Verify projection metadata.
+    job_results: JobResults = job.get_results()
+    assert_projection_metadata_present(job_results.get_metadata())
 
 
 def test_tsservice_geometry_mean(tsservice_base_url):
