@@ -139,11 +139,10 @@ def test_terrascope_download_webmerc(auth_connection, tmp_path):
 
 def test_aggregate_spatial_polygon(auth_connection):
     timeseries = (
-        auth_connection
-            .load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"])
-            .filter_temporal(start_date="2017-11-01", end_date="2017-11-21")
-            .polygonal_mean_timeseries(POLYGON01)
-            .execute()
+        auth_connection.load_collection("PROBAV_L3_S10_TOC_333M", bands=["NDVI"])
+        .filter_temporal(start_date="2017-11-01", end_date="2017-11-21")
+        .aggregate_spatial(geometries=POLYGON01, reducer="mean")
+        .execute()
     )
     print(timeseries)
 
@@ -164,14 +163,23 @@ def test_histogram_timeseries(auth_connection):
             .filter_bbox(5, 6, 52, 51, 'EPSG:4326')
             .filter_temporal(['2017-11-21', '2017-12-21'])
     )
-    polygon = shape({"type": "Polygon", "coordinates": [[
-        [5.0761587693484875, 51.21222494794898],
-        [5.166854684377381, 51.21222494794898],
-        [5.166854684377381, 51.268936260927404],
-        [5.0761587693484875, 51.268936260927404],
-        [5.0761587693484875, 51.21222494794898]
-    ]]})
-    timeseries = probav.polygonal_histogram_timeseries(polygon=polygon).execute()
+    polygon = shape(
+        {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [5.0761587693484875, 51.21222494794898],
+                    [5.166854684377381, 51.21222494794898],
+                    [5.166854684377381, 51.268936260927404],
+                    [5.0761587693484875, 51.268936260927404],
+                    [5.0761587693484875, 51.21222494794898],
+                ]
+            ],
+        }
+    )
+    timeseries = probav.aggregate_spatial(
+        geometries=polygon, reducer="histogram"
+    ).execute()
     print(timeseries)
 
     expected_schema = schema.Schema({str: [[{str: int}]]})
@@ -327,7 +335,7 @@ def _poll_job_status(
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_basic(auth_connection, api_version, tmp_path):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_median_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     job = timeseries.create_job(
         job_options=batch_default_options(
@@ -385,7 +393,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_execute_batch(auth_connection, tmp_path):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_median_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     output_file = tmp_path / "ts.json"
     timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"), title="execute-batch")
@@ -402,7 +410,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path):
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_signed_urls(auth_connection, tmp_path):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_median_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     job = timeseries.execute_batch(
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
@@ -442,7 +450,7 @@ def test_batch_job_cancel(auth_connection, tmp_path):
     else:
         raise ValueError(cube)
 
-    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="mean")
 
     job = timeseries.create_job(
         out_format="GTIFF",
@@ -472,7 +480,7 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 def test_batch_job_delete_job(auth_connection):
 
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="mean")
 
     job = timeseries.create_job(
         out_format="GTIFF",
@@ -707,12 +715,12 @@ def test_ep3048_sentinel1_udf(auth_connection, udf_file):
 
     ts = (
         auth_connection.load_collection("SENTINEL1_GAMMA0_SENTINELHUB")
-            .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
-            .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
-            .filter_bands([0])
-            .apply_dimension(udf_code, runtime="Python")
-            .polygonal_mean_timeseries(polygon)
-            .execute()
+        .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
+        .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
+        .filter_bands([0])
+        .apply_dimension(udf_code, runtime="Python")
+        .aggregate_spatial(geometries=polygon, reducer="mean")
+        .execute()
     )
     assert isinstance(ts, dict)
     assert all(k.startswith('2019-05-') for k in ts.keys())
@@ -986,14 +994,22 @@ def test_custom_processes_in_batch_job(auth_connection):
     (
             'TERRASCOPE_S2_FAPAR_V2',
             [
-                '2017-11-01T00:00:00Z', '2017-11-04T00:00:00Z', '2017-11-06T00:00:00Z',
-                '2017-11-09T00:00:00Z', '2017-11-11T00:00:00Z',
-                '2017-11-14T00:00:00Z', '2017-11-16T00:00:00Z', '2017-11-19T00:00:00Z',
-                '2017-11-21T00:00:00Z'
-            ]
-    )
-])
-def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, api_version):
+                "2017-11-01T00:00:00Z",
+                "2017-11-04T00:00:00Z",
+                "2017-11-06T00:00:00Z",
+                "2017-11-09T00:00:00Z",
+                "2017-11-11T00:00:00Z",
+                "2017-11-14T00:00:00Z",
+                "2017-11-16T00:00:00Z",
+                "2017-11-19T00:00:00Z",
+                "2017-11-21T00:00:00Z",
+            ],
+        )
+    ],
+)
+def test_aggregate_spatial_timeseries(
+    auth_connection, tmp_path, cid, expected_dates, api_version
+):
     expected_dates = sorted(expected_dates)
     polygon = POLYGON01
     bbox = _polygon_bbox(polygon)
@@ -1003,7 +1019,7 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
             .filter_temporal("2017-11-01", "2017-11-21")
             .filter_bbox(**bbox)
     )
-    ts_mean = cube.polygonal_mean_timeseries(polygon).execute()
+    ts_mean = cube.aggregate_spatial(geometries=polygon, reducer="mean").execute()
     print("mean", ts_mean)
     ts_mean_df = timeseries_json_to_pandas(ts_mean)
 
@@ -1011,10 +1027,10 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
     ts_mean = {k: v for (k, v) in ts_mean.items() if v != [[]]}
     print("mean", ts_mean)
 
-    ts_median = cube.polygonal_median_timeseries(polygon).execute()
+    ts_median = cube.aggregate_spatial(geometries=polygon, reducer="median").execute()
     ts_median_df = timeseries_json_to_pandas(ts_median)
     print("median", ts_median_df)
-    ts_sd = cube.polygonal_standarddeviation_timeseries(polygon).execute()
+    ts_sd = cube.aggregate_spatial(geometries=polygon, reducer="sd").execute()
     ts_sd_df = timeseries_json_to_pandas(ts_sd)
     print("sd", ts_sd)
 
