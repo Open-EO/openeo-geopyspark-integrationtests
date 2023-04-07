@@ -273,9 +273,8 @@ def test_cog_execute_batch(auth_connection, tmp_path):
     assert job.status() == "finished"
 
     job_results: JobResults = job.get_results()
-    downloaded_job_dir = tmp_path / "job1"
     downloaded = job_results.download_files(
-        downloaded_job_dir, include_stac_metadata=True
+        tmp_path / "job1", include_stac_metadata=True
     )
     _log.info(f"{len(downloaded)=} {downloaded=}")
 
@@ -333,7 +332,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
     )
 
 
-def test_check_projection_metadata_fails():
+def test_validate_projection_metadata_fails():
     """Temporary test to test the new assertion itself without waiting for batch jobs.
 
     TODO: Remove this temporary test.
@@ -387,7 +386,9 @@ def test_check_projection_metadata_fails():
         },
         "id": "j-5a69d1217695447c929af4a4a36892e3",
         "license": "proprietary",
-        "links": [],
+        "links": [
+            # removed to shorten test code, not relevant
+        ],
         "stac_extensions": ["eo", "file"],
         "stac_version": "1.0.0",
         "title": "test_cog_execute_batch",
@@ -439,7 +440,7 @@ def test_check_projection_metadata_fails():
     assert report["is_proj_metadata_present"] is False
 
 
-def test_check_projection_metadata():
+def test_assert_projection_metadata_present():
     """Temporary test to test the new assertion itself without waiting for batch jobs.
 
     TODO: Remove this temporary test.
@@ -500,7 +501,9 @@ def test_check_projection_metadata():
         },
         "id": "j-5a69d1217695447c929af4a4a36892e3",
         "license": "proprietary",
-        "links": [],
+        "links": [
+            # removed to shorten test code, not relevant
+        ],
         "stac_extensions": ["eo", "file"],
         "stac_version": "1.0.0",
         "title": "test_cog_execute_batch",
@@ -543,6 +546,62 @@ def test_check_projection_metadata():
         }
     )
 
+    assert_projection_metadata_present(job_metadata)
+
+
+def test_assert_projection_metadata_present_2():
+    """Temporary test to test the new assertion itself without waiting for batch jobs.
+
+    TODO: Remove this temporary test.
+    """
+    job_metadata = {
+        "assets": {
+            "openEO_2019-10-10Z.tif": {
+                "eo:bands": [{"name": "VV"}, {"name": "VH"}],
+                "file:nodata": [0],
+                "file:size": 23854025,
+                "href": "https://openeo.vito.be/openeo/1.1.0/jobs/j-c60e408b43124112bbdd3c417f942497/results/assets/amVua2lucw%3D%3D/9b483777f96c4edbd68074ca318048cb/openEO_2019-10-10Z.tif?expires=1681486725",
+                "roles": ["data"],
+                "title": "openEO_2019-10-10Z.tif",
+                "type": "image/tiff; application=geotiff",
+            }
+        },
+        "description": "Results for batch job j-c60e408b43124112bbdd3c417f942497",
+        "extent": {
+            "spatial": {"bbox": [[2.59003, 51.069, 2.8949, 51.2206]]},
+            "temporal": {
+                "interval": [["2019-10-10T00:00:00Z", "2019-10-10T00:00:00Z"]]
+            },
+        },
+        "id": "j-c60e408b43124112bbdd3c417f942497",
+        "license": "proprietary",
+        "links": [
+            # removed to shorten test code, not relevant
+        ],
+        "stac_extensions": ["eo", "file"],
+        "stac_version": "1.0.0",
+        "title": "SentinelhubBatch",
+        "type": "Collection",
+    }
+
+    with pytest.raises(AssertionError):
+        assert_projection_metadata_present(job_metadata)
+
+    job_metadata["epsg"] = 32631
+    job_metadata["proj:shape"] = [2140, 1694]
+    job_metadata["bbox"] = [471270.0, 5657500.0, 492670.0, 5674440.0]
+
+    # Check that above we actuall added the data correctly
+    # because it is easy to fool ourselves.
+    assert job_metadata == DictSubSet(
+        {
+            "epsg": 32631,
+            "proj:shape": [2140, 1694],
+            "bbox": [471270.0, 5657500.0, 492670.0, 5674440.0],
+        }
+    )
+
+    # If the assert above succeeded then so should this one
     assert_projection_metadata_present(job_metadata)
 
 
@@ -1664,7 +1723,19 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
 
     # Verify projection metadata.
     job_results: JobResults = job.get_results()
-    assert_projection_metadata_present(job_results.get_metadata())
+    job_metadata = job_results.get_metadata()
+    # Save it for troubleshooting if test fails.
+    job_metadata_file = tmp_path / "job-results.json"
+    with open(job_metadata_file, "wt", encoding="utf8") as md_file:
+        json.dump(job_metadata, md_file)
+
+    assert job_metadata == DictSubSet(
+        {
+            "epsg": 32631,
+            "proj:shape": [2140, 1694],
+            "bbox": [471270.0, 5657500.0, 492670.0, 5674440.0],
+        }
+    )
 
 
 def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_path):
