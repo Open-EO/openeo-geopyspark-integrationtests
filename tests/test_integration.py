@@ -1535,6 +1535,7 @@ def test_udp_simple_math(auth_connection, tmp_path):
     assert res == 10.0
 
 
+@pytest.mark.skip(reason="Temporarily skip because the batch job runs indefinitely")
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_udp_simple_math_batch_job(auth_connection, tmp_path):
