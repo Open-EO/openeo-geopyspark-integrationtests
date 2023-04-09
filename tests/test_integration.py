@@ -862,6 +862,8 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
             assert_array_equal(ref_array, actual_array)
 
 
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
