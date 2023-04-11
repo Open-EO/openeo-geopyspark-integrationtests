@@ -654,7 +654,7 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
 
     # 2. Load the model using its job id and make predictions.
 
-    topredict_xybt = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M",
+    topredict_xybt = auth_connection.load_collection("PROBAV_L3_S10_TOC_333M",bands=["NDVI"],
         spatial_extent = {"west": 4.825919, "east": 4.859629, "south": 51.259766, "north": 51.307638},
         temporal_extent = ["2017-11-01", "2017-11-01"])
     topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
@@ -1225,7 +1225,7 @@ def test_udp_usage_reduce(connection100, tmp_path):
 
 def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tmp_path):
     s2_fapar = (
-        auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M")
+        auth_connection.load_collection("PROBAV_L3_S10_TOC_333M",bands=["NDVI"])
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
     )
     out_file = tmp_path / "s2_fapar_latlon.geotiff"
@@ -1469,7 +1469,7 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
 def test_discard_result_suppresses_batch_job_output_file(connection):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
-    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_bbox(5, 6, 52, 51, 'EPSG:4326')
+    cube = connection.load_collection("PROBAV_L3_S10_TOC_333M",bands=["NDVI"]).filter_bbox(5, 6, 52, 51, 'EPSG:4326')
     cube = cube.process("discard_result", arguments={"data": cube})
 
     job = cube.execute_batch(max_poll_interval=BATCH_JOB_POLL_INTERVAL, title="test_discard_result_suppresses_batch_job_output_file")
