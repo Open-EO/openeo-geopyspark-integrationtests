@@ -1,3 +1,6 @@
+import subprocess
+import typing
+
 import itertools
 import json
 import logging
@@ -6,7 +9,7 @@ import re
 import textwrap
 import time
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Union, Optional
 
 import imghdr
 import numpy as np
@@ -23,6 +26,8 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_
 import pystac
 from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
 from shapely.geometry.base import BaseGeometry
+import hvac
+import hvac.utils
 
 import openeo
 from openeo.rest.connection import OpenEoApiError
@@ -62,7 +67,7 @@ BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.102
 BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
 BBOX_NIEUWPOORT = _parse_bboxfinder_com("http://bboxfinder.com/#51.05,2.60,51.20,2.90")
 
-# TODO: real authentication?
+# TODO: real authentication? https://github.com/Open-EO/openeo-geopyspark-integrationtests/issues/6
 TEST_USER = "jenkins"
 TEST_PASSWORD = TEST_USER + "123"
 
@@ -1821,3 +1826,102 @@ def test_tsservice_geometry_mean(tsservice_base_url):
     })
 
     assert expected_schema.validate(time_series)
+
+
+class Authentication:
+    """Helper to obtain authentication credentials."""
+
+    # TODO move this to conftest or utility module and integrate as fixture
+
+    class ServiceAccount(typing.NamedTuple):
+        client_id: str
+        client_secret: str
+        provider_id: str
+
+    def __init__(self, env: Optional[dict] = None):
+        self._env = env if env is not None else os.environ
+
+    def env(self, var: str, default=None):
+        return self._env.get(var, default)
+
+    def get_vault_url(self) -> str:
+        return self.env("OPENEO_VAULT", default="https://vault.vgt.vito.be")
+
+    def get_vault_token(self) -> str:
+        # Try to get vault token from env:
+        # e.g. `VAULT_TOKEN` env var or `~/.vault-token` file
+        vault_token = hvac.utils.get_token_from_env()
+        if vault_token:
+            _log.info("Got Vault token from env")
+            return vault_token
+
+        # Try kerberos login
+        vault_url = self.get_vault_url()
+        principal = self.env("OPENEO_KERBEROS_PRINCIPAL", default="openeo@VGT.VITO.BE")
+        username, realm = principal.split("@")
+        keytab = self.env("OPENEO_KERBEROS_KEYTAB", default="/opt/openeo.keytab")
+        krb5conf = self.env("OPENEO_KERBEROS_CONF", default="/etc/krb5.conf")
+        cmd = [
+            "vault",
+            "login",
+            f"-address={vault_url}",
+            "-token-only",
+            "-method=kerberos",
+            f"username={username}",
+            "service=vault-prod",
+            f"realm={realm}",
+            f"keytab_path={keytab}",
+            f"krb5conf_path={krb5conf}",
+        ]
+
+        try:
+            vault_token = subprocess.check_output(
+                cmd, text=True, stderr=subprocess.PIPE
+            ).strip()
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(
+                f"Vault login failed with {e=}: {e.stdout=} {e.stderr=}"
+            ) from e
+        if vault_token:
+            _log.info("Got Vault token from kerberos login")
+            return vault_token
+
+        raise RuntimeError("Failed to get Vault token")
+
+    def get_jenkins_service_account(self) -> ServiceAccount:
+        vault_client = hvac.Client(
+            url=self.get_vault_url(),
+            token=self.get_vault_token(),
+        )
+        secret = vault_client.secrets.kv.v2.read_secret_version(
+            "TAP/big_data_services/openeo/jenkins-service-account",
+            mount_point="kv",
+        )
+        client_info = secret["data"]["data"]
+        assert {"client_id", "client_secret", "provider_id"}.issubset(
+            client_info.keys()
+        )
+        return self.ServiceAccount(
+            client_id=client_info["client_id"],
+            client_secret=client_info["client_secret"],
+            provider_id=client_info["provider_id"],
+        )
+
+
+def test_oidc_client_credentials(connection):
+    """
+    WIP for #6: OIDC Client Credentials auth for jenkins user
+    """
+    try:
+        creds = Authentication().get_jenkins_service_account()
+        connection.authenticate_oidc_client_credentials(
+            client_id=creds.client_id,
+            client_secret=creds.client_secret,
+            provider_id=creds.provider_id,
+            store_refresh_token=False,
+        )
+        me = connection.describe_account()
+        assert me["user_id"] == "1ff4f5cf-95cc-4bbb-ad8f-b5096d95006a"
+    except Exception as e:
+        _log.warning(f"WIP #6 failed: {e=}", exc_info=True)
+        pytest.skip(f"WIP #6 failed: {e=}")
