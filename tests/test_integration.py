@@ -1551,7 +1551,7 @@ def test_udp_simple_math_batch_job(auth_connection, tmp_path):
 
     # Use UDP
     pg = process(udp_name, namespace="user", fahrenheit=50)
-    job = auth_connection.create_job(pg)
+    job = auth_connection.create_job(pg,title="udp_simple_math_batch_job")
     job.run_synchronous()
     results = job.get_results()
     asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
