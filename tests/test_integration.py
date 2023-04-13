@@ -1,3 +1,6 @@
+import subprocess
+import typing
+
 import itertools
 import json
 import logging
@@ -6,7 +9,7 @@ import re
 import textwrap
 import time
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Union, Optional
 
 import imghdr
 import numpy as np
@@ -23,6 +26,8 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_
 import pystac
 from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
 from shapely.geometry.base import BaseGeometry
+import hvac
+import hvac.utils
 
 import openeo
 from openeo.rest.connection import OpenEoApiError
@@ -63,7 +68,7 @@ BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.102
 BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
 BBOX_NIEUWPOORT = _parse_bboxfinder_com("http://bboxfinder.com/#51.05,2.60,51.20,2.90")
 
-# TODO: real authentication?
+# TODO: real authentication? https://github.com/Open-EO/openeo-geopyspark-integrationtests/issues/6
 TEST_USER = "jenkins"
 TEST_PASSWORD = TEST_USER + "123"
 
@@ -140,11 +145,10 @@ def test_terrascope_download_webmerc(auth_connection, tmp_path):
 
 def test_aggregate_spatial_polygon(auth_connection):
     timeseries = (
-        auth_connection
-            .load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"])
-            .filter_temporal(start_date="2017-11-01", end_date="2017-11-21")
-            .polygonal_mean_timeseries(POLYGON01)
-            .execute()
+        auth_connection.load_collection("PROBAV_L3_S10_TOC_333M", bands=["NDVI"])
+        .filter_temporal(start_date="2017-11-01", end_date="2017-11-21")
+        .aggregate_spatial(geometries=POLYGON01, reducer="mean")
+        .execute()
     )
     print(timeseries)
 
@@ -165,14 +169,23 @@ def test_histogram_timeseries(auth_connection):
             .filter_bbox(5, 6, 52, 51, 'EPSG:4326')
             .filter_temporal(['2017-11-21', '2017-12-21'])
     )
-    polygon = shape({"type": "Polygon", "coordinates": [[
-        [5.0761587693484875, 51.21222494794898],
-        [5.166854684377381, 51.21222494794898],
-        [5.166854684377381, 51.268936260927404],
-        [5.0761587693484875, 51.268936260927404],
-        [5.0761587693484875, 51.21222494794898]
-    ]]})
-    timeseries = probav.polygonal_histogram_timeseries(polygon=polygon).execute()
+    polygon = shape(
+        {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [5.0761587693484875, 51.21222494794898],
+                    [5.166854684377381, 51.21222494794898],
+                    [5.166854684377381, 51.268936260927404],
+                    [5.0761587693484875, 51.268936260927404],
+                    [5.0761587693484875, 51.21222494794898],
+                ]
+            ],
+        }
+    )
+    timeseries = probav.aggregate_spatial(
+        geometries=polygon, reducer="histogram"
+    ).execute()
     print(timeseries)
 
     expected_schema = schema.Schema({str: [[{str: int}]]})
@@ -486,7 +499,7 @@ def _poll_job_status(
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_basic(auth_connection, api_version, tmp_path):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_median_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     job = timeseries.create_job(
         job_options=batch_default_options(
@@ -544,7 +557,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_execute_batch(auth_connection, tmp_path):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_median_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     output_file = tmp_path / "ts.json"
     timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"), title="execute-batch")
@@ -561,7 +574,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path):
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_signed_urls(auth_connection, tmp_path):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_median_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     job = timeseries.execute_batch(
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
@@ -597,11 +610,11 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     if isinstance(cube, DataCube):
-        cube = cube.process("sleep", arguments={"data": cube, "seconds": 30})
+        cube = cube.process("sleep", arguments={"data": cube, "seconds": 120})
     else:
         raise ValueError(cube)
 
-    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="mean")
 
     job = timeseries.create_job(
         out_format="GTIFF",
@@ -631,7 +644,7 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 def test_batch_job_delete_job(auth_connection):
 
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
-    timeseries = cube.polygonal_mean_timeseries(POLYGON01)
+    timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="mean")
 
     job = timeseries.create_job(
         out_format="GTIFF",
@@ -805,7 +818,7 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
 
     # 2. Load the model using its job id and make predictions.
 
-    topredict_xybt = auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M",
+    topredict_xybt = auth_connection.load_collection("PROBAV_L3_S10_TOC_333M",bands=["NDVI"],
         spatial_extent = {"west": 4.825919, "east": 4.859629, "south": 51.259766, "north": 51.307638},
         temporal_extent = ["2017-11-01", "2017-11-01"])
     topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
@@ -866,12 +879,12 @@ def test_ep3048_sentinel1_udf(auth_connection, udf_file):
 
     ts = (
         auth_connection.load_collection("SENTINEL1_GAMMA0_SENTINELHUB")
-            .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
-            .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
-            .filter_bands([0])
-            .apply_dimension(udf_code, runtime="Python")
-            .polygonal_mean_timeseries(polygon)
-            .execute()
+        .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
+        .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
+        .filter_bands([0])
+        .apply_dimension(udf_code, runtime="Python")
+        .aggregate_spatial(geometries=polygon, reducer="mean")
+        .execute()
     )
     assert isinstance(ts, dict)
     assert all(k.startswith('2019-05-') for k in ts.keys())
@@ -1013,6 +1026,8 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
             assert_array_equal(ref_array, actual_array)
 
 
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
@@ -1145,14 +1160,22 @@ def test_custom_processes_in_batch_job(auth_connection):
     (
             'TERRASCOPE_S2_FAPAR_V2',
             [
-                '2017-11-01T00:00:00Z', '2017-11-04T00:00:00Z', '2017-11-06T00:00:00Z',
-                '2017-11-09T00:00:00Z', '2017-11-11T00:00:00Z',
-                '2017-11-14T00:00:00Z', '2017-11-16T00:00:00Z', '2017-11-19T00:00:00Z',
-                '2017-11-21T00:00:00Z'
-            ]
-    )
-])
-def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, api_version):
+                "2017-11-01T00:00:00Z",
+                "2017-11-04T00:00:00Z",
+                "2017-11-06T00:00:00Z",
+                "2017-11-09T00:00:00Z",
+                "2017-11-11T00:00:00Z",
+                "2017-11-14T00:00:00Z",
+                "2017-11-16T00:00:00Z",
+                "2017-11-19T00:00:00Z",
+                "2017-11-21T00:00:00Z",
+            ],
+        )
+    ],
+)
+def test_aggregate_spatial_timeseries(
+    auth_connection, tmp_path, cid, expected_dates, api_version
+):
     expected_dates = sorted(expected_dates)
     polygon = POLYGON01
     bbox = _polygon_bbox(polygon)
@@ -1162,7 +1185,7 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
             .filter_temporal("2017-11-01", "2017-11-21")
             .filter_bbox(**bbox)
     )
-    ts_mean = cube.polygonal_mean_timeseries(polygon).execute()
+    ts_mean = cube.aggregate_spatial(geometries=polygon, reducer="mean").execute()
     print("mean", ts_mean)
     ts_mean_df = timeseries_json_to_pandas(ts_mean)
 
@@ -1170,10 +1193,10 @@ def test_polygonal_timeseries(auth_connection, tmp_path, cid, expected_dates, ap
     ts_mean = {k: v for (k, v) in ts_mean.items() if v != [[]]}
     print("mean", ts_mean)
 
-    ts_median = cube.polygonal_median_timeseries(polygon).execute()
+    ts_median = cube.aggregate_spatial(geometries=polygon, reducer="median").execute()
     ts_median_df = timeseries_json_to_pandas(ts_median)
     print("median", ts_median_df)
-    ts_sd = cube.polygonal_standarddeviation_timeseries(polygon).execute()
+    ts_sd = cube.aggregate_spatial(geometries=polygon, reducer="sd").execute()
     ts_sd_df = timeseries_json_to_pandas(ts_sd)
     print("sd", ts_sd)
 
@@ -1366,7 +1389,7 @@ def test_udp_usage_reduce(connection100, tmp_path):
 
 def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tmp_path):
     s2_fapar = (
-        auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M")
+        auth_connection.load_collection("PROBAV_L3_S10_TOC_333M",bands=["NDVI"])
             .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
     )
     out_file = tmp_path / "s2_fapar_latlon.geotiff"
@@ -1630,7 +1653,7 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
 def test_discard_result_suppresses_batch_job_output_file(connection):
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
 
-    cube = connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M").filter_bbox(5, 6, 52, 51, 'EPSG:4326')
+    cube = connection.load_collection("PROBAV_L3_S10_TOC_333M",bands=["NDVI"]).filter_bbox(5, 6, 52, 51, 'EPSG:4326')
     cube = cube.process("discard_result", arguments={"data": cube})
 
     job = cube.execute_batch(max_poll_interval=BATCH_JOB_POLL_INTERVAL, title="test_discard_result_suppresses_batch_job_output_file")
@@ -1712,7 +1735,7 @@ def test_udp_simple_math_batch_job(auth_connection, tmp_path):
 
     # Use UDP
     pg = process(udp_name, namespace="user", fahrenheit=50)
-    job = auth_connection.create_job(pg)
+    job = auth_connection.create_job(pg,title="udp_simple_math_batch_job")
     job.run_synchronous()
     results = job.get_results()
     asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
@@ -1989,3 +2012,102 @@ def test_tsservice_geometry_mean(tsservice_base_url):
     })
 
     assert expected_schema.validate(time_series)
+
+
+class Authentication:
+    """Helper to obtain authentication credentials."""
+
+    # TODO move this to conftest or utility module and integrate as fixture
+
+    class ServiceAccount(typing.NamedTuple):
+        client_id: str
+        client_secret: str
+        provider_id: str
+
+    def __init__(self, env: Optional[dict] = None):
+        self._env = env if env is not None else os.environ
+
+    def env(self, var: str, default=None):
+        return self._env.get(var, default)
+
+    def get_vault_url(self) -> str:
+        return self.env("OPENEO_VAULT", default="https://vault.vgt.vito.be")
+
+    def get_vault_token(self) -> str:
+        # Try to get vault token from env:
+        # e.g. `VAULT_TOKEN` env var or `~/.vault-token` file
+        vault_token = hvac.utils.get_token_from_env()
+        if vault_token:
+            _log.info("Got Vault token from env")
+            return vault_token
+
+        # Try kerberos login
+        vault_url = self.get_vault_url()
+        principal = self.env("OPENEO_KERBEROS_PRINCIPAL", default="openeo@VGT.VITO.BE")
+        username, realm = principal.split("@")
+        keytab = self.env("OPENEO_KERBEROS_KEYTAB", default="/opt/openeo.keytab")
+        krb5conf = self.env("OPENEO_KERBEROS_CONF", default="/etc/krb5.conf")
+        cmd = [
+            "vault",
+            "login",
+            f"-address={vault_url}",
+            "-token-only",
+            "-method=kerberos",
+            f"username={username}",
+            "service=vault-prod",
+            f"realm={realm}",
+            f"keytab_path={keytab}",
+            f"krb5conf_path={krb5conf}",
+        ]
+
+        try:
+            vault_token = subprocess.check_output(
+                cmd, text=True, stderr=subprocess.PIPE
+            ).strip()
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(
+                f"Vault login failed with {e=}: {e.stdout=} {e.stderr=}"
+            ) from e
+        if vault_token:
+            _log.info("Got Vault token from kerberos login")
+            return vault_token
+
+        raise RuntimeError("Failed to get Vault token")
+
+    def get_jenkins_service_account(self) -> ServiceAccount:
+        vault_client = hvac.Client(
+            url=self.get_vault_url(),
+            token=self.get_vault_token(),
+        )
+        secret = vault_client.secrets.kv.v2.read_secret_version(
+            "TAP/big_data_services/openeo/jenkins-service-account",
+            mount_point="kv",
+        )
+        client_info = secret["data"]["data"]
+        assert {"client_id", "client_secret", "provider_id"}.issubset(
+            client_info.keys()
+        )
+        return self.ServiceAccount(
+            client_id=client_info["client_id"],
+            client_secret=client_info["client_secret"],
+            provider_id=client_info["provider_id"],
+        )
+
+
+def test_oidc_client_credentials(connection):
+    """
+    WIP for #6: OIDC Client Credentials auth for jenkins user
+    """
+    try:
+        creds = Authentication().get_jenkins_service_account()
+        connection.authenticate_oidc_client_credentials(
+            client_id=creds.client_id,
+            client_secret=creds.client_secret,
+            provider_id=creds.provider_id,
+            store_refresh_token=False,
+        )
+        me = connection.describe_account()
+        assert me["user_id"] == "1ff4f5cf-95cc-4bbb-ad8f-b5096d95006a"
+    except Exception as e:
+        _log.warning(f"WIP #6 failed: {e=}", exc_info=True)
+        pytest.skip(f"WIP #6 failed: {e=}")

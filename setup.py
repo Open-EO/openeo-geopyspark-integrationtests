@@ -19,6 +19,7 @@ setup(
         "pyproj",
         "h5netcdf",
         "geopandas",
-        "pystac>=1.0.0"
+        "pystac>=1.0.0",
+        "hvac>=1.0.2",
     ],
 )
