@@ -451,7 +451,7 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     if isinstance(cube, DataCube):
-        cube = cube.process("sleep", arguments={"data": cube, "seconds": 1800})
+        cube = cube.process("sleep", arguments={"data": cube, "seconds": 600})
     else:
         raise ValueError(cube)
 
