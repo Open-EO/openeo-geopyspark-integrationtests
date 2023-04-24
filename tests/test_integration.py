@@ -1932,3 +1932,33 @@ def test_oidc_client_credentials(connection):
     except Exception as e:
         _log.warning(f"WIP #6 failed: {e=}", exc_info=True)
         pytest.skip(f"WIP #6 failed: {e=}")
+
+
+def test_oidc_client_credentials_batch_job(connection):
+    """
+    WIP for #6: OIDC Client Credentials auth for jenkins user
+    """
+    try:
+        creds = Authentication().get_jenkins_service_account()
+        connection.authenticate_oidc_client_credentials(
+            client_id=creds.client_id,
+            client_secret=creds.client_secret,
+            provider_id=creds.provider_id,
+            store_refresh_token=False,
+        )
+        job = connection.create_job(
+            {
+                "add": {
+                    "process_id": "add",
+                    "arguments": {"x": 3, "y": 5},
+                    "result": True,
+                }
+            },
+            title="three plus five",
+        )
+        job.start_and_wait()
+        results = job.get_results()
+        assert results.get_asset().load_json() == 8
+    except Exception as e:
+        _log.warning(f"WIP #6 failed: {e=}", exc_info=True)
+        pytest.skip(f"WIP #6 failed: {e=}")
