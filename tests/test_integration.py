@@ -1895,10 +1895,9 @@ class Authentication:
         )
         # Get service account data from vault, e.g. currently set up
         #   {
+        #       "provider_id": "terrascope"
         #       "client_id": "openeo-jenkins-service-account",
         #       "client_secret": ....,
-        #       "issuer": "https://sso.terrascope.be/auth/realms/terrascope",
-        #       "provider_id": "keycloak"
         #   }
         secret = vault_client.secrets.kv.v2.read_secret_version(
             "TAP/big_data_services/openeo/jenkins-service-account",
