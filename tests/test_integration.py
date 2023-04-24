@@ -1893,6 +1893,13 @@ class Authentication:
             url=self.get_vault_url(),
             token=self.get_vault_token(),
         )
+        # Get service account data from vault, e.g. currently set up
+        #   {
+        #       "client_id": "openeo-jenkins-service-account",
+        #       "client_secret": ....,
+        #       "issuer": "https://sso.terrascope.be/auth/realms/terrascope",
+        #       "provider_id": "keycloak"
+        #   }
         secret = vault_client.secrets.kv.v2.read_secret_version(
             "TAP/big_data_services/openeo/jenkins-service-account",
             mount_point="kv",
@@ -1921,7 +1928,8 @@ def test_oidc_client_credentials(connection):
             store_refresh_token=False,
         )
         me = connection.describe_account()
-        assert me["user_id"] == "1ff4f5cf-95cc-4bbb-ad8f-b5096d95006a"
+        print(me)
+        assert me["user_id"] == "jenkins"
     except Exception as e:
         _log.warning(f"WIP #6 failed: {e=}", exc_info=True)
         pytest.skip(f"WIP #6 failed: {e=}")
