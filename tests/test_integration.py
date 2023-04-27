@@ -1914,51 +1914,43 @@ class Authentication:
         )
 
 
-def test_oidc_client_credentials(connection):
+@pytest.fixture(scope="module")
+def jenkins_service_account_from_vault() -> Authentication.ServiceAccount:
+    return Authentication().get_jenkins_service_account()
+
+
+@pytest.fixture
+def connection_client_credentials_auth(
+    connection, jenkins_service_account_from_vault: Authentication.ServiceAccount
+) -> openeo.Connection:
+    connection.authenticate_oidc_client_credentials(
+        client_id=jenkins_service_account_from_vault.client_id,
+        client_secret=jenkins_service_account_from_vault.client_secret,
+        provider_id=jenkins_service_account_from_vault.provider_id,
+        store_refresh_token=False,
+    )
+    return connection
+
+
+def test_oidc_client_credentials(connection, connection_client_credentials_auth):
     """
     WIP for #6: OIDC Client Credentials auth for jenkins user
     """
-    try:
-        creds = Authentication().get_jenkins_service_account()
-        connection.authenticate_oidc_client_credentials(
-            client_id=creds.client_id,
-            client_secret=creds.client_secret,
-            provider_id=creds.provider_id,
-            store_refresh_token=False,
-        )
-        me = connection.describe_account()
-        print(me)
-        assert me["user_id"] == "jenkins"
-    except Exception as e:
-        _log.warning(f"WIP #6 failed: {e=}", exc_info=True)
-        pytest.skip(f"WIP #6 failed: {e=}")
+    me = connection.describe_account()
+    print(me)
+    assert me["user_id"] == "jenkins"
 
 
-def test_oidc_client_credentials_batch_job(connection):
+def test_oidc_client_credentials_batch_job(
+    connection, connection_client_credentials_auth
+):
     """
     WIP for #6: OIDC Client Credentials auth for jenkins user
     """
-    try:
-        creds = Authentication().get_jenkins_service_account()
-        connection.authenticate_oidc_client_credentials(
-            client_id=creds.client_id,
-            client_secret=creds.client_secret,
-            provider_id=creds.provider_id,
-            store_refresh_token=False,
-        )
-        job = connection.create_job(
-            {
-                "add": {
-                    "process_id": "add",
-                    "arguments": {"x": 3, "y": 5},
-                    "result": True,
-                }
-            },
-            title="three plus five",
-        )
-        job.start_and_wait()
-        results = job.get_results()
-        assert results.get_asset().load_json() == 8
-    except Exception as e:
-        _log.warning(f"WIP #6 failed: {e=}", exc_info=True)
-        pytest.skip(f"WIP #6 failed: {e=}")
+    job = connection.create_job(
+        {"add": {"process_id": "add", "arguments": {"x": 3, "y": 5}, "result": True}},
+        title="three plus five",
+    )
+    job.start_and_wait()
+    results = job.get_results()
+    assert results.get_asset().load_json() == 8
