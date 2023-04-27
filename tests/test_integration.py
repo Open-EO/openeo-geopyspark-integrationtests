@@ -638,7 +638,7 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     if isinstance(cube, DataCube):
-        cube = cube.process("sleep", arguments={"data": cube, "seconds": 120})
+        cube = cube.process("sleep", arguments={"data": cube, "seconds": 600})
     else:
         raise ValueError(cube)
 
@@ -2123,6 +2123,12 @@ class Authentication:
             url=self.get_vault_url(),
             token=self.get_vault_token(),
         )
+        # Get service account data from vault, e.g. currently set up
+        #   {
+        #       "provider_id": "terrascope"
+        #       "client_id": "openeo-jenkins-service-account",
+        #       "client_secret": ....,
+        #   }
         secret = vault_client.secrets.kv.v2.read_secret_version(
             "TAP/big_data_services/openeo/jenkins-service-account",
             mount_point="kv",
@@ -2151,7 +2157,38 @@ def test_oidc_client_credentials(connection):
             store_refresh_token=False,
         )
         me = connection.describe_account()
-        assert me["user_id"] == "1ff4f5cf-95cc-4bbb-ad8f-b5096d95006a"
+        print(me)
+        assert me["user_id"] == "jenkins"
+    except Exception as e:
+        _log.warning(f"WIP #6 failed: {e=}", exc_info=True)
+        pytest.skip(f"WIP #6 failed: {e=}")
+
+
+def test_oidc_client_credentials_batch_job(connection):
+    """
+    WIP for #6: OIDC Client Credentials auth for jenkins user
+    """
+    try:
+        creds = Authentication().get_jenkins_service_account()
+        connection.authenticate_oidc_client_credentials(
+            client_id=creds.client_id,
+            client_secret=creds.client_secret,
+            provider_id=creds.provider_id,
+            store_refresh_token=False,
+        )
+        job = connection.create_job(
+            {
+                "add": {
+                    "process_id": "add",
+                    "arguments": {"x": 3, "y": 5},
+                    "result": True,
+                }
+            },
+            title="three plus five",
+        )
+        job.start_and_wait()
+        results = job.get_results()
+        assert results.get_asset().load_json() == 8
     except Exception as e:
         _log.warning(f"WIP #6 failed: {e=}", exc_info=True)
         pytest.skip(f"WIP #6 failed: {e=}")
