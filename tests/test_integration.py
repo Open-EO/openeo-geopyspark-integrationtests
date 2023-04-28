@@ -1933,6 +1933,7 @@ def connection_client_credentials_auth(
     return connection
 
 
+@pytest.mark.skip(reason="vault access from jenkins not working properly yet")
 def test_oidc_client_credentials_me(connection, connection_client_credentials_auth):
     """
     WIP for #6: OIDC Client Credentials auth for jenkins user
@@ -1942,6 +1943,7 @@ def test_oidc_client_credentials_me(connection, connection_client_credentials_au
     assert me["user_id"] == "jenkins"
 
 
+@pytest.mark.skip(reason="vault access from jenkins not working properly yet")
 def test_oidc_client_credentials_batch_job(
     connection, connection_client_credentials_auth
 ):
