@@ -112,9 +112,15 @@ def auth_connection2(connection) -> openeo.Connection:
             connection.authenticate_oidc_client_credentials(**service_account_creds, store_refresh_token=False)
             return connection
 
-        # Try classic OIDC refresh tokens + device code flow
-        # TODO #6 use a really short `max_poll_time` here
-        # connection.authenticate_oidc()
+        # Try classic OIDC refresh tokens + device code flow:
+        # allows developers to run the integration tests locally with own user.
+        _log.info("Trying auth `connection.authenticate_oidc()` with refresh tokens + device code flow")
+        connection.authenticate_oidc(
+            # Note the really short default max poll time to fail fast by default
+            # (when nobody is watching the device code flow instructions).
+            max_poll_time=int(os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 1),
+            store_refresh_token=True,
+        )
 
     except Exception as e:
         _log.error(f"Failed to authenticate with OIDC: {e}", exc_info=True)
