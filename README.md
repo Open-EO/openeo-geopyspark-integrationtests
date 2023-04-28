@@ -19,6 +19,24 @@ For example:
     export ENDPOINT=http://localhost:8080/
     pytest
 
+### Authentication
+
+Most tests in the test suite require an authenticated connection to the back-end.
+The test suite setup/fixtures tries to do the right thing automatically:
+- In an automated/Jenkins/CI context: use OIDC client credentials auth with a "service account".
+  Credentials should be provided through environment variables:
+  look for `OPENEO_JENKINS_SERVICE_ACCOUNT_` in `conftest.py` for inspiration
+- Running locally as developer: using refresh tokens is supported.
+  Make sure you have valid refresh tokens in you environment.
+  If not, the device code flow will be used as fallback,
+  but with an extremely short poll timeout by default,
+  making it humanly impossible to actually complete the device code flow.
+  The timeout is short by default to avoid the confusion
+  with tests hanging inexplicably for minutes before failing.
+  Temporarily increase the timeout with env var
+  `OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME=300`.
+
+### Filtering
 
 Pytest provides [various options](https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests)
 to run a subset or just a single test.
