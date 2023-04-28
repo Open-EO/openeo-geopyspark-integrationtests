@@ -12,7 +12,7 @@ setup(
         "schema",
         "pytest-timeout",
         "shapely",
-        "openeo>=0.17.0a3.*",
+        "openeo>=0.17.0a3.dev",
         "pytest-xdist",
         "xarray<2022.6.0",
         "pyproj",
