@@ -890,7 +890,9 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
     out_file = tmp_path / "masked_result.tiff"
     job = masked.execute_batch(out_file,title="diy_mask")
     links = job.get_results().get_metadata()['links']
+    _log.info(f"test_advanced_cloud_masking_diy: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
+    _log.info(f"test_advanced_cloud_masking_diy: {derived_from=}")
     v210_links = [link for link in derived_from if "V210" in link ]
     assert len(set(v210_links)) == 1
     assert v210_links == derived_from
