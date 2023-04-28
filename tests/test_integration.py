@@ -1850,10 +1850,10 @@ class Authentication:
     def get_vault_token(self) -> str:
         # Try to get vault token from env:
         # e.g. `VAULT_TOKEN` env var or `~/.vault-token` file
-        vault_token = hvac.utils.get_token_from_env()
-        if vault_token:
-            _log.info("Got Vault token from env")
-            return vault_token
+        # vault_token = hvac.utils.get_token_from_env()
+        # if vault_token:
+        #     _log.info("Got Vault token from env")
+        #     return vault_token
 
         # Try kerberos login
         vault_url = self.get_vault_url()
@@ -1875,6 +1875,7 @@ class Authentication:
         ]
 
         try:
+            _log.info(f"Trying to get token with vault CLI: {cmd=}")
             vault_token = subprocess.check_output(
                 cmd, text=True, stderr=subprocess.PIPE
             ).strip()
@@ -1932,7 +1933,7 @@ def connection_client_credentials_auth(
     return connection
 
 
-def test_oidc_client_credentials(connection, connection_client_credentials_auth):
+def test_oidc_client_credentials_me(connection, connection_client_credentials_auth):
     """
     WIP for #6: OIDC Client Credentials auth for jenkins user
     """
