@@ -1,4 +1,6 @@
+import logging
 import os
+from typing import Any
 
 import pytest
 import requests
@@ -6,6 +8,7 @@ import requests
 import openeo
 from openeo.capabilities import ComparableVersion
 
+_log = logging.getLogger(__name__)
 
 def get_openeo_base_url(version: str = "1.1.0"):
     try:
@@ -62,14 +65,62 @@ def connection100(requests_session) -> openeo.Connection:
     return openeo.connect(get_openeo_base_url("1.0.0"), session=requests_session)
 
 
-# TODO: real authentication?
+# TODO #6 real authentication?
 TEST_USER = "jenkins"
 TEST_PASSWORD = TEST_USER + "123"
 
 
 @pytest.fixture
 def auth_connection(connection) -> openeo.Connection:
-    """Connection fixture to a backend of given version with some image collections."""
+    """Authenticated connection."""
+    # TODO #6 deprecate/replace this fixture
+    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    return connection
+
+
+def _redact(x: Any) -> Any:
+    """Helper to redact sensitive items in nested dictionaries."""
+
+    def is_sensitive_key(key: Any) -> bool:
+        return isinstance(key, str) and any(s in key.lower() for s in {"secret", "token", "password"})
+
+    if isinstance(x, dict):
+        return {k: "-redacted-" if is_sensitive_key(k) and v else _redact(v) for k, v in x.items()}
+    else:
+        return x
+
+
+# TODO #6 larger scope than "function" for this fixture?
+# TODO #6 better name for this fixture?
+@pytest.fixture
+def auth_connection2(connection) -> openeo.Connection:
+    """
+    Fixture to authenticate the connection,
+    attempting different methods to support multiple run modes:
+    automated jenkins/CI run (client credentials), developer running locally (device flow/refresh tokens)
+    """
+    try:
+        # Try to extract Jenkins service account credentials from env
+        service_account_creds = {
+            "provider_id": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_PROVIDER_ID"),
+            "client_id": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_CLIENT_ID"),
+            "client_secret": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_CLIENT_SECRET"),
+        }
+        _log.info(f"Extracted Jenkins service account credentials: {_redact(service_account_creds)}")
+        if all(service_account_creds.values()):
+            _log.info(f"Using client credentials auth with Jenkins service account: {_redact(service_account_creds)}")
+            connection.authenticate_oidc_client_credentials(**service_account_creds, store_refresh_token=False)
+            return connection
+
+        # Try classic OIDC refresh tokens + device code flow
+        # TODO #6 use a really short `max_poll_time` here
+        # connection.authenticate_oidc()
+
+    except Exception as e:
+        _log.error(f"Failed to authenticate with OIDC: {e}", exc_info=True)
+
+    _log.warning("Using old deprecated basic auth")
+    # TODO #6 eliminated old deprecated basic auth
     connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
     return connection
 

@@ -1828,125 +1828,17 @@ def test_tsservice_geometry_mean(tsservice_base_url):
     assert expected_schema.validate(time_series)
 
 
-class Authentication:
-    """Helper to obtain authentication credentials."""
-
-    # TODO move this to conftest or utility module and integrate as fixture
-
-    class ServiceAccount(typing.NamedTuple):
-        client_id: str
-        client_secret: str
-        provider_id: str
-
-    def __init__(self, env: Optional[dict] = None):
-        self._env = env if env is not None else os.environ
-
-    def env(self, var: str, default=None):
-        return self._env.get(var, default)
-
-    def get_vault_url(self) -> str:
-        return self.env("OPENEO_VAULT", default="https://vault.vgt.vito.be")
-
-    def get_vault_token(self) -> str:
-        # Try to get vault token from env:
-        # e.g. `VAULT_TOKEN` env var or `~/.vault-token` file
-        # vault_token = hvac.utils.get_token_from_env()
-        # if vault_token:
-        #     _log.info("Got Vault token from env")
-        #     return vault_token
-
-        # Try kerberos login
-        vault_url = self.get_vault_url()
-        principal = self.env("OPENEO_KERBEROS_PRINCIPAL", default="openeo@VGT.VITO.BE")
-        username, realm = principal.split("@")
-        keytab = self.env("OPENEO_KERBEROS_KEYTAB", default="/opt/openeo.keytab")
-        krb5conf = self.env("OPENEO_KERBEROS_CONF", default="/etc/krb5.conf")
-        cmd = [
-            "vault",
-            "login",
-            f"-address={vault_url}",
-            "-token-only",
-            "-method=kerberos",
-            f"username={username}",
-            "service=vault-prod",
-            f"realm={realm}",
-            f"keytab_path={keytab}",
-            f"krb5conf_path={krb5conf}",
-        ]
-
-        try:
-            _log.info(f"Trying to get token with vault CLI: {cmd=}")
-            vault_token = subprocess.check_output(
-                cmd, text=True, stderr=subprocess.PIPE
-            ).strip()
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(
-                f"Vault login failed with {e=}: {e.stdout=} {e.stderr=}"
-            ) from e
-        if vault_token:
-            _log.info("Got Vault token from kerberos login")
-            return vault_token
-
-        raise RuntimeError("Failed to get Vault token")
-
-    def get_jenkins_service_account(self) -> ServiceAccount:
-        vault_client = hvac.Client(
-            url=self.get_vault_url(),
-            token=self.get_vault_token(),
-        )
-        # Get service account data from vault, e.g. currently set up
-        #   {
-        #       "provider_id": "terrascope"
-        #       "client_id": "openeo-jenkins-service-account",
-        #       "client_secret": ....,
-        #   }
-        secret = vault_client.secrets.kv.v2.read_secret_version(
-            "TAP/big_data_services/openeo/jenkins-service-account",
-            mount_point="kv",
-        )
-        client_info = secret["data"]["data"]
-        assert {"client_id", "client_secret", "provider_id"}.issubset(
-            client_info.keys()
-        )
-        return self.ServiceAccount(
-            client_id=client_info["client_id"],
-            client_secret=client_info["client_secret"],
-            provider_id=client_info["provider_id"],
-        )
-
-
-@pytest.fixture(scope="module")
-def jenkins_service_account_from_vault() -> Authentication.ServiceAccount:
-    return Authentication().get_jenkins_service_account()
-
-
-@pytest.fixture
-def connection_client_credentials_auth(
-    connection, jenkins_service_account_from_vault: Authentication.ServiceAccount
-) -> openeo.Connection:
-    connection.authenticate_oidc_client_credentials(
-        client_id=jenkins_service_account_from_vault.client_id,
-        client_secret=jenkins_service_account_from_vault.client_secret,
-        provider_id=jenkins_service_account_from_vault.provider_id,
-        store_refresh_token=False,
-    )
-    return connection
-
-
-@pytest.mark.skip(reason="vault access from jenkins not working properly yet")
-def test_oidc_client_credentials_me(connection, connection_client_credentials_auth):
+def test_oidc_client_credentials_me(connection, auth_connection2):
     """
     WIP for #6: OIDC Client Credentials auth for jenkins user
     """
     me = connection.describe_account()
-    print(me)
+    _log.info(f"connection.describe_account -> {me=}")
     assert me["user_id"] == "jenkins"
 
 
-@pytest.mark.skip(reason="vault access from jenkins not working properly yet")
-def test_oidc_client_credentials_batch_job(
-    connection, connection_client_credentials_auth
-):
+@pytest.mark.skip(reason="let's first get test_oidc_client_credentials_me right")
+def test_oidc_client_credentials_batch_job(connection, auth_connection2):
     """
     WIP for #6: OIDC Client Credentials auth for jenkins user
     """
