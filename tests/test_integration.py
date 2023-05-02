@@ -1839,6 +1839,10 @@ def test_oidc_client_credentials_me(connection, auth_connection2):
     assert me["user_id"] == "jenkins"
 
 
+def test_oidc_client_credentials_me2(connection, auth_connection2):
+    pytest.skip("Skip to force summary dumping of fixture setup")
+
+
 @pytest.mark.skip(reason="let's first get test_oidc_client_credentials_me right")
 def test_oidc_client_credentials_batch_job(connection, auth_connection2):
     """
