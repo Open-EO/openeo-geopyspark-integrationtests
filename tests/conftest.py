@@ -125,6 +125,7 @@ def auth_connection2(connection) -> openeo.Connection:
 
     except Exception as e:
         _log.error(f"Failed to authenticate with OIDC: {e}", exc_info=True)
+        raise
 
     _log.warning("Using old deprecated basic auth")
     # TODO #6 eliminated old deprecated basic auth
