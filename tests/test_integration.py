@@ -510,17 +510,38 @@ def _poll_job_status(
     raise RuntimeError("reached max poll time: {e} > {m}".format(e=elapsed(), m=max_poll_time))
 
 
-def assert_job_status(job: BatchJob, expected_status):
+def assert_job_status(job: BatchJob, expected_status: str, print_logs: bool = False):
+    """Assert that job's status is the expected status, and optionally print its logs.
+
+    If the assert fails the job ID is included in the assert message so you can
+    find the job in Kibana to see what went wrong.
+
+    For easier troubleshooting the batch jobs logs can be printed to stdout as
+    an option.
+
+    Do keep in mind that the job's logs could be long which is why we don't
+    display them by default.
+    In particular, this could make the test logs on Jenkins long and difficult to read.
+
+    :param job: the batch job to check
+    :param expected_status: which status it should have.
+    :param print_logs:
+        whether or not to print the jobs logs to stdout,
+        defaults to False
+    """
     # If the next assert is going to fail, then first show the logs of the job.
-    if job.status != expected_status:
-        print(
-            "job {j}: did not end with status {expected_status}, but with {job.status=}"
-        )
+    actual_status = job.status()
+    message = (
+        f"job {job}: did not end with expected status '{expected_status}', "
+        + f"but ended with status '{actual_status}'"
+    )
+    if print_logs and actual_status != expected_status:
+        print(message)
         print("logs:")
         for log in job.logs():
             print(log)
 
-    assert job.status() == expected_status
+    assert actual_status == expected_status, message
 
 
 @pytest.mark.batchjob
@@ -1513,13 +1534,13 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     # Show some output for easier troubleshooting
     print("Job result metadata:")
     pprint(job_metadata)
-    # assert job_metadata == DictSubSet(
-    #     {
-    #         "epsg": 32631,
-    #         "proj:shape": [2140, 1694],
-    #         "bbox": pytest.approx([471270.0, 5657500.0, 492670.0, 5674440.0]),
-    #     }
-    # )
+    assert job_metadata == DictSubSet(
+        {
+            "epsg": 32631,
+            "proj:shape": [2140, 1694],
+            "bbox": pytest.approx([471270.0, 5657500.0, 492670.0, 5674440.0]),
+        }
+    )
 
 
 def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_path):
@@ -1558,14 +1579,18 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
     output_tiff = result_asset_paths[0]
     assert_geotiff_basics(output_tiff, expected_band_count=4)  # VV, VH, mask and local_incidence_angle
 
-    # TODO: verify this test for projection metadata works.
-    #   Have not yet been able to verify this part of the test works due to
-    #   jobs timing out and earlier parts of the test failing.
-    #   Therefore, being cautious to avoid having integration tests fail when
-    #   it is not necessary.
-    # Verify projection metadata.
-    # job_results: JobResults = job.get_results()
-    # assert_projection_metadata_present(job_results.get_metadata())
+    # This part of the test is still experimental.
+    # Therefore we log it as a warning instead of failing the test, until we
+    # can verify that it works.
+    try:
+        # Verify projection metadata.
+        job_results: JobResults = job.get_results()
+        assert_projection_metadata_present(job_results.get_metadata())
+    except Exception as e:
+        _log.warning(
+            "This failed {e!r}. This part of the test is still experimental.",
+            exc_info=True,
+        )
 
 
 # this function checks that only up to a portion of values do not match within tolerance
@@ -2026,14 +2051,18 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
         for band1, band2 in itertools.combinations([sigma0_vv, sigma0_vh, gamma0_vv, gamma0_vh], 2):
             assert not np.array_equal(band1, band2)
 
-    # TODO: verify this test for projection metadata works, then uncomment it.
-    #   Have not yet been able to verify this part of the test works due to
-    #   jobs timing out and earlier parts of the test failing.
-    #   Therefore, being cautious to avoid having integration tests fail when
-    #   it is not necessary.
-    # Verify projection metadata.
-    # job_results: JobResults = job.get_results()
-    # assert_projection_metadata_present(job_results.get_metadata())
+    # This part of the test is still experimental.
+    # Therefore we log it as a warning instead of failing the test, until we
+    # can verify that it works.
+    try:
+        # Verify projection metadata.
+        job_results: JobResults = job.get_results()
+        assert_projection_metadata_present(job_results.get_metadata())
+    except Exception as e:
+        _log.warning(
+            "This failed {e!r}. This part of the test is still experimental.",
+            exc_info=True,
+        )
 
 
 def test_tsservice_geometry_mean(tsservice_base_url):
