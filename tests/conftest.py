@@ -121,6 +121,7 @@ def auth_connection2(connection) -> openeo.Connection:
             max_poll_time=int(os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 1),
             store_refresh_token=True,
         )
+        return connection
 
     except Exception as e:
         _log.error(f"Failed to authenticate with OIDC: {e}", exc_info=True)

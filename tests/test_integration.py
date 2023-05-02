@@ -1830,10 +1830,11 @@ def test_tsservice_geometry_mean(tsservice_base_url):
     assert expected_schema.validate(time_series)
 
 
-def test_oidc_client_credentials_me(connection, auth_connection2):
+def test_auth_jenkins_oidc_client_credentials_me(connection, auth_connection2):
     """
     WIP for #6: OIDC Client Credentials auth for jenkins user
     """
+    # TODO: skip this test automatically when not running in Jenkins context?
     me = connection.describe_account()
     _log.info(f"connection.describe_account -> {me=}")
     assert me["user_id"] == "jenkins"
