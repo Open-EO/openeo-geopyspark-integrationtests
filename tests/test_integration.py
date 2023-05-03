@@ -1830,7 +1830,7 @@ def test_tsservice_geometry_mean(tsservice_base_url):
     assert expected_schema.validate(time_series)
 
 
-def test_auth_jenkins_oidc_client_credentials_me(connection, auth_connection2):
+def test_auth_jenkins_oidc_client_credentials_me(connection, auth_connection):
     """
     WIP for #6: OIDC Client Credentials auth for jenkins user
     """
@@ -1838,17 +1838,3 @@ def test_auth_jenkins_oidc_client_credentials_me(connection, auth_connection2):
     me = connection.describe_account()
     _log.info(f"connection.describe_account -> {me=}")
     assert me["user_id"] == "jenkins"
-
-
-@pytest.mark.skip(reason="let's first get test_oidc_client_credentials_me right")
-def test_oidc_client_credentials_batch_job(connection, auth_connection2):
-    """
-    WIP for #6: OIDC Client Credentials auth for jenkins user
-    """
-    job = connection.create_job(
-        {"add": {"process_id": "add", "arguments": {"x": 3, "y": 5}, "result": True}},
-        title="three plus five",
-    )
-    job.start_and_wait()
-    results = job.get_results()
-    assert results.get_asset().load_json() == 8

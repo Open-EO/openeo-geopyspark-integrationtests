@@ -65,18 +65,6 @@ def connection100(requests_session) -> openeo.Connection:
     return openeo.connect(get_openeo_base_url("1.0.0"), session=requests_session)
 
 
-# TODO #6 real authentication?
-TEST_USER = "jenkins"
-TEST_PASSWORD = TEST_USER + "123"
-
-
-@pytest.fixture
-def auth_connection(connection) -> openeo.Connection:
-    """Authenticated connection."""
-    # TODO #6 deprecate/replace this fixture
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
-    return connection
-
 
 def _redact(x: Any) -> Any:
     """Helper to redact sensitive items in nested dictionaries."""
@@ -93,7 +81,7 @@ def _redact(x: Any) -> Any:
 # TODO #6 larger scope than "function" for this fixture?
 # TODO #6 better name for this fixture?
 @pytest.fixture
-def auth_connection2(connection) -> openeo.Connection:
+def auth_connection(connection) -> openeo.Connection:
     """
     Fixture to authenticate the connection,
     attempting different methods to support multiple run modes:
