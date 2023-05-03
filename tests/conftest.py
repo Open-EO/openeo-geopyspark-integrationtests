@@ -99,38 +99,29 @@ def auth_connection2(connection) -> openeo.Connection:
     attempting different methods to support multiple run modes:
     automated jenkins/CI run (client credentials), developer running locally (device flow/refresh tokens)
     """
-    try:
-        # Try to extract Jenkins service account credentials from env
-        service_account_creds = {
-            "provider_id": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_PROVIDER_ID"),
-            "client_id": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_CLIENT_ID"),
-            "client_secret": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_CLIENT_SECRET"),
-        }
-        _log.info(f"Extracted Jenkins service account credentials: {_redact(service_account_creds)}")
-        if all(service_account_creds.values()):
-            _log.info(f"Using client credentials auth with Jenkins service account: {_redact(service_account_creds)}")
-            connection.authenticate_oidc_client_credentials(**service_account_creds, store_refresh_token=False)
-            return connection
-
-        # Try classic OIDC refresh tokens + device code flow:
-        # allows developers to run the integration tests locally with own user.
-        _log.info("Trying auth `connection.authenticate_oidc()` with refresh tokens + device code flow")
-        connection.authenticate_oidc(
-            # Note the really short default max poll time to fail fast by default
-            # (when nobody is watching the device code flow instructions).
-            max_poll_time=int(os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 1),
-            store_refresh_token=True,
-        )
+    # Try to extract Jenkins service account credentials from env (e.g. set from Jenkinsfile)
+    service_account_creds = {
+        "provider_id": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_PROVIDER_ID"),
+        "client_id": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_CLIENT_ID"),
+        "client_secret": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_CLIENT_SECRET"),
+    }
+    _log.info(f"Extracted Jenkins service account credentials: {_redact(service_account_creds)}")
+    if all(service_account_creds.values()):
+        _log.info(f"Using client credentials auth with Jenkins service account: {_redact(service_account_creds)}")
+        connection.authenticate_oidc_client_credentials(**service_account_creds, store_refresh_token=False)
         return connection
 
-    except Exception as e:
-        _log.error(f"Failed to authenticate with OIDC: {e}", exc_info=True)
-        raise
-
-    _log.warning("Using old deprecated basic auth")
-    # TODO #6 eliminated old deprecated basic auth
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
+    # Try classic OIDC refresh tokens + device code flow:
+    # allows developers to run the integration tests locally with own user.
+    _log.info("Trying auth `connection.authenticate_oidc()` with refresh tokens + device code flow")
+    connection.authenticate_oidc(
+        # Note the really short default max poll time to fail fast by default
+        # (when nobody is watching the device code flow instructions).
+        max_poll_time=int(os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 1),
+        store_refresh_token=True,
+    )
     return connection
+
 
 
 @pytest.fixture
