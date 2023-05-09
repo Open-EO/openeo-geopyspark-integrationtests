@@ -9,6 +9,7 @@ import re
 import textwrap
 import time
 from pathlib import Path
+from pprint import pprint, pformat
 from typing import Callable, Union, Optional
 
 import imghdr
@@ -36,6 +37,7 @@ from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.job import BatchJob, JobResults
 from openeo.rest.mlmodel import MlModel
 from openeo.rest.udp import Parameter
+from openeo_driver.testing import DictSubSet
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
 
@@ -282,7 +284,8 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         tile_grid="one_degree",
         title="test_cog_execute_batch",
     )
-    assert job.status() == "finished"
+    _log.info(f"test_cog_execute_batch: {job=}")
+    assert_job_status(job, "finished")
 
     job_results: JobResults = job.get_results()
     downloaded = job_results.download_files(
@@ -308,6 +311,177 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         probav_data = load_result_ds.read(1)
         no_data = 255
         assert np.any(probav_data != no_data)
+
+    # Verify projection metadata.
+    job_metadata = job_results.get_metadata()
+    assert job_metadata == DictSubSet(
+        {
+            "assets": {
+                "openEO_2017-11-21Z_N51E002.tif": DictSubSet(
+                    {
+                        "proj:epsg": 4326,
+                        "proj:shape": [365, 728],
+                        "proj:bbox": pytest.approx(
+                            [1.9995067, 51.0012761, 3.0020091, 52.0010318]
+                        ),
+                    }
+                ),
+                "openEO_2017-11-21Z_N51E003.tif": DictSubSet(
+                    {
+                        "proj:epsg": 4326,
+                        "proj:shape": [364, 728],
+                        "proj:bbox": pytest.approx(
+                            [2.9992625, 51.0012761, 3.9990183, 52.0010318]
+                        ),
+                    }
+                ),
+                "openEO_2017-11-21Z_N52E002.tif": DictSubSet(
+                    {
+                        "proj:epsg": 4326,
+                        "proj:shape": [365, 729],
+                        "proj:bbox": pytest.approx(
+                            [1.9995067, 51.9996585, 3.0020091, 53.0007876]
+                        ),
+                    }
+                ),
+                "openEO_2017-11-21Z_N52E003.tif": DictSubSet(
+                    {
+                        "proj:epsg": 4326,
+                        "proj:shape": [364, 729],
+                        "proj:bbox": pytest.approx(
+                            [2.9992625, 51.9996585, 3.9990183, 53.0007876]
+                        ),
+                    }
+                ),
+            },
+        }
+    )
+
+
+def assert_projection_metadata_present(metadata: dict) -> dict:
+    """Check all elements of the STAC projection metadata.
+
+    If the assert fails then include the report in the assert message so we have
+    some information to start troubleshooting.
+    """
+    report = validate_projection_metadata(metadata)
+
+    message = f"Projection metadata verification report:\n{pformat(report)}"
+    _log.info(message)
+
+    assert report[
+        "is_proj_metadata_present"
+    ], f"Projection metadata verification FAILED:\n{pformat(report)}"
+
+
+def validate_projection_metadata(metadata: dict) -> dict:
+    """Verify that some sensible projection metadata is present.
+
+    When the validation PASSES, then is_proj_metadata_present will be True.
+
+    The validation PASSES when the metadata contains a value for each of the
+    three properties epsg, bbox and shape.
+    It can be present at the top level, or at the asset level, or even at both
+    levels.
+    Or in other words, the validation FAILS when for any of the propeties
+    properties epsg, bbox and shape no value could be found at the top leval and
+    at the asset level.
+
+    Top and asset level don't necessarily exclusive each other.
+    For example a bbox could already be present at the top level,
+    while each asset also has its own different bbox, which is then also added
+    at the asset level.
+
+    :param metadata: dict with the job's metadata.
+
+    :return:
+        Dict with a report that has the structure described below.
+
+        "is_proj_metadata_present" is main information and is True when
+        the validation passes
+
+        The other elements are for logging this as a report so the integration
+        test can be more informative about why it fails.
+
+        {
+            // True if it PASSES; False if it FAILS
+            "is_proj_metadata_present": is_proj_metadata_present,
+
+            // The individual elements of the checks; where were the projection
+            // properties present or not
+            "report": {
+                "has_crs_on_top_level": has_crs_on_top_level,
+                "has_bbox_on_top_level": has_bbox_on_top_level,
+                "has_shape_on_top_level": has_shape_on_top_level,
+                "has_crs_on_assets": has_crs_on_assets,
+                "has_bbox_on_assets": has_bbox_on_assets,
+                "has_shapes_on_assets": has_shapes_on_assets
+            }
+
+            // The actual values found, for troubleshooting when the test fails.
+            "values": {
+                "crs_on_top_level": metadata.get("epsg"),
+                "bbox_on_top_level": metadata.get("bbox"),
+                "shape_on_top_level": metadata.get("proj:shape"),
+                "asset_crss": asset_crss,
+                "asset_bboxes": asset_bboxes,
+                "asset_shapes": asset_shapes
+            },
+
+        }
+    """
+    # Are projection metdata keys present at the top level (job as a whole)
+    has_crs_on_top_level = bool(metadata.get("epsg"))
+    has_bbox_on_top_level = bool(metadata.get("bbox"))
+    has_shape_on_top_level = bool(metadata.get("proj:shape"))
+
+    # Collect asset level metadata.
+    # Also used to show in report for troubleshooting.
+    assets_metadata = metadata.get("assets", {})
+    asset_crss = {
+        asset: asset_md.get("proj:epsg") for asset, asset_md in assets_metadata.items()
+    }
+    asset_bboxes = {
+        asset: asset_md.get("proj:bbox") for asset, asset_md in assets_metadata.items()
+    }
+    asset_shapes = {
+        asset: asset_md.get("proj:shape") for asset, asset_md in assets_metadata.items()
+    }
+
+    # Are the asset level metadata present.
+    has_crs_on_assets = any(asset_crss.values())
+    has_bbox_on_assets = any(asset_bboxes.values())
+    has_shapes_on_assets = any(asset_shapes.values())
+
+    # Does it pass or fail?
+    # For, now make it a bit more permissive: at least some projection
+    # properties should be present.
+    # But in the future we want to have all three properties covered.
+    is_proj_metadata_present = (
+        (has_crs_on_top_level or has_crs_on_assets)
+        or (has_bbox_on_top_level or has_bbox_on_assets)
+        or (has_shape_on_top_level or has_shapes_on_assets)
+    )
+
+    return {
+        "is_proj_metadata_present": is_proj_metadata_present,
+        "values": {
+            "crs_on_top_level": metadata.get("epsg"),
+            "bbox_on_top_level": metadata.get("bbox"),
+            "shape_on_top_level": metadata.get("proj:shape"),
+            "asset_crss": asset_crss,
+            "asset_bboxes": asset_bboxes,
+            "asset_shapes": asset_shapes,
+        },
+        "report": {
+            "has_crs_on_top_level": has_crs_on_top_level,
+            "has_bbox_on_top_level": has_bbox_on_top_level,
+            "has_shape_on_top_level": has_shape_on_top_level,
+            "has_crs_on_assets": has_crs_on_assets,
+            "has_bbox_on_assets": has_bbox_on_assets,
+            "has_shapes_on_assets": has_shapes_on_assets,
+        },
+    }
 
 
 def _poll_job_status(
@@ -336,6 +510,40 @@ def _poll_job_status(
     raise RuntimeError("reached max poll time: {e} > {m}".format(e=elapsed(), m=max_poll_time))
 
 
+def assert_job_status(job: BatchJob, expected_status: str, print_logs: bool = False):
+    """Assert that job's status is the expected status, and optionally print its logs.
+
+    If the assert fails the job ID is included in the assert message so you can
+    find the job in Kibana to see what went wrong.
+
+    For easier troubleshooting the batch jobs logs can be printed to stdout as
+    an option.
+
+    Do keep in mind that the job's logs could be long which is why we don't
+    display them by default.
+    In particular, this could make the test logs on Jenkins long and difficult to read.
+
+    :param job: the batch job to check
+    :param expected_status: which status it should have.
+    :param print_logs:
+        whether or not to print the jobs logs to stdout,
+        defaults to False
+    """
+    # If the next assert is going to fail, then first show the logs of the job.
+    actual_status = job.status()
+    message = (
+        f"job {job}: did not end with expected status '{expected_status}', "
+        + f"but ended with status '{actual_status}'"
+    )
+    if print_logs and actual_status != expected_status:
+        print(message)
+        print("logs:")
+        for log in job.logs():
+            print(log)
+
+    assert actual_status == expected_status, message
+
+
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_basic(auth_connection, api_version, tmp_path):
@@ -352,7 +560,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 
     job.start_job()
     status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
-    assert status == "finished"
+    assert_job_status(job, "finished")
 
     job_results: JobResults = job.get_results()
     job_results_metadata: dict = job_results.get_metadata()
@@ -487,7 +695,7 @@ def test_batch_job_delete_job(auth_connection):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="mean")
 
-    job = timeseries.create_job(
+    job: BatchJob = timeseries.create_job(
         out_format="GTIFF",
         job_options=batch_default_options(
             driverMemory="1600m", driverMemoryOverhead="512m"
@@ -496,10 +704,11 @@ def test_batch_job_delete_job(auth_connection):
     )
     assert job.job_id
     job.start_job()
+    _log.info(f"test_batch_job_delete_job: {job=}")
 
     # await job finished
     status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
-    assert status == "finished"
+    assert_job_status(job, "finished")
 
     def job_directory_exists(expected: bool) -> bool:
         start = time.time()
@@ -1314,6 +1523,33 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
 
     assert_geotiff_basics(load_result_output_tiff, expected_band_count=1)
 
+    # Verify projection metadata.
+    job_results: JobResults = job.get_results()
+    job_metadata = job_results.get_metadata()
+    # Save it for troubleshooting if test fails.
+    job_metadata_file = tmp_path / "job-results.json"
+    with open(job_metadata_file, "wt", encoding="utf8") as md_file:
+        json.dump(job_metadata, md_file)
+
+    # TODO: this part still fails: proj metadata at top level does not come through
+    #   Looks like API is not passing on this data in openeo-python-driver.
+    # Show some output for easier troubleshooting
+    print("Job result metadata:")
+    pprint(job_metadata)
+    try:
+        assert job_metadata == DictSubSet(
+            {
+                "epsg": 32631,
+                "proj:shape": [2140, 1694],
+                "bbox": pytest.approx([471270.0, 5657500.0, 492670.0, 5674440.0]),
+            }
+        )
+    except Exception as e:
+        _log.warning(
+            "This failed {e!r}. This part of the test is still experimental.",
+            exc_info=True,
+        )
+
 
 def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_path):
     data_cube = (auth_connection.load_collection("SENTINEL1_GRD")
@@ -1350,6 +1586,19 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
 
     output_tiff = result_asset_paths[0]
     assert_geotiff_basics(output_tiff, expected_band_count=4)  # VV, VH, mask and local_incidence_angle
+
+    # This part of the test is still experimental and might fail.
+    # Therefore we log it as a warning instead of failing the test, until we
+    # can verify that it works.
+    try:
+        # Verify projection metadata.
+        job_results: JobResults = job.get_results()
+        assert_projection_metadata_present(job_results.get_metadata())
+    except Exception as e:
+        _log.warning(
+            "This failed {e!r}. This part of the test is still experimental.",
+            exc_info=True,
+        )
 
 
 # this function checks that only up to a portion of values do not match within tolerance
@@ -1792,8 +2041,11 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
 
     output_tiff = tmp_path / "merged_batch_large.tif"
 
-    result.execute_batch(output_tiff, out_format="GTiff",
-                         title="test_load_collection_references_correct_batch_process_id")
+    job = result.execute_batch(
+        output_tiff,
+        out_format="GTiff",
+        title="test_load_collection_references_correct_batch_process_id",
+    )
 
     assert_geotiff_basics(output_tiff, expected_band_count=4)
 
@@ -1806,6 +2058,19 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
         # all bands should be different, otherwise one batch process was inadvertently re-used and the other one ignored
         for band1, band2 in itertools.combinations([sigma0_vv, sigma0_vh, gamma0_vv, gamma0_vh], 2):
             assert not np.array_equal(band1, band2)
+
+    # This part of the test is still experimental.
+    # Therefore we log it as a warning instead of failing the test, until we
+    # can verify that it works.
+    try:
+        # Verify projection metadata.
+        job_results: JobResults = job.get_results()
+        assert_projection_metadata_present(job_results.get_metadata())
+    except Exception as e:
+        _log.warning(
+            "This failed {e!r}. This part of the test is still experimental.",
+            exc_info=True,
+        )
 
 
 def test_tsservice_geometry_mean(tsservice_base_url):
