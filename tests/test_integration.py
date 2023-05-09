@@ -69,9 +69,6 @@ BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.102
 BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
 BBOX_NIEUWPOORT = _parse_bboxfinder_com("http://bboxfinder.com/#51.05,2.60,51.20,2.90")
 
-# TODO: real authentication? https://github.com/Open-EO/openeo-geopyspark-integrationtests/issues/6
-TEST_USER = "jenkins"
-TEST_PASSWORD = TEST_USER + "123"
 
 POLYGON01 = Polygon(shell=[
     # Dortmund (bbox: http://bboxfinder.com/#51.30,7.00,51.75,7.60)
@@ -1314,10 +1311,8 @@ def test_normalized_difference(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=1)
 
 
-def test_udp_crud(connection100):
-    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
-
-    toc = connection100.load_collection("TERRASCOPE_S2_TOC_V2")
+def test_udp_crud(auth_connection):
+    toc = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
     udp = toc.save_user_defined_process(user_defined_process_id='toc', public=True)
 
     udp_details = udp.describe()
@@ -1328,13 +1323,12 @@ def test_udp_crud(connection100):
 
     udp.delete()
 
-    user_udp_ids = [udp['id'] for udp in connection100.list_user_defined_processes()]
+    user_udp_ids = [udp["id"] for udp in auth_connection.list_user_defined_processes()]
 
     assert 'toc' not in user_udp_ids
 
 
-def test_udp_usage_blur(connection100, tmp_path):
-    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+def test_udp_usage_blur(auth_connection, tmp_path):
     # Store User Defined Process (UDP)
     blur = {
         "blur": {
@@ -1347,11 +1341,11 @@ def test_udp_usage_blur(connection100, tmp_path):
             "result": True,
         },
     }
-    connection100.save_user_defined_process("blur", blur)
+    auth_connection.save_user_defined_process("blur", blur)
     # Use UDP
     date = "2020-06-26"
     cube = (
-        connection100.load_collection("TERRASCOPE_S2_TOC_V2")
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
             .filter_bands(["red", "green"])
             .filter_temporal(date, date)
             .filter_bbox(**BBOX_MOL)
@@ -1363,8 +1357,7 @@ def test_udp_usage_blur(connection100, tmp_path):
     # TODO: check resulting data?
 
 
-def test_udp_usage_blur_parameter_default(connection100, tmp_path):
-    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+def test_udp_usage_blur_parameter_default(auth_connection, tmp_path):
     # Store User Defined Process (UDP)
     blur = {
         "blur": {
@@ -1377,13 +1370,13 @@ def test_udp_usage_blur_parameter_default(connection100, tmp_path):
             "result": True,
         },
     }
-    connection100.save_user_defined_process("blur", blur, parameters=[
-        Parameter("scale", description="factor", schema="number", default=0.1)
-    ])
+    auth_connection.save_user_defined_process(
+        "blur", blur, parameters=[Parameter("scale", description="factor", schema="number", default=0.1)]
+    )
     # Use UDP
     date = "2020-06-26"
     cube = (
-        connection100.load_collection("TERRASCOPE_S2_TOC_V2")
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
             .filter_bands(["red", "green"])
             .filter_temporal(date, date)
             .filter_bbox(**BBOX_MOL)
@@ -1395,8 +1388,7 @@ def test_udp_usage_blur_parameter_default(connection100, tmp_path):
     # TODO: check resulting data?
 
 
-def test_udp_usage_reduce(connection100, tmp_path):
-    connection100.authenticate_basic(TEST_USER, TEST_PASSWORD)
+def test_udp_usage_reduce(auth_connection, tmp_path):
     # Store User Defined Process (UDP)
     flatten_bands = {
         "reduce1": {
@@ -1419,7 +1411,7 @@ def test_udp_usage_reduce(connection100, tmp_path):
             "result": True,
         }
     }
-    connection100.save_user_defined_process(
+    auth_connection.save_user_defined_process(
         "flatten_bands", flatten_bands, parameters=[
             Parameter.raster_cube(name="data")
         ]
@@ -1427,7 +1419,7 @@ def test_udp_usage_reduce(connection100, tmp_path):
     # Use UDP
     date = "2020-06-26"
     cube = (
-        connection100.load_collection("TERRASCOPE_S2_TOC_V2")
+        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
             .filter_bands(["red", "green", "blue", "nir"])
             .filter_temporal(date, date)
             .filter_bbox(**BBOX_MOL)
@@ -1722,10 +1714,10 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_discard_result_suppresses_batch_job_output_file(connection):
-    connection.authenticate_basic(TEST_USER, TEST_PASSWORD)
-
-    cube = connection.load_collection("PROBAV_L3_S10_TOC_333M",bands=["NDVI"]).filter_bbox(5, 6, 52, 51, 'EPSG:4326')
+def test_discard_result_suppresses_batch_job_output_file(auth_connection):
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_333M", bands=["NDVI"]).filter_bbox(
+        5, 6, 52, 51, "EPSG:4326"
+    )
     cube = cube.process("discard_result", arguments={"data": cube})
 
     job = cube.execute_batch(max_poll_interval=BATCH_JOB_POLL_INTERVAL, title="test_discard_result_suppresses_batch_job_output_file")
