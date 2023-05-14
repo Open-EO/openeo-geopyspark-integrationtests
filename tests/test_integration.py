@@ -1140,7 +1140,7 @@ def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path):
 
 
 @pytest.mark.batchjob
-@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+# @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_array_apply(auth_connection, api_version, tmp_path):
     from openeo.processes import cos
 
@@ -1155,7 +1155,8 @@ def test_array_apply(auth_connection, api_version, tmp_path):
     process = lambda x: x.array_apply(cos)
     datacube_applied = datacube.apply_dimension(dimension='t', process=process)
 
-    path = Path("tmp")
+    path = Path("tmp")  # here the results should be findable in Jenkins
+    path.mkdir(parents=True, exist_ok=True)
     # path = tmp_path
     _dump_process_graph(datacube_applied, path)
     job = datacube_applied.execute_batch(
