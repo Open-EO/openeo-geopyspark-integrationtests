@@ -1155,7 +1155,7 @@ def test_array_apply(auth_connection, api_version, tmp_path):
     process = lambda x: x.array_apply(cos)
     datacube_applied = datacube.apply_dimension(dimension='t', process=process)
 
-    path = "tmp"
+    path = Path("tmp")
     # path = tmp_path
     _dump_process_graph(datacube_applied, path)
     job = datacube_applied.execute_batch(
