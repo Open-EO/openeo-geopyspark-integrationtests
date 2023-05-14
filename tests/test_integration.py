@@ -1138,6 +1138,36 @@ def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path):
         with rasterio.open(get_path("reference/advanced_cloud_masking_builtin.tiff")) as ref_ds:
             assert_array_approx_equal(ref_ds.read(1,masked=False), result_ds.read(1,masked=False))
 
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_array_apply(auth_connection, api_version, tmp_path):
+    from openeo.processes import cos
+
+    extentTAP4326 = {"west": 5.07, "south": 51.215, "east": 5.08, "north": 51.22, "crs": "EPSG:4326"}
+    datacube = auth_connection.load_collection(
+        "TERRASCOPE_S2_TOC_V2",
+        spatial_extent=extentTAP4326,
+        temporal_extent=["2020-03-01", "2020-03-30"],
+        bands=["B01", "B02", "B03"],
+    )
+
+    process = lambda x: x.array_apply(cos)
+    datacube_applied = datacube.apply_dimension(dimension='t', process=process)
+
+    path = "tmp"
+    # path = tmp_path
+    _dump_process_graph(datacube_applied, path)
+    job = datacube_applied.execute_batch(
+        title=os.path.basename(__file__),
+        format="netCDF",
+    )
+
+    # just save the results for manual inspection for now
+    job.get_results().download_files(path)
+    assert True
+
+
 @pytest.mark.skip(reason="Temporary skip to get tests through")
 @pytest.mark.parametrize("udf_file", [
     "udfs/udf_temporal_slope_old.py",
