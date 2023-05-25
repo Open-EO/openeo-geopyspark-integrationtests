@@ -96,7 +96,7 @@ def auth_connection(connection) -> openeo.Connection:
     _log.info(f"Extracted Jenkins service account credentials: {_redact(service_account_creds)}")
     if all(service_account_creds.values()):
         _log.info(f"Using client credentials auth with Jenkins service account: {_redact(service_account_creds)}")
-        connection.authenticate_oidc_client_credentials(**service_account_creds, store_refresh_token=False)
+        connection.authenticate_oidc_client_credentials(**service_account_creds)
         return connection
 
     # Try classic OIDC refresh tokens + device code flow:
