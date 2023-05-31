@@ -84,24 +84,11 @@ def _redact(x: Any) -> Any:
 def auth_connection(connection) -> openeo.Connection:
     """
     Fixture to authenticate the connection,
-    attempting different methods to support multiple run modes:
-    automated jenkins/CI run (client credentials), developer running locally (device flow/refresh tokens)
+    uses `authenticate_oidc`, which works by default for local development (e.g. device flow or refresh tokens)
+    but also supports (since python client version 0.18.0) client credentials auth
+    if the appropriate env vars are set (OPENEO_AUTH_METHOD, OPENEO_AUTH_CLIENT_ID, OPENEO_AUTH_CLIENT_SECRET,
+    and OPENEO_AUTH_PROVIDER_ID)
     """
-    # Try to extract Jenkins service account credentials from env (e.g. set from Jenkinsfile)
-    service_account_creds = {
-        "provider_id": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_PROVIDER_ID"),
-        "client_id": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_CLIENT_ID"),
-        "client_secret": os.environ.get("OPENEO_JENKINS_SERVICE_ACCOUNT_CLIENT_SECRET"),
-    }
-    _log.info(f"Extracted Jenkins service account credentials: {_redact(service_account_creds)}")
-    if all(service_account_creds.values()):
-        _log.info(f"Using client credentials auth with Jenkins service account: {_redact(service_account_creds)}")
-        connection.authenticate_oidc_client_credentials(**service_account_creds)
-        return connection
-
-    # Try classic OIDC refresh tokens + device code flow:
-    # allows developers to run the integration tests locally with own user.
-    _log.info("Trying auth `connection.authenticate_oidc()` with refresh tokens + device code flow")
     connection.authenticate_oidc(
         # Note the really short default max poll time to fail fast by default
         # (when nobody is watching the device code flow instructions).
