@@ -612,14 +612,14 @@ def test_batch_job_execute_batch(auth_connection, tmp_path):
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     output_file = tmp_path / "ts.json"
-    timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"), title="execute-batch")
+    job = timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"), title="execute-batch")
 
     with output_file.open("r") as f:
         data = json.load(f)
     expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-    assert sorted(data.keys()) == sorted(expected_dates)
+    assert_batch_job(job, sorted(data.keys()) == sorted(expected_dates))
     expected_schema = schema.Schema({str: [[int]]})
-    assert expected_schema.validate(data)
+    assert_batch_job(job, expected_schema.validate(data))
 
 
 @pytest.mark.batchjob
