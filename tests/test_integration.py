@@ -680,7 +680,7 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 
     # await job running
     status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'])
-    assert status == "running"
+    assert_batch_job(job, status == "running")
 
     # cancel it
     job.stop_job()
@@ -688,7 +688,7 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 
     # await job canceled
     status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
-    assert status == "canceled"
+    assert_batch_job(job, status == "canceled")
 
 
 @pytest.mark.batchjob
