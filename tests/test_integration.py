@@ -640,20 +640,20 @@ def test_batch_job_signed_urls(auth_connection, tmp_path):
 
     assets = results.get_assets()
     print("assets", assets)
-    assert len(assets) >= 1
+    assert_batch_job(job, len(assets) >= 1)
     data = None
     for asset in assets:
         # Download directly without credentials
         resp = requests.get(asset.href)
         resp.raise_for_status()
-        assert resp.status_code == 200
+        assert_batch_job(job, resp.status_code == 200)
         if asset.name.endswith(".json"):
             assert data is None
             data = resp.json()
     expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-    assert sorted(data.keys()) == sorted(expected_dates)
+    assert_batch_job(job, sorted(data.keys()) == sorted(expected_dates))
     expected_schema = schema.Schema({str: [[int]]})
-    assert expected_schema.validate(data)
+    assert_batch_job(job, expected_schema.validate(data))
 
 
 @pytest.mark.batchjob
