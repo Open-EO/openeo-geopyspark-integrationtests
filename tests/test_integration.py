@@ -65,6 +65,28 @@ def _polygon_bbox(polygon: Polygon) -> dict:
     return {"south": coords[1], "west": coords[0], "north": coords[3], "east": coords[2], "crs": "EPSG:4326"}
 
 
+def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
+    try:
+        assert assertion
+    except AssertionError as e:
+        kibana_url = f"https://kibana-infra.vgt.vito.be/app/kibana#/discover?_g=(filters:!(),refreshInterval:" \
+                     f"(pause:!t,value:0),time:(from:now-7d,to:now))&_a=(columns:!(levelname),filters:!(" \
+                     f"('$state':(store:appState),meta:(alias:!n,disabled:!f," \
+                     f"index:'592a42f0-e665-11ec-8cc4-3747d5233c59',key:levelname,negate:!f,params:(query:ERROR)," \
+                     f"type:phrase),query:(match:(levelname:(query:ERROR,type:phrase)))))," \
+                     f"index:'592a42f0-e665-11ec-8cc4-3747d5233c59',interval:auto,query:(language:kuery,query:'" \
+                     f"job_id%20:%20%22{job.job_id}%22%20'),sort:!(!('@timestamp',desc)))"
+        message = f"Assertion for batch job {job} failed: {extra_message}"\
+                  f"Job status: {job.status()}" \
+                  f"Kibana logs: {kibana_url}" \
+                  f"Job error logs: {job.logs(level='ERROR')}"
+        if job.status == "FINISHED":
+            job_results = job.get_results()
+            message += f"Job metadata: {job_results.get_metadata()}"
+            message += f"Job assets: {job_results.get_assets()}"
+        raise AssertionError(message) from e
+
+
 BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.1028")
 BBOX_GENT = _parse_bboxfinder_com("http://bboxfinder.com/#51.03,3.7,51.05,3.75")
 BBOX_NIEUWPOORT = _parse_bboxfinder_com("http://bboxfinder.com/#51.05,2.60,51.20,2.90")
@@ -507,14 +529,11 @@ def _poll_job_status(
     raise RuntimeError("reached max poll time: {e} > {m}".format(e=elapsed(), m=max_poll_time))
 
 
-def assert_job_status(job: BatchJob, expected_status: str, print_logs: bool = False):
+def assert_job_status(job: BatchJob, expected_status: str):
     """Assert that job's status is the expected status, and optionally print its logs.
 
     If the assert fails the job ID is included in the assert message so you can
     find the job in Kibana to see what went wrong.
-
-    For easier troubleshooting the batch jobs logs can be printed to stdout as
-    an option.
 
     Do keep in mind that the job's logs could be long which is why we don't
     display them by default.
@@ -522,9 +541,6 @@ def assert_job_status(job: BatchJob, expected_status: str, print_logs: bool = Fa
 
     :param job: the batch job to check
     :param expected_status: which status it should have.
-    :param print_logs:
-        whether or not to print the jobs logs to stdout,
-        defaults to False
     """
     # If the next assert is going to fail, then first show the logs of the job.
     actual_status = job.status()
@@ -532,13 +548,7 @@ def assert_job_status(job: BatchJob, expected_status: str, print_logs: bool = Fa
         f"job {job}: did not end with expected status '{expected_status}', "
         + f"but ended with status '{actual_status}'"
     )
-    if print_logs and actual_status != expected_status:
-        print(message)
-        print("logs:")
-        for log in job.logs():
-            print(log)
-
-    assert actual_status == expected_status, message
+    assert_batch_job(job, actual_status == expected_status, extra_message=message)
 
 
 @pytest.mark.batchjob
