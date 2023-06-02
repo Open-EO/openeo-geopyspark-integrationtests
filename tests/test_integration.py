@@ -80,7 +80,7 @@ def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
                   f"Job status: {job.status()}" \
                   f"Kibana logs: {kibana_url}" \
                   f"Job error logs: {job.logs(level='ERROR')}"
-        if job.status == "FINISHED":
+        if job.status == "finished":
             job_results = job.get_results()
             message += f"Job metadata: {job_results.get_metadata()}"
             message += f"Job assets: {job_results.get_assets()}"
