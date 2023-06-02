@@ -576,37 +576,33 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 
     assets = job_results.get_assets()
     _log.info(f"{assets=}")
-    assert len(assets) == 1
-    assert assets[0].name.endswith(".json")
+    assert_batch_job(job, len(assets) == 1, extra_message=f"expected 1 asset, got {len(assets)}")
+    assert_batch_job(job, assets[0].name.endswith(".json"))
     data = assets[0].load_json()
     _log.info(f"{data=}")
 
     expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-    assert sorted(data.keys()) == sorted(expected_dates)
+    assert_batch_job(job, sorted(data.keys()) == sorted(expected_dates))
     expected_schema = schema.Schema({str: [[int]]})
-    assert expected_schema.validate(data)
+    assert_batch_job(job, expected_schema.validate(data))
 
     if api_version >= "1.1.0":
-        assert job_results_metadata["type"] == "Collection"
+        assert_batch_job(job, job_results_metadata["type"] == "Collection")
         job_results_stac: pystac.Collection = pystac.Collection.from_dict(
             job_results_metadata
         )
-        assert job_results_stac.extent.spatial.bboxes[0] == POLYGON01_BBOX
-        assert job_results_stac.extent.temporal.to_dict()["interval"] == [
+        assert_batch_job(job, job_results_stac.extent.spatial.bboxes[0] == POLYGON01_BBOX)
+        assert_batch_job(job, job_results_stac.extent.temporal.to_dict()["interval"] == [
             ["2017-11-01T00:00:00Z", "2017-11-21T00:00:00Z"]
-        ]
+        ])
+
     elif api_version >= "1.0.0":
-        assert job_results_metadata["type"] == "Feature"
+        assert_batch_job(job, job_results_metadata["type"] == "Feature")
         geometry = shape(job_results_metadata["geometry"])
-        assert geometry.equals_exact(POLYGON01, tolerance=0.0001)
-        assert job_results_metadata["bbox"] == POLYGON01_BBOX
-        assert (
-            job_results_metadata["properties"]["start_datetime"]
-            == "2017-11-01T00:00:00Z"
-        )
-        assert (
-            job_results_metadata["properties"]["end_datetime"] == "2017-11-21T00:00:00Z"
-        )
+        assert_batch_job(job, geometry.equals_exact(POLYGON01, tolerance=0.0001))
+        assert_batch_job(job, job_results_metadata["bbox"] == POLYGON01_BBOX)
+        assert_batch_job(job, job_results_metadata["properties"]["start_datetime"] == "2017-11-01T00:00:00Z")
+        assert_batch_job(job, job_results_metadata["properties"]["end_datetime"] == "2017-11-21T00:00:00Z")
 
 
 @pytest.mark.batchjob
