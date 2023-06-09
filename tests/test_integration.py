@@ -1,3 +1,4 @@
+import pathlib
 import subprocess
 import typing
 
@@ -38,6 +39,7 @@ from openeo.rest.job import BatchJob, JobResults
 from openeo.rest.mlmodel import MlModel
 from openeo.rest.udp import Parameter
 from openeo_driver.testing import DictSubSet
+from openeo.util import guess_format
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
 
@@ -70,7 +72,7 @@ def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
         assert assertion
     except AssertionError as e:
         kibana_url = f"https://kibana-infra.vgt.vito.be/app/kibana#/discover?_g=(filters:!(),refreshInterval:" \
-                     f"(pause:!t,value:0),time:(from:now-7d,to:now))&_a=(columns:!(levelname),filters:!(" \
+                     f"(pause:!t,value:0),time:(from:now-7d,to:now))&_a=(columns:!(message,levelname,filename),filters:!(" \
                      f"('$state':(store:appState),meta:(alias:!n,disabled:!f," \
                      f"index:'592a42f0-e665-11ec-8cc4-3747d5233c59',key:levelname,negate:!f,params:(query:ERROR)," \
                      f"type:phrase),query:(match:(levelname:(query:ERROR,type:phrase)))))," \
@@ -85,6 +87,32 @@ def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
             message += f"Job metadata: {job_results.get_metadata()}"
             message += f"Job assets: {job_results.get_assets()}"
         raise AssertionError(message) from e
+
+def execute_batch_with_error_logging(
+        cube: DataCube,
+        outputfile: Optional[Union[str, pathlib.Path]] = None,
+        out_format: Optional[str] = None,
+        *,
+        print: typing.Callable[[str], None] = print,
+        max_poll_interval: float = 60,
+        connection_retry_interval: float = 30,
+        job_options: Optional[dict] = None,
+        **format_options,):
+    if "format" in format_options and not out_format:
+        out_format = format_options["format"]  # align with 'download' call arg name
+    if not out_format and outputfile:
+        out_format = guess_format(outputfile)
+
+    job = cube.create_job(out_format = out_format, job_options = job_options, **format_options)
+    result = None
+    try:
+        result = job.run_synchronous(
+            outputfile=outputfile,
+            print=print, max_poll_interval=max_poll_interval, connection_retry_interval=connection_retry_interval
+        )
+    except openeo.rest.JobFailedException:
+        assert_batch_job(job, False, "Job failed")
+    return result
 
 
 BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.1028")
@@ -296,7 +324,8 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         spatial_extent={"west": 2, "south": 51, "east": 4, "north": 53},
     )
 
-    job = cube.execute_batch(
+    job = execute_batch_with_error_logging(
+        cube,
         out_format="GTIFF",
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         job_options=batch_default_options(driverMemoryOverhead="1G", driverMemory="1G"),
@@ -612,7 +641,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path):
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     output_file = tmp_path / "ts.json"
-    job = timeseries.execute_batch(output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"), title="execute-batch")
+    job = execute_batch_with_error_logging(timeseries, output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"), title="execute-batch")
 
     with output_file.open("r") as f:
         data = json.load(f)
@@ -628,7 +657,8 @@ def test_batch_job_signed_urls(auth_connection, tmp_path):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
-    job = timeseries.execute_batch(
+    job = execute_batch_with_error_logging(
+        timeseries,
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="512m"),
         title = "signed-urls"
@@ -1100,7 +1130,7 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
 
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
-    job = masked.execute_batch(out_file,title="diy_mask")
+    job = execute_batch_with_error_logging(masked, out_file,title="diy_mask")
     links = job.get_results().get_metadata()['links']
     _log.info(f"test_advanced_cloud_masking_diy: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
@@ -1500,7 +1530,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
 
     output_tiff = tmp_path / "test_sentinel_hub_batch_job.tif"
 
-    job = data_cube.execute_batch(output_tiff, out_format='GTiff', title="SentinelhubBatch")
+    job = execute_batch_with_error_logging(data_cube, output_tiff, out_format='GTiff', title="SentinelhubBatch")
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
     # conveniently tacked on test for load_result because it needs a batch job that won't be removed in the near future
@@ -1575,7 +1605,7 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
                        .filter_temporal(extent=["2019-10-10", "2019-10-10"])
                        .sar_backscatter(mask=True, local_incidence_angle=True, elevation_model='COPERNICUS_30'))
 
-    job = sar_backscatter.execute_batch(out_format='GTiff', title="SentinelhubSarBackscatterBatch")
+    job = execute_batch_with_error_logging(sar_backscatter, out_format='GTiff', title="SentinelhubSarBackscatterBatch")
 
     assets = job.download_results(tmp_path)
     assert len(assets) > 1  # includes original tile and CARD4L metadata
@@ -1727,7 +1757,7 @@ def test_discard_result_suppresses_batch_job_output_file(auth_connection):
     )
     cube = cube.process("discard_result", arguments={"data": cube})
 
-    job = cube.execute_batch(max_poll_interval=BATCH_JOB_POLL_INTERVAL, title="test_discard_result_suppresses_batch_job_output_file")
+    job = execute_batch_with_error_logging(cube, max_poll_interval=BATCH_JOB_POLL_INTERVAL, title="test_discard_result_suppresses_batch_job_output_file")
     assets = job.get_results().get_assets()
 
     assert len(assets) == 0, assets
@@ -2007,7 +2037,7 @@ def test_point_timeseries_from_batch_process(auth_connection):
                  .filter_temporal(extent=["2019-09-26", "2019-09-26"])
                  .aggregate_spatial(geometries, "mean"))
 
-    job = data_cube.execute_batch(title="test_point_timeseries_from_batch_process")
+    job = execute_batch_with_error_logging(data_cube, title="test_point_timeseries_from_batch_process")
 
     timeseries = job.get_results().get_assets()[0].load_json()
 
@@ -2040,7 +2070,8 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
 
     output_tiff = tmp_path / "merged_batch_large.tif"
 
-    job = result.execute_batch(
+    job = execute_batch_with_error_logging(
+        result,
         output_tiff,
         out_format="GTiff",
         title="test_load_collection_references_correct_batch_process_id",
