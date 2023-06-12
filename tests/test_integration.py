@@ -1574,10 +1574,37 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
             }
         )
     except Exception as e:
-        _log.warning(
-            "This failed {e!r}. This part of the test is still experimental.",
-            exc_info=True,
+        msg = (
+            f"This failed {e!r}. Non-blocking part of the test:  "
+            + "Expected projection metadata at item level."
         )
+        _log.warning(msg, exc_info=True)
+
+    # Second attempt: check if it is at least present at the asset level then,
+    # even though it should be at the item level.
+    try:
+        assert job_metadata == DictSubSet(
+            {
+                "assets": {
+                    "openEO_2019-10-10Z.tif": DictSubSet(
+                        {
+                            "proj:epsg": 32631,
+                            "proj:shape": [2140, 1694],
+                            "proj:bbox": pytest.approx(
+                                [471270.0, 5657500.0, 492670.0, 5674440.0]
+                            ),
+                        }
+                    )
+                }
+            }
+        )
+    except Exception as e:
+        msg = (
+            f"This failed {e!r}. Non-blocking part of the test: "
+            + "Projection metadata is not present at all, not at item level"
+            + "and also not at asset level."
+        )
+        _log.warning(msg, exc_info=True)
 
 
 def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_path):
@@ -1625,7 +1652,8 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
         assert_projection_metadata_present(job_results.get_metadata())
     except Exception as e:
         _log.warning(
-            "This failed {e!r}. This part of the test is still experimental.",
+            f"This failed {e!r}. Non-blocking part of the test: "
+            + "asset projection data was not present",
             exc_info=True,
         )
 
@@ -2098,7 +2126,8 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
         assert_projection_metadata_present(job_results.get_metadata())
     except Exception as e:
         _log.warning(
-            "This failed {e!r}. This part of the test is still experimental.",
+            f"This failed {e!r}. Non-blocking part of the test: "
+            + "asset projection data was not present",
             exc_info=True,
         )
 
