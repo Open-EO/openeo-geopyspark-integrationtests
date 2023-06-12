@@ -81,7 +81,7 @@ def _redact(x: Any) -> Any:
 # TODO #6 larger scope than "function" for this fixture?
 # TODO #6 better name for this fixture?
 @pytest.fixture
-def auth_connection(connection) -> openeo.Connection:
+def auth_connection(connection, capfd) -> openeo.Connection:
     """
     Fixture to authenticate the connection,
     uses `authenticate_oidc`, which works by default for local development (e.g. device flow or refresh tokens)
@@ -89,12 +89,13 @@ def auth_connection(connection) -> openeo.Connection:
     if the appropriate env vars are set (OPENEO_AUTH_METHOD, OPENEO_AUTH_CLIENT_ID, OPENEO_AUTH_CLIENT_SECRET,
     and OPENEO_AUTH_PROVIDER_ID)
     """
-    connection.authenticate_oidc(
-        # Note the really short default max poll time to fail fast by default
-        # (when nobody is watching the device code flow instructions).
-        max_poll_time=int(os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 1),
-        store_refresh_token=True,
-    )
+    # Temporarily disable output capturing, to make sure that the OIDC device code instructions are shown.
+    with capfd.disabled():
+        # Use a shorter max poll time by default
+        # to alleviate the default impression that the test seem to hang
+        # because of the OIDC device code poll loop.
+        max_poll_time = int(os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 30)
+        connection.authenticate_oidc(max_poll_time=max_poll_time)
     return connection
 
 
