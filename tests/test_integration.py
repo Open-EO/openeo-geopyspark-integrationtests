@@ -78,9 +78,9 @@ def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
                      f"type:phrase),query:(match:(levelname:(query:ERROR,type:phrase)))))," \
                      f"index:'592a42f0-e665-11ec-8cc4-3747d5233c59',interval:auto,query:(language:kuery,query:'" \
                      f"job_id%20:%20%22{job.job_id}%22%20'),sort:!(!('@timestamp',desc)))"
-        message = f"Assertion for batch job {job} failed: {extra_message}"\
-                  f"Job status: {job.status()}" \
-                  f"Kibana logs: {kibana_url}" \
+        message = f"Assertion for batch job {job} failed:\n {extra_message}\n"\
+                  f"Job status: {job.status()}\n" \
+                  f"Kibana logs: {kibana_url}\n\n" \
                   f"Job error logs: {job.logs(level='ERROR')}"
         if job.status == "finished":
             job_results = job.get_results()
