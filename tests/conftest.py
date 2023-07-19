@@ -7,7 +7,6 @@ import requests
 
 import openeo
 from openeo.capabilities import ComparableVersion
-from openeo_driver.util.http import requests_with_retry
 
 _log = logging.getLogger(__name__)
 
@@ -51,9 +50,7 @@ def requests_session(request) -> requests.Session:
     referencing the currently running test.
     Simplifies cross-referencing between integration tests and flask/YARN logs
     """
-    # session = requests.Session()
-    # TODO: this is temporary stop-gap retry experiment, to be disabled again
-    session = requests_with_retry(total=3, read=3, connect=3, other=3, backoff_factor=2)
+    session = requests.Session()
     session.params["_origin"] = f"{request.session.name}/{request.node.name}"
     return session
 
