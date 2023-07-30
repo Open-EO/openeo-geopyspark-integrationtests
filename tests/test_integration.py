@@ -909,12 +909,8 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
         model=job.job_id,
         dimension="bands"
     )
-    inference_job = predicted.create_job(title="test_random_forest_train_and_load_from_jobid-inference_step")
-    # Wait until job is finished
-    assert inference_job.job_id
-    inference_job.start_job()
-    status = _poll_job_status(inference_job, until=lambda s: s in ['canceled', 'finished', 'error'])
-    assert status == "finished"
+    inference_job = execute_batch_with_error_logging(predicted, out_format='GTiff', title="test_random_forest_train_and_load_from_jobid-inference_step")
+
     # Check the resulting geotiff filled with predictions.
     output_file = tmp_path / "predicted.tiff"
     inference_job.download_result(output_file)
