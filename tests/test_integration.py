@@ -2158,3 +2158,118 @@ def test_auth_jenkins_oidc_client_credentials_me(connection, auth_connection):
     me = connection.describe_account()
     _log.info(f"connection.describe_account -> {me=}")
     assert me["user_id"] == "jenkins"
+
+
+def test_masked_graph(connection, auth_connection):
+    true = True
+    false = False
+    null = None
+    process_graph = {
+        "process_graph": {
+            "load_collection_IYGCM4847Z": {
+                "process_id": "load_collection",
+                "arguments": {
+                    "bands": [
+                        "CLOUD_FRACTION"
+                    ],
+                    "id": "SENTINEL_5P_L2",
+                    "temporal_extent": [
+                        "2018-07-01",
+                        "2018-07-01"
+                    ],
+                    "spatial_extent": null
+                }
+            },
+            "load_collection_NQWJY7513T": {
+                "process_id": "load_collection",
+                "arguments": {
+                    "bands": [
+                        "NO2"
+                    ],
+                    "id": "SENTINEL_5P_L2",
+                    "temporal_extent": [
+                        "2018-07-01",
+                        "2018-07-01"
+                    ],
+                    "spatial_extent": null
+                }
+            },
+            "apply_VWMQX2169F": {
+                "process_id": "apply",
+                "arguments": {
+                    "data": {
+                        "from_node": "load_collection_IYGCM4847Z"
+                    },
+                    "process": {
+                        "process_graph": {
+                            "array_element_MJKJH5885G": {
+                                "arguments": {
+                                    "data": {
+                                        "from_parameter": "x"
+                                    },
+                                    "index": 0,
+                                    "return_nodata": false
+                                },
+                                "process_id": "array_element"
+                            },
+                            "gte_EUYAH8390G": {
+                                "arguments": {
+                                    "x": {
+                                        "from_node": "array_element_MJKJH5885G"
+                                    },
+                                    "y": 0.0001
+                                },
+                                "process_id": "gte",
+                                "result": true
+                            }
+                        }
+                    }
+                }
+            },
+            "mask_VSQIU8474G": {
+                "process_id": "mask",
+                "arguments": {
+                    "data": {
+                        "from_node": "load_collection_NQWJY7513T"
+                    },
+                    "mask": {
+                        "from_node": "apply_VWMQX2169F"
+                    }
+                }
+            },
+            "filter2": {
+                "process_id": "filter_bbox",
+                "arguments": {
+                    "data": {
+                        "from_node": "mask_VSQIU8474G"
+                    },
+                    "extent": {
+                        "east": 6,
+                        "north": 46.3,
+                        "south": 46.1,
+                        "west": 5.65
+                    }
+                }
+            },
+            "save_result_AJAUF5705Y": {
+                "process_id": "save_result",
+                "arguments": {
+                    "data": {
+                        "from_node": "filter2"
+                    },
+                    "format": "GTIFF"
+                },
+                "result": true
+            }
+        },
+        "parameters": []
+    }
+    job = connection.create_job(
+        process_graph=process_graph,
+        title="test_masked_graph",
+    )
+    job.start_and_wait()
+    logs = job.logs()
+    # We test if the data_mask is used correctly. No need to download the result here.
+    logs_filtered = list(filter(lambda s: "'data_mask': <openeogeotrellis" in s.message, logs))
+    assert len(logs_filtered) >= 1
