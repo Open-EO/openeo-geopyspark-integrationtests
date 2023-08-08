@@ -2269,7 +2269,7 @@ def test_masked_graph(connection, auth_connection):
         title="test_masked_graph",
     )
     job.start_and_wait()
-    logs = job.logs()
+    logs = job.logs(level="DEBUG")
     # We test if the data_mask is used correctly. No need to download the result here.
     logs_filtered = list(filter(lambda s: "'data_mask': <openeogeotrellis" in s.message, logs))
     assert len(logs_filtered) >= 1
