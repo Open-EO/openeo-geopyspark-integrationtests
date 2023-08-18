@@ -345,18 +345,25 @@ def test_cog_execute_batch(auth_connection, tmp_path):
     assert_geotiff_basics(arbitrary_geotiff_path, expected_band_count=1)
     assert_cog(arbitrary_geotiff_path)
 
-    # conveniently tacked on test for load_result because it needs a batch job that won't be removed in the near future
-    cube_from_result = auth_connection.load_result(
-        job.job_id,
+    # conveniently tacked on test for load_stac because it needs a batch job that won't be removed in the near future
+    job_results_stac: pystac.Collection = pystac.Collection.from_dict(
+        job.get_results().get_metadata()
+    )
+    job_results_unsigned_url = next(
+        link.href for link in job_results_stac.links if link.rel == "self"
+    )
+
+    cube_from_result = auth_connection.load_stac(
+        job_results_unsigned_url,
         spatial_extent={"west": 2.6, "south": 51.1, "east": 2.9, "north": 51.3},
     )
 
-    load_result_output_file = tmp_path / "load_result.tiff"
-    cube_from_result.download(load_result_output_file, format="GTiff")
+    load_stac_output_file = tmp_path / "load_stac.tiff"
+    cube_from_result.download(load_stac_output_file, format="GTiff")
 
-    with rasterio.open(load_result_output_file) as load_result_ds:
-        assert load_result_ds.count == 1
-        probav_data = load_result_ds.read(1)
+    with rasterio.open(load_stac_output_file) as load_stac_ds:
+        assert load_stac_ds.count == 1
+        probav_data = load_stac_ds.read(1)
         no_data = 255
         assert np.any(probav_data != no_data)
 
@@ -1529,24 +1536,23 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     job = execute_batch_with_error_logging(data_cube, output_tiff, out_format='GTiff', title="SentinelhubBatch")
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
-    # conveniently tacked on test for load_result because it needs a batch job that won't be removed in the near future
+    # conveniently tacked on test for load_stac because it needs a batch job that won't be removed in the near future
     job_results_stac: pystac.Collection = pystac.Collection.from_dict(
         job.get_results().get_metadata()
     )
     job_results_canonical_url = next(
         link.href for link in job_results_stac.links if link.rel == "canonical"
     )
-    source_id = job_results_canonical_url
 
     cube_from_result = (auth_connection
-                        .load_result(source_id, bands=['VV'])
+                        .load_stac(job_results_canonical_url, bands=['VV'])
                         .filter_bbox({'west': 2.69003, 'south': 51.169, 'east': 2.7949, 'north': 51.2006})
                         .save_result("GTiff"))
 
-    load_result_output_tiff = tmp_path / "load_result_small.tiff"
-    cube_from_result.download(load_result_output_tiff, format="GTiff")
+    load_stac_output_tiff = tmp_path / "load_stac_small.tiff"
+    cube_from_result.download(load_stac_output_tiff, format="GTiff")
 
-    assert_geotiff_basics(load_result_output_tiff, expected_band_count=1)
+    assert_geotiff_basics(load_stac_output_tiff, expected_band_count=1)
 
     # Verify projection metadata.
     job_results: JobResults = job.get_results()
