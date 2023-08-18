@@ -345,13 +345,11 @@ def test_cog_execute_batch(auth_connection, tmp_path):
     assert_geotiff_basics(arbitrary_geotiff_path, expected_band_count=1)
     assert_cog(arbitrary_geotiff_path)
 
+    job_results_metadata = job_results.get_metadata()
+
     # conveniently tacked on test for load_stac because it needs a batch job that won't be removed in the near future
-    job_results_stac: pystac.Collection = pystac.Collection.from_dict(
-        job.get_results().get_metadata()
-    )
-    job_results_unsigned_url = next(
-        link.href for link in job_results_stac.links if link.rel == "self"
-    )
+    job_results_stac: pystac.Collection = pystac.Collection.from_dict(job_results_metadata)
+    job_results_unsigned_url = next(link.href for link in job_results_stac.links if link.rel == "self")
 
     cube_from_result = auth_connection.load_stac(
         job_results_unsigned_url,
@@ -368,8 +366,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         assert np.any(probav_data != no_data)
 
     # Verify projection metadata.
-    job_metadata = job_results.get_metadata()
-    assert job_metadata == DictSubSet(
+    assert job_results_metadata == DictSubSet(
         {
             "assets": {
                 "openEO_2017-11-21Z_N51E002.tif": DictSubSet(
@@ -1536,13 +1533,11 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     job = execute_batch_with_error_logging(data_cube, output_tiff, out_format='GTiff', title="SentinelhubBatch")
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
+    job_results_metadata = job.get_results().get_metadata()
+
     # conveniently tacked on test for load_stac because it needs a batch job that won't be removed in the near future
-    job_results_stac: pystac.Collection = pystac.Collection.from_dict(
-        job.get_results().get_metadata()
-    )
-    job_results_canonical_url = next(
-        link.href for link in job_results_stac.links if link.rel == "canonical"
-    )
+    job_results_stac: pystac.Collection = pystac.Collection.from_dict(job_results_metadata)
+    job_results_canonical_url = next(link.href for link in job_results_stac.links if link.rel == "canonical")
 
     cube_from_result = (auth_connection
                         .load_stac(job_results_canonical_url, bands=['VV'])
@@ -1555,20 +1550,18 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     assert_geotiff_basics(load_stac_output_tiff, expected_band_count=1)
 
     # Verify projection metadata.
-    job_results: JobResults = job.get_results()
-    job_metadata = job_results.get_metadata()
     # Save it for troubleshooting if test fails.
-    job_metadata_file = tmp_path / "job-results.json"
-    with open(job_metadata_file, "wt", encoding="utf8") as md_file:
-        json.dump(job_metadata, md_file)
+    job_results_metadata_file = tmp_path / "job-results.json"
+    with open(job_results_metadata_file, "wt", encoding="utf8") as md_file:
+        json.dump(job_results_metadata, md_file)
 
     # TODO: this part still fails: proj metadata at top level does not come through
     #   Looks like API is not passing on this data in openeo-python-driver.
     # Show some output for easier troubleshooting
     print("Job result metadata:")
-    pprint(job_metadata)
+    pprint(job_results_metadata)
     try:
-        assert job_metadata == DictSubSet(
+        assert job_results_metadata == DictSubSet(
             {
                 "epsg": 32631,
                 "proj:shape": [2140, 1694],
@@ -1585,7 +1578,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     # Second attempt: check if it is at least present at the asset level then,
     # even though it should be at the item level.
     try:
-        assert job_metadata == DictSubSet(
+        assert job_results_metadata == DictSubSet(
             {
                 "assets": {
                     "openEO_2019-10-10Z.tif": DictSubSet(
