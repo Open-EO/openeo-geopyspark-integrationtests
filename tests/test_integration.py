@@ -194,7 +194,7 @@ def test_terrascope_download_webmerc(auth_connection, tmp_path):
 def test_aggregate_spatial_polygon(auth_connection):
     timeseries = (
         auth_connection.load_collection("PROBAV_L3_S10_TOC_333M", bands=["NDVI"])
-        .filter_temporal(start_date="2017-11-01", end_date="2017-11-21")
+        .filter_temporal(start_date="2017-11-01", end_date="2017-11-22")
         .aggregate_spatial(geometries=POLYGON01, reducer="mean")
         .execute()
     )
@@ -587,7 +587,7 @@ def assert_job_status(job: BatchJob, expected_status: str):
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_basic(auth_connection, api_version, tmp_path):
-    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-22")
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     job = timeseries.create_job(
@@ -641,7 +641,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_execute_batch(auth_connection, tmp_path):
-    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-22")
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     output_file = tmp_path / "ts.json"
@@ -658,7 +658,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path):
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_batch_job_signed_urls(auth_connection, tmp_path):
-    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
+    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-22")
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     job = execute_batch_with_error_logging(
@@ -1268,7 +1268,7 @@ def test_aggregate_spatial_timeseries(
     cube = (
         auth_connection
             .load_collection(cid)
-            .filter_temporal("2017-11-01", "2017-11-21")
+            .filter_temporal("2017-11-01", "2017-11-22")
             .filter_bbox(**bbox)
     )
     ts_mean = cube.aggregate_spatial(geometries=polygon, reducer="mean").execute()
