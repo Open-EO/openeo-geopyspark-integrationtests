@@ -626,7 +626,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
         )
         assert_batch_job(job, job_results_stac.extent.spatial.bboxes[0] == POLYGON01_BBOX)
         assert_batch_job(job, job_results_stac.extent.temporal.to_dict()["interval"] == [
-            ["2017-11-01T00:00:00Z", "2017-11-21T00:00:00Z"]
+            ["2017-11-01T00:00:00Z", "2017-11-22T00:00:00Z"]
         ])
 
     elif api_version >= "1.0.0":
@@ -635,7 +635,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
         assert_batch_job(job, geometry.equals_exact(POLYGON01, tolerance=0.0001))
         assert_batch_job(job, job_results_metadata["bbox"] == POLYGON01_BBOX)
         assert_batch_job(job, job_results_metadata["properties"]["start_datetime"] == "2017-11-01T00:00:00Z")
-        assert_batch_job(job, job_results_metadata["properties"]["end_datetime"] == "2017-11-21T00:00:00Z")
+        assert_batch_job(job, job_results_metadata["properties"]["end_datetime"] == "2017-11-22T00:00:00Z")
 
 
 @pytest.mark.batchjob
