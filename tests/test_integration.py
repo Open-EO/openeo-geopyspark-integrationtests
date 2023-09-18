@@ -1526,7 +1526,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
     data_cube = (auth_connection
                  .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
                  .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
-                 .filter_temporal(extent=["2019-10-10", "2019-10-11"]))
+                 .filter_temporal(extent=["2019-10-10", "2019-10-10"]))
 
     output_tiff = tmp_path / "test_sentinel_hub_batch_job.tif"
 
@@ -1606,7 +1606,7 @@ def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_p
     data_cube = (auth_connection.load_collection("SENTINEL1_GRD")
                  .filter_bands(["VV", "VH"])
                  .filter_bbox([2.59003, 51.069, 2.8949, 51.2206])
-                 .filter_temporal(["2019-10-10", "2019-10-11"]))
+                 .filter_temporal(["2019-10-10", "2019-10-10"]))
 
     output_tiff = tmp_path / "test_sentinel_hub_default_sar_backscatter_synchronous.tif"
     data_cube.download(output_tiff)
@@ -1624,7 +1624,7 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
                        .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"],
                                         properties={"timeliness": lambda t: t == "NRT3h"})
                        .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
-                       .filter_temporal(extent=["2019-10-10", "2019-10-11"])
+                       .filter_temporal(extent=["2019-10-10", "2019-10-10"])
                        .sar_backscatter(mask=True, local_incidence_angle=True, elevation_model='COPERNICUS_30'))
 
     job = execute_batch_with_error_logging(sar_backscatter, out_format='GTiff', title="SentinelhubSarBackscatterBatch")
@@ -1736,14 +1736,13 @@ def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tm
 
 def test_atmospheric_correction_constoverridenparams(auth_connection, api_version, tmp_path):
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
-    from_date = "2019-04-11"
-    until_date = "2019-04-12"
+    date = "2019-04-11"
     bbox=(655000,5677000,660000,5685000)
 
     l1c = (
         auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
-        .filter_temporal(from_date, until_date)
-        .filter_bbox(crs="EPSG:32631", **dict(zip(["west", "south", "east", "north"], bbox)))
+            .filter_temporal(date,date)\
+            .filter_bbox(crs="EPSG:32631", **dict(zip(["west", "south", "east", "north"], bbox)))
     )
     l2a=l1c.process(
         process_id="atmospheric_correction",
@@ -1767,10 +1766,10 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
     b4ref=xarray.open_rasterio(get_path("icor/ref_overriden_B04.tif"))
     b8ref=xarray.open_rasterio(get_path("icor/ref_overriden_B08.tif"))
 
-    compare_xarrays(result.loc[from_date, "B02"], b2ref[0].transpose("x", "y"))
-    compare_xarrays(result.loc[from_date, "B03"], b3ref[0].transpose("x", "y"))
-    compare_xarrays(result.loc[from_date, "B04"], b4ref[0].transpose("x", "y"))
-    compare_xarrays(result.loc[from_date, "B08"], b8ref[0].transpose("x", "y"))
+    compare_xarrays(result.loc[date,"B02"],b2ref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date,"B03"],b3ref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date,"B04"],b4ref[0].transpose("x","y"))
+    compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
 
 
 @pytest.mark.batchjob
@@ -2058,7 +2057,7 @@ def test_point_timeseries_from_batch_process(auth_connection):
     geometries = GeometryCollection([large_polygon, center_point])
 
     data_cube = (auth_connection.load_collection('SENTINEL2_L1C_SENTINELHUB', bands=["B04", "B03", "B02"])
-                 .filter_temporal(extent=["2019-09-26", "2019-09-27"])
+                 .filter_temporal(extent=["2019-09-26", "2019-09-26"])
                  .aggregate_spatial(geometries, "mean"))
 
     job = execute_batch_with_error_logging(data_cube, title="test_point_timeseries_from_batch_process")
@@ -2079,7 +2078,7 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
 
     collection = 'SENTINEL1_GRD'
     spatial_extent = {'west': bbox[0], 'east': bbox[2], 'south': bbox[1], 'north': bbox[3], 'crs': 'EPSG:4326'}
-    temporal_extent = ["2018-01-01", "2018-01-02"]
+    temporal_extent = ["2018-01-01", "2018-01-01"]
     bands = ["VV", "VH"]
 
     s1 = auth_connection.load_collection(collection, spatial_extent=spatial_extent, bands=bands,
