@@ -774,8 +774,8 @@ def test_batch_job_delete_job(auth_connection):
     print("deleted job")
 
     try:
-        job.describe_job()
-        pytest.fail("should have returned a 404 for a deleted job")
+        resp = job.describe_job()
+        raise RuntimeError(f"Expected 404 Not Found, but got {resp}")
     except OpenEoApiError as e:
         assert e.http_status_code == 404
 
