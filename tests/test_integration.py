@@ -773,6 +773,9 @@ def test_batch_job_delete_job(auth_connection):
     job.delete_job()
     print("deleted job")
 
+    # Wait a bit to give EJR some time to commit the deletion?
+    time.sleep(5)
+
     try:
         resp = job.describe_job()
         raise RuntimeError(f"Expected 404 Not Found, but got {resp}")
