@@ -2159,6 +2159,20 @@ def test_auth_jenkins_oidc_client_credentials_me(connection, auth_connection):
     assert me["user_id"] == "jenkins"
 
 
+def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
+    data_cube = (auth_connection
+                 .load_stac(url="https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a",
+                            spatial_extent={"east": 11.40, "north": 46.52, "south": 46.51, "west": 11.39},
+                            temporal_extent=["2022-06-02", "2022-06-03"],
+                            bands=["red", "nir"])
+                 .save_result("GTiff"))
+
+    output_tiff = tmp_path / "test_load_stac_from_stac_api.tif"
+
+    data_cube.download(output_tiff)
+    assert_geotiff_basics(output_tiff, expected_band_count=2)
+
+
 def test_half_open_temporal_interval_sentinel_hub(auth_connection):
     geometry = Polygon.from_bounds(2.7535960935391017, 51.155144424404796,
                                    2.7541402045751795, 51.15548569706354)
