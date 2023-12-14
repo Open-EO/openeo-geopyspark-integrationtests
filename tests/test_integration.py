@@ -981,8 +981,8 @@ def test_load_collection_from_disk(auth_connection, tmp_path):
             'date_regex': r".*\/S2._(\d{4})(\d{2})(\d{2})T.*"
         }
     )
-    date = "2019-04-24"
-    fapar = fapar.filter_bbox(**BBOX_NIEUWPOORT).filter_temporal(date, date)
+
+    fapar = fapar.filter_bbox(**BBOX_NIEUWPOORT).filter_temporal("2019-04-24", "2019-04-25")
 
     output_file = tmp_path / "fapar_from_disk.tiff"
     fapar.download(output_file, format="GTiff")
@@ -1624,7 +1624,7 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
                        .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"],
                                         properties={"timeliness": lambda t: t == "NRT3h"})
                        .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
-                       .filter_temporal(extent=["2019-10-10", "2019-10-10"])
+                       .filter_temporal(extent=["2019-10-10", "2019-10-11"])
                        .sar_backscatter(mask=True, local_incidence_angle=True, elevation_model='COPERNICUS_30'))
 
     job = execute_batch_with_error_logging(sar_backscatter, out_format='GTiff', title="SentinelhubSarBackscatterBatch")
@@ -2057,7 +2057,7 @@ def test_point_timeseries_from_batch_process(auth_connection):
     geometries = GeometryCollection([large_polygon, center_point])
 
     data_cube = (auth_connection.load_collection('SENTINEL2_L1C_SENTINELHUB', bands=["B04", "B03", "B02"])
-                 .filter_temporal(extent=["2019-09-26", "2019-09-26"])
+                 .filter_temporal(extent=["2019-09-26", "2019-09-27"])
                  .aggregate_spatial(geometries, "mean"))
 
     job = execute_batch_with_error_logging(data_cube, title="test_point_timeseries_from_batch_process")
@@ -2078,7 +2078,7 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
 
     collection = 'SENTINEL1_GRD'
     spatial_extent = {'west': bbox[0], 'east': bbox[2], 'south': bbox[1], 'north': bbox[3], 'crs': 'EPSG:4326'}
-    temporal_extent = ["2018-01-01", "2018-01-01"]
+    temporal_extent = ["2018-01-01", "2018-01-02"]
     bands = ["VV", "VH"]
 
     s1 = auth_connection.load_collection(collection, spatial_extent=spatial_extent, bands=bands,
