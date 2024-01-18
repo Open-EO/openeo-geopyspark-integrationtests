@@ -68,6 +68,10 @@ def _polygon_bbox(polygon: Polygon) -> dict:
 
 
 def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
+    # TODO: this helper function breaks the advanced assert handling feature of pytest because
+    #       the original compared values of the condition are lost.
+    #       Its usage often also obfuscates what is actually going wrong in the test
+    #       https://github.com/Open-EO/openeo-geopyspark-integrationtests/issues/12
     try:
         assert assertion
     except AssertionError as e:
