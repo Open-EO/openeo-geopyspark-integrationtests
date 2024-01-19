@@ -274,32 +274,29 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
 
 
 def test_ndvi_band_math(auth_connection, tmp_path, api_version):
-    # http://bboxfinder.com/#50.55,6.82,50.58,6.87
-    bbox = {
-        "west": 6.82, "south": 50.55,
-        "east": 6.87, "north": 50.58,
-        "crs": "EPSG:4326"
-    }
-    cube = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2",
-                                        bands=['TOC-B04_10M','TOC-B08_10M'])
-           .filter_temporal("2020-11-01", "2020-11-20")
-           .filter_bbox(**bbox)
+    # http://bboxfinder.com/#51.20,5.00,51.23,5.05
+    bbox = {"west": 5.00, "south": 51.20, "east": 5.05, "north": 51.23}
+    cube = auth_connection.load_collection(
+        "TERRASCOPE_S2_TOC_V2",
+        temporal_extent=("2023-11-01", "2023-11-20"),
+        spatial_extent=bbox,
+        bands=["TOC-B04_10M", "TOC-B08_10M"],
     )
+
     # cube.download(tmp_path / "cube.tiff", format="GTIFF")
 
     red = cube.band("TOC-B04_10M")
     nir = cube.band("TOC-B08_10M")
     ndvi = (nir - red) / (red + nir)
-    ndvi = ndvi.mean_time()
+    ndvi = ndvi.reduce_temporal("mean")
 
     out_file = tmp_path / "ndvi.tiff"
     ndvi.download(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file,min_height=40, expected_shape=(1, 344, 365))
+    assert_geotiff_basics(out_file, min_height=40, expected_shape=(1, 360, 344))
     with rasterio.open(out_file) as ds:
         x = ds.read(1)
-        assert 0.08 < np.nanmin(x, axis=None)
-        assert np.nanmax(x, axis=None) < 0.67
+        assert np.nanmin(x, axis=None) == pytest.approx(0.0183, abs=0.01)
+        assert np.nanmax(x, axis=None) == pytest.approx(0.456, abs=0.01)
         assert np.isnan(x).sum(axis=None) == 0
 
 
