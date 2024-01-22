@@ -1,7 +1,6 @@
+import datetime as dt
 import pathlib
-import subprocess
 import typing
-
 import itertools
 import json
 import logging
@@ -28,8 +27,6 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_
 import pystac
 from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
 from shapely.geometry.base import BaseGeometry
-import hvac
-import hvac.utils
 
 import openeo
 from openeo.rest.connection import OpenEoApiError
@@ -350,6 +347,10 @@ def test_cog_execute_batch(auth_connection, tmp_path):
 
     # conveniently tacked on test for load_stac because it needs a batch job that won't be removed in the near future
     job_results_stac: pystac.Collection = pystac.Collection.from_dict(job_results_metadata)
+    assert job_results_stac.extent.spatial.bboxes == [[2, 51, 4, 53]]
+    assert job_results_stac.extent.temporal.intervals == [[dt.datetime(2017, 11, 21, tzinfo=dt.timezone.utc),
+                                                           dt.datetime(2017, 11, 21, tzinfo=dt.timezone.utc)]]
+
     job_results_unsigned_url = next(link.href for link in job_results_stac.links if link.rel == "self")
 
     cube_from_result = auth_connection.load_stac(
