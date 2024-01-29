@@ -2158,7 +2158,7 @@ def test_auth_jenkins_oidc_client_credentials_me(connection, auth_connection):
     # TODO: skip this test automatically when not running in Jenkins context?
     me = connection.describe_account()
     _log.info(f"connection.describe_account -> {me=}")
-    assert me["user_id"] == "jenkins"
+    assert me["user_id"] == "openeo-jenkins-service-account"
 
 
 def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
