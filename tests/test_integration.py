@@ -756,6 +756,7 @@ def test_batch_job_delete_job(auth_connection):
             return time.time() - start
 
         def directory_exists() -> bool:
+            # TODO: this asssumes the machine that is running the tests has access to the job directory
             exists = (Path("/data/projects/OpenEO") / job.job_id).exists()
 
             print("job {j} directory exists ({e:.2f}s): {d}".format(j=job.job_id, e=elapsed(), d=exists))
