@@ -374,7 +374,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
                 "openEO_2017-11-21Z_N51E002.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [365, 728],
+                        "proj:shape": [728, 365],
                         "proj:bbox": pytest.approx(
                             [1.9995067, 51.0012761, 3.0020091, 52.0010318]
                         ),
@@ -383,7 +383,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
                 "openEO_2017-11-21Z_N51E003.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [364, 728],
+                        "proj:shape": [728, 364],
                         "proj:bbox": pytest.approx(
                             [2.9992625, 51.0012761, 3.9990183, 52.0010318]
                         ),
@@ -392,7 +392,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
                 "openEO_2017-11-21Z_N52E002.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [365, 729],
+                        "proj:shape": [729, 365],
                         "proj:bbox": pytest.approx(
                             [1.9995067, 51.9996585, 3.0020091, 53.0007876]
                         ),
@@ -401,7 +401,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
                 "openEO_2017-11-21Z_N52E003.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [364, 729],
+                        "proj:shape": [729, 364],
                         "proj:bbox": pytest.approx(
                             [2.9992625, 51.9996585, 3.9990183, 53.0007876]
                         ),
@@ -1567,7 +1567,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
         assert job_results_metadata == DictSubSet(
             {
                 "epsg": 32631,
-                "proj:shape": [2140, 1694],
+                "proj:shape": [1694, 2140],
                 "bbox": pytest.approx([471270.0, 5657500.0, 492670.0, 5674440.0]),
             }
         )
@@ -1587,7 +1587,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
                     "openEO_2019-10-10Z.tif": DictSubSet(
                         {
                             "proj:epsg": 32631,
-                            "proj:shape": [2140, 1694],
+                            "proj:shape": [1694, 2140],
                             "proj:bbox": pytest.approx(
                                 [471270.0, 5657500.0, 492670.0, 5674440.0]
                             ),
