@@ -2190,3 +2190,136 @@ def test_half_open_temporal_interval_sentinel_hub(auth_connection):
 
     assert "2018-06-23T00:00:00Z" not in time_series(end_date="2018-06-23")
     assert "2018-06-23T00:00:00Z" in time_series(end_date="2018-06-24")
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_ndvi_weighted_composite(auth_connection, tmp_path):
+    spatial_extent = {
+        "west": 11,
+        "south": 47,
+        "east": 11.025,
+        "north": 47.025,
+        "crs": "epsg:4326",
+    }
+    temporal_extent = ["2020-07-01", "2020-07-31"]
+
+    # Calculate the distance weight
+    scl = auth_connection.load_collection(
+        "SENTINEL2_L2A",
+        spatial_extent=spatial_extent,
+        temporal_extent=temporal_extent,
+        bands=["SCL"],
+        max_cloud_cover=70,
+    ).resample_spatial(20)
+
+    cloud_weight = scl.apply_neighborhood(
+        process=openeo.UDF.from_file(get_path("udfs/udf_distance_weight.py")),
+        size=[
+            {"dimension": "x", "unit": "px", "value": 256},
+            {"dimension": "y", "unit": "px", "value": 256},
+        ],
+        overlap=[
+            {"dimension": "x", "unit": "px", "value": 16},
+            {"dimension": "y", "unit": "px", "value": 16},
+        ],
+    )
+    cloud_weight = cloud_weight.rename_labels(
+        dimension="bands", target=["cloud_weight"]
+    )
+
+    binary = (scl == 0) | (scl == 3) | (scl == 8) | (scl == 9) | (scl == 10)
+
+    # Calculate the NDVI weight
+    from openeo.processes import clip
+
+    ndvi_bands = (
+        auth_connection.load_collection(
+            "SENTINEL2_L2A",
+            spatial_extent=spatial_extent,
+            temporal_extent=temporal_extent,
+            bands=["B04", "B08"],
+            max_cloud_cover=70,
+        )
+        .resample_spatial(20)
+        .mask(binary)
+    )
+
+    ndvi = ndvi_bands.ndvi(nir="B08", red="B04", target_band="ndvi_weight")
+    ndvi_weight = ndvi.apply(lambda x: clip(0.8 * x + 0.2, 0.2, 1))
+
+    # Aggregate the weights
+    total_weight = cloud_weight.merge_cubes(ndvi_weight)
+    total_weight = total_weight.reduce_dimension(dimension="bands", reducer="product")
+    total_weight = total_weight.add_dimension(
+        name="bands", label="total_weight", type="bands"
+    )
+
+    # Create the composite
+    from openeo.processes import array_create
+
+    def weigh_pixels(data, bands):
+        weight = data[bands - 1]
+        return array_create(
+            [data[i] * weight if i < bands - 1 else data[i] for i in range(bands)]
+        )
+
+    def normalize_pixels(data, bands):
+        weight = data[bands - 1]
+        return array_create(
+            [data[i] / weight if i < bands - 1 else data[i] for i in range(bands)]
+        )
+
+    rgb_bands = (
+        auth_connection.load_collection(
+            "SENTINEL2_L2A",
+            spatial_extent=spatial_extent,
+            temporal_extent=temporal_extent,
+            bands=["B02", "B03", "B04"],
+            max_cloud_cover=70,
+        )
+        .resample_spatial(20)
+        .mask(binary)
+    )
+
+    rgb_bands = rgb_bands.merge_cubes(total_weight)
+    rgb_bands = rgb_bands.apply_dimension(
+        dimension="bands", process=lambda data: weigh_pixels(data, 4)
+    )
+
+    monthly_rgb_bands = rgb_bands.aggregate_temporal_period("month", "sum")
+
+    composite = monthly_rgb_bands.apply_dimension(
+        dimension="bands", process=lambda data: normalize_pixels(data, 4)
+    )
+    composite = composite.filter_bands(["B02", "B03", "B04"])
+
+    job = execute_batch_with_error_logging(
+        composite,
+        out_format="GTiff",
+        title="test_ndvi_weighted_composite",
+    )
+
+    output_tiff = tmp_path / "test_ndvi_weighted_composite.tif"
+    job.download_result(output_tiff)
+
+    assert_geotiff_basics(output_tiff, expected_shape=(3, 142, 100))
+
+    with rasterio.open(output_tiff) as result_ds:
+        b02 = result_ds.read(1)
+        assert np.nanmin(b02, axis=None) == pytest.approx(47.019825, rel=0.01)
+        assert np.nanmax(b02, axis=None) == pytest.approx(2147.7554, rel=0.01)
+        assert np.nanmean(b02, axis=None) == pytest.approx(367.0197, rel=0.01)
+        assert np.isnan(b02).sum(axis=None) == 0
+
+        b03 = result_ds.read(2)
+        assert np.nanmin(b03, axis=None) == pytest.approx(81.2227, rel=0.01)
+        assert np.nanmax(b03, axis=None) == pytest.approx(2376.70, rel=0.01)
+        assert np.nanmean(b03, axis=None) == pytest.approx(641.037, rel=0.01)
+        assert np.isnan(b03).sum(axis=None) == 0
+
+        b04 = result_ds.read(3)
+        assert np.nanmin(b04, axis=None) == pytest.approx(55.9321, rel=0.01)
+        assert np.nanmax(b04, axis=None) == pytest.approx(2501.56, rel=0.01)
+        assert np.nanmean(b04, axis=None) == pytest.approx(467.925, rel=0.01)
+        assert np.isnan(b04).sum(axis=None) == 0
