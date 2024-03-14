@@ -4,31 +4,10 @@ import xarray as xr
 from scipy.ndimage import (
     distance_transform_edt,
     binary_erosion,
-    label,
-    generate_binary_structure,
 )
 from openeo.udf import XarrayDataCube
-from xarray.ufuncs import isnan as ufuncs_isnan
-
 
 def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
-
-    def sieve_filter(array, threshold):
-        # Label connected components
-        structure = generate_binary_structure(2, 1)  # 2D structure for 4-connectivity
-        labeled_array, num = label(array, structure)
-
-        component_sizes = np.bincount(labeled_array.ravel())
-
-        large_components = np.where(component_sizes > threshold)[0]
-
-        # Create a mask to keep only large components
-        mask = np.isin(labeled_array, large_components)
-
-        # Apply the mask to original array
-        sieved_array = array * mask
-
-        return sieved_array
 
     cube_array: xr.DataArray = cube.get_array()
     cube_array = cube_array.transpose("t", "bands", "y", "x")

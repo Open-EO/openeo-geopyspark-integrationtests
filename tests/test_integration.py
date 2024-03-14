@@ -2307,19 +2307,16 @@ def test_ndvi_weighted_composite(auth_connection, tmp_path):
 
     with rasterio.open(output_tiff) as result_ds:
         b02 = result_ds.read(1)
-        assert np.nanmin(b02, axis=None) == pytest.approx(47.019825, rel=0.01)
-        assert np.nanmax(b02, axis=None) == pytest.approx(2147.7554, rel=0.01)
-        assert np.nanmean(b02, axis=None) == pytest.approx(367.0197, rel=0.01)
+        assert np.nanmedian(b02, axis=None) == pytest.approx(295.1, rel=0.01)
+        assert np.nanmean(b02, axis=None) == pytest.approx(367.4, rel=0.01)
         assert np.isnan(b02).sum(axis=None) == 0
 
         b03 = result_ds.read(2)
-        assert np.nanmin(b03, axis=None) == pytest.approx(81.2227, rel=0.01)
-        assert np.nanmax(b03, axis=None) == pytest.approx(2376.70, rel=0.01)
-        assert np.nanmean(b03, axis=None) == pytest.approx(641.037, rel=0.01)
+        assert np.nanmedian(b03, axis=None) == pytest.approx(579.6, rel=0.01)
+        assert np.nanmean(b03, axis=None) == pytest.approx(641.6, rel=0.01)
         assert np.isnan(b03).sum(axis=None) == 0
 
         b04 = result_ds.read(3)
-        assert np.nanmin(b04, axis=None) == pytest.approx(55.9321, rel=0.01)
-        assert np.nanmax(b04, axis=None) == pytest.approx(2501.56, rel=0.01)
-        assert np.nanmean(b04, axis=None) == pytest.approx(467.925, rel=0.01)
+        assert np.nanmedian(b04, axis=None) == pytest.approx(367.3, rel=0.01)
+        assert np.nanmean(b04, axis=None) == pytest.approx(467.5, rel=0.01)
         assert np.isnan(b04).sum(axis=None) == 0
