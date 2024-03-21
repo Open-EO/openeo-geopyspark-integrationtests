@@ -2159,7 +2159,7 @@ def test_auth_jenkins_oidc_client_credentials_me(connection, auth_connection):
     # TODO: skip this test automatically when not running in Jenkins context?
     me = connection.describe_account()
     _log.info(f"connection.describe_account -> {me=}")
-    assert me["user_id"] == "1ff4f5cf-95cc-4bbb-ad8f-b5096d95006a"
+    assert me["user_id"] == "f689e77d-f188-40ca-b12b-3e278f0ad68f"
 
 
 def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
