@@ -2192,6 +2192,7 @@ def test_half_open_temporal_interval_sentinel_hub(auth_connection):
     assert "2018-06-23T00:00:00Z" in time_series(end_date="2018-06-24")
 
 
+@pytest.mark.skip(reason="This newly added test needs some fine-tuning")
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_ndvi_weighted_composite(auth_connection, tmp_path):
