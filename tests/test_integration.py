@@ -72,6 +72,16 @@ def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
     try:
         assert assertion
     except AssertionError as e:
+        message = log_if_failed(job, extra_message)
+        if job.status == "finished":
+            job_results = job.get_results()
+            message += f"Job metadata: {job_results.get_metadata()}"
+            message += f"Job assets: {job_results.get_assets()}"
+        raise AssertionError(message) from e
+
+
+def log_if_failed(job, extra_message=""):
+    if job.status().lower() != "finished":
         kibana_url = f"https://kibana-infra.vgt.vito.be/app/kibana#/discover?_g=(filters:!(),refreshInterval:" \
                      f"(pause:!t,value:0),time:(from:now-7d,to:now))&_a=(columns:!(message,levelname,filename),filters:!(" \
                      f"('$state':(store:appState),meta:(alias:!n,disabled:!f," \
@@ -79,15 +89,15 @@ def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
                      f"type:phrase),query:(match:(levelname:(query:ERROR,type:phrase)))))," \
                      f"index:'592a42f0-e665-11ec-8cc4-3747d5233c59',interval:auto,query:(language:kuery,query:'" \
                      f"job_id%20:%20%22{job.job_id}%22%20'),sort:!(!('@timestamp',desc)))"
-        message = f"Assertion for batch job {job} failed:\n {extra_message}\n"\
+        error_logs = job.logs(level='ERROR')
+        if len(error_logs) == 0:
+            error_logs = job.logs(level='INFO')
+        message = f"Assertion for batch job {job} failed:\n {extra_message}\n" \
                   f"Job status: {job.status()}\n" \
                   f"Kibana logs: {kibana_url}\n\n" \
-                  f"Job error logs: {job.logs(level='ERROR')}"
-        if job.status == "finished":
-            job_results = job.get_results()
-            message += f"Job metadata: {job_results.get_metadata()}"
-            message += f"Job assets: {job_results.get_assets()}"
-        raise AssertionError(message) from e
+                  f"Job error logs: {error_logs}"
+        _log.info(message)
+
 
 def execute_batch_with_error_logging(
         cube: DataCube,
@@ -111,8 +121,9 @@ def execute_batch_with_error_logging(
             outputfile=outputfile,
             print=print, max_poll_interval=max_poll_interval, connection_retry_interval=connection_retry_interval
         )
-    except openeo.rest.JobFailedException:
-        assert_batch_job(job, False, "Job failed")
+    except openeo.rest.JobFailedException as e:
+        log_if_failed(job)
+        raise e
     return result
 
 
@@ -602,7 +613,9 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 
     job.start_job()
     status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
-    assert_job_status(job, "finished")
+    log_if_failed(job)
+    assert job.status() == "finished"
+
 
     job_results: JobResults = job.get_results()
     job_results_metadata: dict = job_results.get_metadata()
