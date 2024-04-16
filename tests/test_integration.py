@@ -1364,124 +1364,188 @@ def test_normalized_difference(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=1)
 
 
-def test_udp_crud(auth_connection):
-    toc = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
-    udp = toc.save_user_defined_process(user_defined_process_id='toc', public=True)
+class TestUdp:
+    """Tests related to User-Defined Processes (UDP)"""
 
-    udp_details = udp.describe()
+    def test_udp_crud(self, auth_connection):
+        udp_id = "test_udp_crud_toc"
+        toc = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
+        udp = toc.save_user_defined_process(user_defined_process_id=udp_id, public=True)
 
-    assert udp_details['id'] == 'toc'
-    assert 'loadcollection1' in udp_details['process_graph']
-    assert udp_details['public']
+        udp_details = udp.describe()
+        assert udp_details["id"] == udp_id
+        assert "loadcollection1" in udp_details["process_graph"]
+        assert udp_details["public"] is True
 
-    udp.delete()
-
-    user_udp_ids = [udp["id"] for udp in auth_connection.list_user_defined_processes()]
-
-    assert 'toc' not in user_udp_ids
-
-
-def test_udp_usage_blur(auth_connection, tmp_path):
-    # Store User Defined Process (UDP)
-    blur = {
-        "blur": {
-            "process_id": "apply_kernel",
-            "arguments": {
-                "data": {"from_parameter": "data"},
-                "kernel": [[1, 1, 1], [1, 2, 1], [1, 1, 1]],
-                "factor": 0.1,
-            },
-            "result": True,
-        },
-    }
-    auth_connection.save_user_defined_process("blur", blur)
-    # Use UDP
-    date = "2020-06-26"
-    cube = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
-            .filter_bands(["red", "green"])
-            .filter_temporal(date, date)
-            .filter_bbox(**BBOX_MOL)
-            .process("blur", arguments={"data": THIS})
-    )
-    output_tiff = tmp_path / "mol.tiff"
-    cube.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_band_count=2)
-    # TODO: check resulting data?
+        udp.delete()
+        assert udp_id not in {udp["id"] for udp in auth_connection.list_user_defined_processes()}
 
 
-def test_udp_usage_blur_parameter_default(auth_connection, tmp_path):
-    # Store User Defined Process (UDP)
-    blur = {
-        "blur": {
-            "process_id": "apply_kernel",
-            "arguments": {
-                "data": {"from_parameter": "data"},
-                "kernel": [[1, 1, 1], [1, 2, 1], [1, 1, 1]],
-                "factor": {"from_parameter": "scale"},
-            },
-            "result": True,
-        },
-    }
-    auth_connection.save_user_defined_process(
-        "blur", blur, parameters=[Parameter("scale", description="factor", schema="number", default=0.1)]
-    )
-    # Use UDP
-    date = "2020-06-26"
-    cube = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
-            .filter_bands(["red", "green"])
-            .filter_temporal(date, date)
-            .filter_bbox(**BBOX_MOL)
-            .process("blur", arguments={"data": THIS})
-    )
-    output_tiff = tmp_path / "mol.tiff"
-    cube.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_band_count=2)
-    # TODO: check resulting data?
-
-
-def test_udp_usage_reduce(auth_connection, tmp_path):
-    # Store User Defined Process (UDP)
-    flatten_bands = {
-        "reduce1": {
-            "process_id": "reduce_dimension",
-            "arguments": {
-                "data": {"from_parameter": "data"},
-                "dimension": "bands",
-                "reducer": {
-                    "process_graph": {
-                        "mean": {
-                            "process_id": "mean",
-                            "arguments": {
-                                "data": {"from_parameter": "data"}
-                            },
-                            "result": True,
-                        }
-                    }
+    def test_udp_usage_blur(self, auth_connection, tmp_path):
+        # Store User Defined Process (UDP)
+        user_defined_process_id = "blur"
+        blur = {
+            user_defined_process_id: {
+                "process_id": "apply_kernel",
+                "arguments": {
+                    "data": {"from_parameter": "data"},
+                    "kernel": [[1, 1, 1], [1, 2, 1], [1, 1, 1]],
+                    "factor": 0.1,
                 },
+                "result": True,
             },
-            "result": True,
         }
-    }
-    auth_connection.save_user_defined_process(
-        "flatten_bands", flatten_bands, parameters=[
-            Parameter.raster_cube(name="data")
-        ]
-    )
-    # Use UDP
-    date = "2020-06-26"
-    cube = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
-            .filter_bands(["red", "green", "blue", "nir"])
-            .filter_temporal(date, date)
+        auth_connection.save_user_defined_process(user_defined_process_id, blur)
+        # Use UDP
+        cube = (
+            auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
+            .filter_bands(["red", "green"])
+            .filter_temporal("2020-06-26", "2020-06-27")
             .filter_bbox(**BBOX_MOL)
-            .process("flatten_bands", arguments={"data": THIS})
-    )
-    output_tiff = tmp_path / "mol.tiff"
-    cube.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_band_count=1)
-    # TODO: check resulting data?
+            .process(user_defined_process_id, arguments={"data": THIS})
+        )
+        output_tiff = tmp_path / "mol.tiff"
+        cube.download(output_tiff, format="GTIFF")
+        assert_geotiff_basics(output_tiff, expected_band_count=2)
+        # TODO: check resulting data?
+
+
+    def test_udp_usage_blur_parameter_default(self, auth_connection, tmp_path):
+        # Store User Defined Process (UDP)
+        user_defined_process_id = "blur"
+        blur = {
+            user_defined_process_id: {
+                "process_id": "apply_kernel",
+                "arguments": {
+                    "data": {"from_parameter": "data"},
+                    "kernel": [[1, 1, 1], [1, 2, 1], [1, 1, 1]],
+                    "factor": {"from_parameter": "scale"},
+                },
+                "result": True,
+            },
+        }
+        auth_connection.save_user_defined_process(
+            user_defined_process_id,
+            blur,
+            parameters=[Parameter("scale", description="factor", schema="number", default=0.1)],
+        )
+        # Use UDP
+        cube = (
+            auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
+            .filter_bands(["red", "green"])
+            .filter_temporal("2020-06-26", "2020-06-27")
+            .filter_bbox(**BBOX_MOL)
+            .process(user_defined_process_id, arguments={"data": THIS})
+        )
+        output_tiff = tmp_path / "mol.tiff"
+        cube.download(output_tiff, format="GTIFF")
+        assert_geotiff_basics(output_tiff, expected_band_count=2)
+        # TODO: check resulting data?
+
+
+    def test_udp_usage_reduce(self, auth_connection, tmp_path):
+        # Store User Defined Process (UDP)
+        flatten_bands = {
+            "reduce1": {
+                "process_id": "reduce_dimension",
+                "arguments": {
+                    "data": {"from_parameter": "data"},
+                    "dimension": "bands",
+                    "reducer": {
+                        "process_graph": {
+                            "mean": {
+                                "process_id": "mean",
+                                "arguments": {"data": {"from_parameter": "data"}},
+                                "result": True,
+                            }
+                        }
+                    },
+                },
+                "result": True,
+            }
+        }
+        user_defined_process_id = "flatten_bands"
+        auth_connection.save_user_defined_process(
+            user_defined_process_id, flatten_bands, parameters=[Parameter.raster_cube(name="data")]
+        )
+        # Use UDP
+        cube = (
+            auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
+            .filter_bands(["red", "green", "blue", "nir"])
+            .filter_temporal("2020-06-26", "2020-06-27")
+            .filter_bbox(**BBOX_MOL)
+            .process(user_defined_process_id, arguments={"data": THIS})
+        )
+        output_tiff = tmp_path / "mol.tiff"
+        cube.download(output_tiff, format="GTIFF")
+        assert_geotiff_basics(output_tiff, expected_band_count=1)
+        # TODO: check resulting data?
+
+    def test_udp_simple_math(self, auth_connection, tmp_path):
+        # Define UDP
+        from openeo.processes import divide, subtract, process
+
+        fahrenheit = Parameter.number("fahrenheit")
+        fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
+        auth_connection.save_user_defined_process(
+            "fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit]
+        )
+
+        # Use UDP
+        pg = process("fahrenheit_to_celsius", namespace="user", fahrenheit=50)
+        res = auth_connection.execute(pg)
+        assert res == 10.0
+
+    @pytest.mark.batchjob
+    @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+    def test_udp_simple_math_batch_job(self, auth_connection, tmp_path):
+        # Use unique UDP name (for this test)
+        udp_name = f"f2c_omxu38tkfdujeu3o0843"
+
+        # Define UDP
+        from openeo.processes import divide, subtract, process
+
+        fahrenheit = Parameter.number("fahrenheit")
+        fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
+        auth_connection.save_user_defined_process(udp_name, fahrenheit_to_celsius, parameters=[fahrenheit])
+
+        # Use UDP
+        pg = process(udp_name, namespace="user", fahrenheit=50)
+        job = auth_connection.create_job(pg, title="udp_simple_math_batch_job")
+        job.run_synchronous()
+        results = job.get_results()
+        asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
+        assert asset.load_json() == 10.0
+
+    def test_udp_public_sharing_url_namespace(self, auth_connection):
+        """Test public sharing of UDPs and backend-side resolving of URL based namespace"""
+
+        # Build and store UDP
+        f = Parameter.number("f", description="Degrees Fahrenheit.")
+        pg = {
+            "subtract1": {"arguments": {"x": {"from_parameter": "f"}, "y": 32}, "process_id": "subtract"},
+            "divide1": {
+                "arguments": {"x": {"from_node": "subtract1"}, "y": 1.8},
+                "process_id": "divide",
+                "result": True,
+            },
+        }
+        udp = auth_connection.save_user_defined_process(
+            "fahrenheit_to_celsius", process_graph=pg, parameters=[f], public=True
+        )
+
+        # "canonical" link from metadata should be public
+        metadata = udp.describe()
+        public_url = next(l for l in metadata["links"] if l["rel"] == "canonical")["href"]
+        r = requests.get(public_url)
+        assert r.status_code == 200
+
+        # Use url as namespace to use UDP
+        # TODO: this should be done by a different user
+        cube = auth_connection.datacube_from_process("fahrenheit_to_celsius", namespace=public_url, f=86)
+        celsius = cube.execute()
+        assert celsius == 30
+
 
 
 def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tmp_path):
@@ -1848,38 +1912,8 @@ def test_merge_cubes(auth_connection):
     assert_allclose([np.nan, np.nan, 0.5955337], timeseries.s2_ndvi.values, atol=0.005)
 
 
-def test_udp_simple_math(auth_connection, tmp_path):
-    # Define UDP
-    from openeo.processes import divide, subtract, process
-    fahrenheit = Parameter.number("fahrenheit")
-    fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
-    auth_connection.save_user_defined_process("fahrenheit_to_celsius", fahrenheit_to_celsius, parameters=[fahrenheit])
-
-    # Use UDP
-    pg = process("fahrenheit_to_celsius", namespace="user", fahrenheit=50)
-    res = auth_connection.execute(pg)
-    assert res == 10.0
 
 
-@pytest.mark.batchjob
-@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_udp_simple_math_batch_job(auth_connection, tmp_path):
-    # Use unique UDP name (for this test)
-    udp_name = f"f2c_omxu38tkfdujeu3o0843"
-
-    # Define UDP
-    from openeo.processes import divide, subtract, process
-    fahrenheit = Parameter.number("fahrenheit")
-    fahrenheit_to_celsius = divide(x=subtract(x=fahrenheit, y=32), y=1.8)
-    auth_connection.save_user_defined_process(udp_name, fahrenheit_to_celsius, parameters=[fahrenheit])
-
-    # Use UDP
-    pg = process(udp_name, namespace="user", fahrenheit=50)
-    job = auth_connection.create_job(pg,title="udp_simple_math_batch_job")
-    job.run_synchronous()
-    results = job.get_results()
-    asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
-    assert asset.load_json() == 10.0
 
 
 _EXPECTED_LIBRARIES = os.environ.get("OPENEO_GEOPYSPARK_INTEGRATIONTESTS_EXPECTED_LIBRARIES", "tensorflow").split(",")
@@ -1957,30 +1991,6 @@ def test_udf_support_structured_data(auth_connection, udf_code):
     assert res == [1, 4, 9, 25, 64]
 
 
-def test_udp_public_sharing_url_namespace(auth_connection):
-    """Test public sharing of UDPs and backend-side resolving of URL based namespace"""
-
-    # Build and store UDP
-    f = Parameter.number("f", description="Degrees Fahrenheit.")
-    pg = {
-        'subtract1': {'arguments': {'x': {'from_parameter': 'f'}, 'y': 32}, 'process_id': 'subtract'},
-        'divide1': {'arguments': {'x': {'from_node': 'subtract1'}, 'y': 1.8}, 'process_id': 'divide', 'result': True},
-    }
-    udp = auth_connection.save_user_defined_process(
-        "fahrenheit_to_celsius", process_graph=pg, parameters=[f], public=True
-    )
-
-    # "canonical" link from metadata should be public
-    metadata = udp.describe()
-    public_url = next(l for l in metadata["links"] if l["rel"] == "canonical")["href"]
-    r = requests.get(public_url)
-    assert r.status_code == 200
-
-    # Use url as namespace to use UDP
-    # TODO: this should be done by a different user
-    cube = auth_connection.datacube_from_process("fahrenheit_to_celsius", namespace=public_url, f=86)
-    celsius = cube.execute()
-    assert celsius == 30
 
 
 def test_validation_missing_product(connection):
