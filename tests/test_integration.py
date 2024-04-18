@@ -160,24 +160,34 @@ def batch_default_options(driverMemoryOverhead="1G", driverMemory="2G"):
         }
 
 
-def test_root(connection):
-    r = connection.get("/")
-    assert r.status_code == 200
-    capabilities = r.json()
-    assert "api_version" in capabilities
-    assert "stac_version" in capabilities
-    assert "endpoints" in capabilities
+class TestGeneral:
+    """Test for general functionality: capabilities, ...."""
 
+    def test_root(self, connection):
+        r = connection.get("/")
+        assert r.status_code == 200
+        capabilities = r.json()
+        assert "api_version" in capabilities
+        assert "stac_version" in capabilities
+        assert "endpoints" in capabilities
 
-def test_health(connection):
-    r = connection.get("/health")
-    assert r.status_code == 200
+    def test_health(self, connection):
+        r = connection.get("/health")
+        assert r.status_code == 200
 
+    def test_collections(self, connection):
+        collections = connection.list_collections()
+        product_ids = [entry.get("id") for entry in collections]
+        assert "PROBAV_L3_S10_TOC_333M" in product_ids
 
-def test_collections(connection):
-    image_collections = connection.list_collections()
-    product_ids = [entry.get("id") for entry in image_collections]
-    assert "PROBAV_L3_S10_TOC_333M" in product_ids
+    def test_auth_jenkins_oidc_client_credentials_me(self, connection, auth_connection):
+        """
+        WIP for #6: OIDC Client Credentials auth for jenkins user
+        """
+        # TODO: skip this test automatically when not running in Jenkins context?
+        me = connection.describe_account()
+        _log.info(f"connection.describe_account -> {me=}")
+        assert me["user_id"] == "f689e77d-f188-40ca-b12b-3e278f0ad68f"
 
 
 def test_terrascope_download_latlon(auth_connection, tmp_path):
@@ -2174,15 +2184,6 @@ def test_tsservice_geometry_mean(tsservice_base_url):
 
     assert expected_schema.validate(time_series)
 
-
-def test_auth_jenkins_oidc_client_credentials_me(connection, auth_connection):
-    """
-    WIP for #6: OIDC Client Credentials auth for jenkins user
-    """
-    # TODO: skip this test automatically when not running in Jenkins context?
-    me = connection.describe_account()
-    _log.info(f"connection.describe_account -> {me=}")
-    assert me["user_id"] == "f689e77d-f188-40ca-b12b-3e278f0ad68f"
 
 
 def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
