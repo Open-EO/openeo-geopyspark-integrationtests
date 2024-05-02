@@ -2188,7 +2188,6 @@ def test_tsservice_geometry_mean(tsservice_base_url):
     assert expected_schema.validate(time_series)
 
 
-
 def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
     data_cube = (auth_connection
                  .load_stac(url="https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a",
@@ -2201,6 +2200,21 @@ def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
 
     data_cube.download(output_tiff)
     assert_geotiff_basics(output_tiff, expected_band_count=2)
+
+
+def test_load_stac_from_planetary_computer_stac_api(auth_connection, tmp_path):
+    data_cube = (auth_connection
+                 .load_stac("https://planetarycomputer.microsoft.com/api/stac/v1/collections/landsat-c2-l2")
+                 .filter_bbox(west=3.143622080824514, south=51.30768529127022, east=3.272047105221418,
+                              north=51.365902618479595)
+                 .filter_temporal(["2010-04-06", "2010-04-07"])
+                 .filter_bands(["TM_B3", "TM_B2", "TM_B1"])
+                 .save_result("GTiff"))
+
+    output_tiff = tmp_path / "test_load_stac_from_stac_api.tif"
+
+    data_cube.download(output_tiff)
+    assert_geotiff_basics(output_tiff, expected_band_count=3)
 
 
 def test_half_open_temporal_interval_sentinel_hub(auth_connection):
