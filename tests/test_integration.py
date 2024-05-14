@@ -835,6 +835,29 @@ def test_random_forest_load_from_http(auth_connection: openeo.Connection, tmp_pa
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_random_forest_load_from_http_results(auth_connection: openeo.Connection, tmp_path):
+    """
+    Make predictions with the random forest model using a http link to the batch job results.
+    """
+
+    topredict_xybt = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M', bands=["NDVI"],
+                                                     spatial_extent={"west": 4.785919, "east": 4.909629,
+                                                                     "south": 51.259766, "north": 51.307638},
+                                                     temporal_extent=["2017-11-01", "2017-11-01"])
+    topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension="t", reducer="mean")
+    # Make predictions with the random forest model using http link.
+    random_forest_metadata_link = "https://github.com/Open-EO/openeo-geopyspark-integrationtests/raw/master/tests/data/mlmodels/randomforest_ml_model_results.json"
+    predicted_with_link = topredict_cube_xyb.predict_random_forest(
+        model=random_forest_metadata_link,
+        dimension="bands"
+    )
+    with_link_output_file = tmp_path / "predicted_with_link.tiff"
+    predicted_with_link.download(with_link_output_file, format="GTiff")
+    assert_geotiff_basics(with_link_output_file, min_width=15, min_height=15)
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connection, tmp_path):
     # 1. Train a random forest model.
     FEATURE_COLLECTION_1 = {

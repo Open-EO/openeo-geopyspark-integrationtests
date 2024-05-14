@@ -1,0 +1,95 @@
+{
+  "assets": {
+    "randomforest.model.tar.gz": {
+      "file:size": 666,
+      "href": "https://github.com/Open-EO/openeo-geopyspark-integrationtests/raw/master/tests/data/mlmodels/randomforest.model.tar.gz",
+      "roles": [
+        "data"
+      ],
+      "title": "randomforest.model.tar.gz",
+      "type": "application/octet-stream"
+    }
+  },
+  "description": "This is an artificial results file for testing.",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          3.4,
+          51.1,
+          3.6,
+          51.2
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2018-03-01T00:00:00Z",
+          "2018-10-31T00:00:00Z"
+        ]
+      ]
+    }
+  },
+  "id": "j-57bd02e55b364f9d9c9cc919e5fd4afc",
+  "license": "proprietary",
+  "links": [
+    {
+      "href": "urn:eop:VITO:TERRASCOPE_S2_TOC_V2:S2B_20181023T105109_31UES_TOC_V200",
+      "rel": "derived_from",
+      "title": "Derived from urn:eop:VITO:TERRASCOPE_S2_TOC_V2:S2B_20181023T105109_31UES_TOC_V200",
+      "type": "application/json"
+    },
+    {
+      "href": "urn:eop:VITO:TERRASCOPE_S2_TOC_V2:S2B_20181026T110129_31UES_TOC_V200",
+      "rel": "derived_from",
+      "title": "Derived from urn:eop:VITO:TERRASCOPE_S2_TOC_V2:S2B_20181026T110129_31UES_TOC_V200",
+      "type": "application/json"
+    },
+    {
+      "href": "https://openeo-dev.vito.be/openeo/1.2/jobs/j-2403137d68e0467d81ba6f03e70f0e0e/results",
+      "rel": "self",
+      "type": "application/json"
+    },
+    {
+      "href": "https://openeo-dev.vito.be/openeo/1.2/jobs/j-2403137d68e0467d81ba6f03e70f0e0e/results/YzkwNzQyODYzMmI0NmNiNDA2ZWYwMmEwMWE0YTVkYzM0YWVkYWQzNzAzNjlkN2I5ZDVjMzE0YTNiNjY2ZmQwM0BlZ2kuZXU=/d768733e986cf6cb542f4db1c611ea9d?expires=1711449373",
+      "rel": "canonical",
+      "type": "application/json"
+    },
+    {
+      "href": "http://ceos.org/ard/files/PFS/SR/v5.0/CARD4L_Product_Family_Specification_Surface_Reflectance-v5.0.pdf",
+      "rel": "card4l-document",
+      "type": "application/pdf"
+    },
+    {
+      "href": "https://openeo-dev.vito.be/openeo/1.2/jobs/j-2403137d68e0467d81ba6f03e70f0e0e/results/items/YzkwNzQyODYzMmI0NmNiNDA2ZWYwMmEwMWE0YTVkYzM0YWVkYWQzNzAzNjlkN2I5ZDVjMzE0YTNiNjY2ZmQwM0BlZ2kuZXU=/1612fa1ac689e7052651db3ca3037e1e/ml_model_metadata.json?expires=1711449373",
+      "rel": "item",
+      "type": "application/json"
+    }
+  ],
+  "openeo:status": "finished",
+  "providers": [
+    {}
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/processing/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json"
+  ],
+  "stac_version": "1.0.0",
+  "summaries": {
+    "ml-model:architecture": [
+      "random-forest"
+    ],
+    "ml-model:learning_approach": [
+      "supervised"
+    ],
+    "ml-model:prediction_type": [
+      "classification"
+    ]
+  },
+  "title": "random_forest.py",
+  "type": "Collection"
+}
