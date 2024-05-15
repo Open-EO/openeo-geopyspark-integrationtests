@@ -2361,3 +2361,33 @@ def test_ndvi_weighted_composite(auth_connection, tmp_path):
         assert np.nanmedian(b04, axis=None) == pytest.approx(367.4, rel=0.05)
         assert np.nanmean(b04, axis=None) == pytest.approx(472.9, rel=0.05)
         assert np.isnan(b04).sum(axis=None) == 0
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_filter_by_multiple_tile_ids(auth_connection):
+    from openeo.processes import array_contains
+
+    tile_ids = ["31UES", "31UFS"]
+    properties = {"tileId": lambda tile_id: array_contains(tile_ids, tile_id)}
+
+    data_cube = (auth_connection
+                 .load_collection("SENTINEL2_L2A", properties=properties)
+                 .filter_bbox(west=4.4158740490713804, south=51.4204485519121945, east=4.4613941769140322,
+                              north=51.4639210615473885)
+                 .filter_temporal(["2024-04-24", "2024-04-25"])
+                 .filter_bands(["B04", "B03", "B02"])
+                 .save_result("GTiff"))
+
+    job = execute_batch_with_error_logging(data_cube, title="test_filter_by_multiple_tile_ids")
+
+    links = job.get_results().get_metadata()['links']
+    _log.info(f"test_filter_by_multiple_tile_ids: {links=}")
+    derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
+
+    assert len(derived_from) == 2
+
+    def matches_some_tile_id(href):
+        return any(tile_id in href for tile_id in tile_ids)
+
+    assert all(matches_some_tile_id(href) for href in derived_from)
