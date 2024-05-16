@@ -2366,6 +2366,8 @@ def test_ndvi_weighted_composite(auth_connection, tmp_path):
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_filter_by_multiple_tile_ids(auth_connection):
+    """The bbox below intersects 4 Sentinel 2 tiles: 31UES, 31UET, 31UFS and 31UFT; filtering by tile ID removes
+    31UET and 31UFT from the output and the "derived_from" links."""
     from openeo.processes import array_contains
 
     tile_ids = ["31UES", "31UFS"]
@@ -2387,7 +2389,7 @@ def test_filter_by_multiple_tile_ids(auth_connection):
 
     assert len(derived_from) == 2
 
-    def matches_some_tile_id(href):
+    def matches_expected_tile_ids(href):
         return any(tile_id in href for tile_id in tile_ids)
 
-    assert all(matches_some_tile_id(href) for href in derived_from)
+    assert all(matches_expected_tile_ids(href) for href in derived_from)
