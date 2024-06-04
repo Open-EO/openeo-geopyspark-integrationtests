@@ -615,7 +615,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 
     job = timeseries.create_job(
         job_options=batch_default_options(
-            driverMemory="1600m", driverMemoryOverhead="512m"
+            driverMemory="1600m", driverMemoryOverhead="1g"
         ),
         title="test_batch_job_basic",
     )
@@ -670,7 +670,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path):
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     output_file = tmp_path / "ts.json"
-    job = execute_batch_with_error_logging(timeseries, output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="512m"), title="execute-batch")
+    job = execute_batch_with_error_logging(timeseries, output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="1g"), title="execute-batch")
 
     with output_file.open("r") as f:
         data = json.load(f)
@@ -689,7 +689,7 @@ def test_batch_job_signed_urls(auth_connection, tmp_path):
     job = execute_batch_with_error_logging(
         timeseries,
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
-        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="512m"),
+        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1g"),
         title = "signed-urls"
     )
 
@@ -760,7 +760,7 @@ def test_batch_job_delete_job(auth_connection):
     job: BatchJob = timeseries.create_job(
         out_format="GTIFF",
         job_options=batch_default_options(
-            driverMemory="1600m", driverMemoryOverhead="512m"
+            driverMemory="1600m", driverMemoryOverhead="1g"
         ),
         title="test_batch_job_delete_job",
     )
