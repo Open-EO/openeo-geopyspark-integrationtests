@@ -373,6 +373,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
                                                            dt.datetime(2017, 11, 21, tzinfo=dt.timezone.utc)]]
 
     job_results_unsigned_url = next(link.href for link in job_results_stac.links if link.rel == "self")
+    assert job_results_unsigned_url.endswith("/results")
 
     cube_from_result = auth_connection.load_stac(
         job_results_unsigned_url,
