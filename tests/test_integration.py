@@ -2203,6 +2203,7 @@ def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
 
+@pytest.mark.skip(reason="rate-limited by MS Planetary Computer")
 def test_load_stac_from_planetary_computer_stac_api(auth_connection, tmp_path):
     data_cube = (auth_connection
                  .load_stac("https://planetarycomputer.microsoft.com/api/stac/v1/collections/landsat-c2-l2")
