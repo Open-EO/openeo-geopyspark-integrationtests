@@ -671,7 +671,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path):
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     output_file = tmp_path / "ts.json"
-    job = execute_batch_with_error_logging(timeseries, output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="1500m"), title="execute-batch")
+    job = execute_batch_with_error_logging(timeseries, output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="1800m"), title="execute-batch")
 
     with output_file.open("r") as f:
         data = json.load(f)
