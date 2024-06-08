@@ -347,7 +347,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         cube,
         out_format="GTIFF",
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
-        job_options=batch_default_options(driverMemoryOverhead="1G", driverMemory="1500m"),
+        job_options=batch_default_options(driverMemoryOverhead="1G", driverMemory="1800m"),
         tile_grid="one_degree",
         title="test_cog_execute_batch",
     )
@@ -616,7 +616,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 
     job = timeseries.create_job(
         job_options=batch_default_options(
-            driverMemory="1600m", driverMemoryOverhead="1500m"
+            driverMemory="1600m", driverMemoryOverhead="1800m"
         ),
         title="test_batch_job_basic",
     )
@@ -690,7 +690,7 @@ def test_batch_job_signed_urls(auth_connection, tmp_path):
     job = execute_batch_with_error_logging(
         timeseries,
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
-        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1500m"),
+        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
         title = "signed-urls"
     )
 
@@ -761,7 +761,7 @@ def test_batch_job_delete_job(auth_connection):
     job: BatchJob = timeseries.create_job(
         out_format="GTIFF",
         job_options=batch_default_options(
-            driverMemory="1600m", driverMemoryOverhead="1500m"
+            driverMemory="1600m", driverMemoryOverhead="1800m"
         ),
         title="test_batch_job_delete_job",
     )
