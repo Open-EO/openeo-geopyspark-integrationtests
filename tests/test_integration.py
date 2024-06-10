@@ -82,6 +82,7 @@ def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
 
 def log_if_failed(job, extra_message=""):
     if job.status().lower() != "finished":
+        # TODO #12 avoid exposing internal URLs
         kibana_url = f"https://kibana-infra.vgt.vito.be/app/kibana#/discover?_g=(filters:!(),refreshInterval:" \
                      f"(pause:!t,value:0),time:(from:now-7d,to:now))&_a=(columns:!(message,levelname,filename),filters:!(" \
                      f"('$state':(store:appState),meta:(alias:!n,disabled:!f," \
@@ -350,7 +351,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         title="test_cog_execute_batch",
     )
     _log.info(f"test_cog_execute_batch: {job=}")
-    assert_job_status(job, "finished")
+    assert job.status() == "finished"
 
     job_results: JobResults = job.get_results()
     downloaded = job_results.download_files(
@@ -572,7 +573,7 @@ def _poll_job_status(
 
     while elapsed() < max_poll_time:
         try:
-            status = job.describe_job()['status']
+            status = job.status()
         except requests.ConnectionError as e:
             print("job {j} status poll ({e:.2f}s) failed: {x}".format(j=job.job_id, e=elapsed(), x=e))
         else:
@@ -582,28 +583,6 @@ def _poll_job_status(
         time.sleep(sleep)
 
     raise RuntimeError("reached max poll time: {e} > {m}".format(e=elapsed(), m=max_poll_time))
-
-
-def assert_job_status(job: BatchJob, expected_status: str):
-    """Assert that job's status is the expected status, and optionally print its logs.
-
-    If the assert fails the job ID is included in the assert message so you can
-    find the job in Kibana to see what went wrong.
-
-    Do keep in mind that the job's logs could be long which is why we don't
-    display them by default.
-    In particular, this could make the test logs on Jenkins long and difficult to read.
-
-    :param job: the batch job to check
-    :param expected_status: which status it should have.
-    """
-    # If the next assert is going to fail, then first show the logs of the job.
-    actual_status = job.status()
-    message = (
-        f"job {job}: did not end with expected status '{expected_status}', "
-        + f"but ended with status '{actual_status}'"
-    )
-    assert_batch_job(job, actual_status == expected_status, extra_message=message)
 
 
 @pytest.mark.batchjob
@@ -769,7 +748,7 @@ def test_batch_job_delete_job(auth_connection):
 
     # await job finished
     status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
-    assert_job_status(job, "finished")
+    assert status == "finished"
 
     def job_directory_exists(expected: bool) -> bool:
         start = time.time()
