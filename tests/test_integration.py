@@ -149,6 +149,19 @@ BATCH_JOB_POLL_INTERVAL = 30
 BATCH_JOB_TIMEOUT = 60 * 60
 
 
+@pytest.fixture
+def auto_title(request) -> str:
+    """
+    Fixture to automatically generate a (batch job) title for a test based
+    on the test's file and function name.
+    """
+    title = request.node.nodeid
+    if os.environ.get("BUILD_NUMBER"):
+        title += f" build{os.environ.get('BUILD_NUMBER')}"
+    _log.info(f"Using {title=}")
+    return title
+
+
 def batch_default_options(driverMemoryOverhead="1G", driverMemory="2G"):
     return {
             "driver-memory": driverMemory,
@@ -2369,3 +2382,54 @@ def test_filter_by_multiple_tile_ids(auth_connection):
         return any(tile_id in href for tile_id in tile_ids)
 
     assert all(matches_expected_tile_ids(href) for href in derived_from)
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_udf_dependency_handling(auth_connection, auto_title, tmp_path):
+    """
+    Test automatic UDF dependency handling feature
+    """
+    cube = auth_connection.load_collection(
+        "SENTINEL2_L2A",
+        spatial_extent={"west": 4.00, "south": 51.0, "east": 4.01, "north": 51.01},
+        temporal_extent=["2023-09-01", "2023-09-10"],
+        bands=["B02"],
+    )
+    cube = cube.apply(lambda x: 0.001 * x)
+
+    udf_code = textwrap.dedent(
+        """
+        # /// script
+        # dependencies = [
+        #     "alabaster==0.7.13",  # Highest version available for Python 3.8, which is our current base runtime infra#169
+        # ]
+        # ///
+
+        import xarray
+        import alabaster
+
+        def apply_datacube(cube: xarray.DataArray, context: dict) -> xarray.DataArray:
+            _, x, y = alabaster.version.__version_info__
+            cube[{"x": x, "y": y}] = 123
+            return cube
+        """
+    )
+
+    cube = cube.apply(openeo.UDF(udf_code))
+
+    output_file = tmp_path / "result.nc"
+    job = cube.execute_batch(
+        title=auto_title,
+        outputfile=output_file,
+        job_options={"logging-threshold": "debug"},
+    )
+    assert job.status() == "finished"
+
+    ds = xarray.load_dataset(output_file)
+    # Check for value 123 at (7, 13) and other values around that
+    assert (ds["B02"].isel(x=[6, 7, 8], y=[12, 13, 14]).mean("t") == 123).values.tolist() == [
+        [False, False, False],
+        [False, True, False],
+        [False, False, False],
+    ]
