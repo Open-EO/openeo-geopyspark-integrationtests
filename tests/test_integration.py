@@ -347,7 +347,7 @@ def test_cog_synchronous(auth_connection, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_cog_execute_batch(auth_connection, tmp_path):
+def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
     cube = auth_connection.load_collection(
         "PROBAV_L3_S10_TOC_333M",
         bands = ["NDVI"],
@@ -361,7 +361,7 @@ def test_cog_execute_batch(auth_connection, tmp_path):
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         job_options=batch_default_options(driverMemoryOverhead="1G", driverMemory="1800m"),
         tile_grid="one_degree",
-        title="test_cog_execute_batch",
+        title=auto_title,
     )
     _log.info(f"test_cog_execute_batch: {job=}")
     assert job.status() == "finished"
@@ -600,15 +600,15 @@ def _poll_job_status(
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_basic(auth_connection, api_version, tmp_path):
-    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-22")
+def test_batch_job_basic(auth_connection, api_version, tmp_path, auto_title):
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_333M", bands=["NDVI"]).filter_temporal(
+        "2017-11-01", "2017-11-22"
+    )
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     job = timeseries.create_job(
-        job_options=batch_default_options(
-            driverMemory="1600m", driverMemoryOverhead="1800m"
-        ),
-        title="test_batch_job_basic",
+        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
+        title=auto_title,
     )
     assert job.job_id
 
@@ -656,12 +656,20 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_execute_batch(auth_connection, tmp_path):
-    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-22")
+def test_batch_job_execute_batch(auth_connection, tmp_path, auto_title):
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_333M", bands=["NDVI"]).filter_temporal(
+        "2017-11-01", "2017-11-22"
+    )
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
     output_file = tmp_path / "ts.json"
-    job = execute_batch_with_error_logging(timeseries, output_file, max_poll_interval=BATCH_JOB_POLL_INTERVAL, job_options=batch_default_options(driverMemory="1600m",driverMemoryOverhead="1800m"), title="execute-batch")
+    job = execute_batch_with_error_logging(
+        timeseries,
+        output_file,
+        max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
+        title=auto_title,
+    )
 
     with output_file.open("r") as f:
         data = json.load(f)
@@ -708,9 +716,10 @@ def test_batch_job_signed_urls(auth_connection, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_cancel(auth_connection, tmp_path):
-
-    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
+def test_batch_job_cancel(auth_connection, tmp_path, auto_title):
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_333M", bands=["NDVI"]).filter_temporal(
+        "2017-11-01", "2017-11-21"
+    )
     if isinstance(cube, DataCube):
         cube = cube.process("sleep", arguments={"data": cube, "seconds": 600})
     else:
@@ -720,10 +729,8 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 
     job = timeseries.create_job(
         out_format="GTIFF",
-        job_options=batch_default_options(
-            driverMemory="512m", driverMemoryOverhead="1g"
-        ),
-        title="test_batch_job_cancel",
+        job_options=batch_default_options(driverMemory="512m", driverMemoryOverhead="1g"),
+        title=auto_title,
     )
     assert job.job_id
     job.start_job()
@@ -743,17 +750,16 @@ def test_batch_job_cancel(auth_connection, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_delete_job(auth_connection):
-
-    cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-21")
+def test_batch_job_delete_job(auth_connection, auto_title):
+    cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_333M", bands=["NDVI"]).filter_temporal(
+        "2017-11-01", "2017-11-21"
+    )
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="mean")
 
     job: BatchJob = timeseries.create_job(
         out_format="GTIFF",
-        job_options=batch_default_options(
-            driverMemory="1600m", driverMemoryOverhead="1800m"
-        ),
-        title="test_batch_job_delete_job",
+        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
+        title=auto_title,
     )
     assert job.job_id
     job.start_job()
@@ -826,7 +832,7 @@ def test_random_forest_load_from_http(auth_connection: openeo.Connection, tmp_pa
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connection, tmp_path):
+def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connection, tmp_path, auto_title):
     # 1. Train a random forest model.
     FEATURE_COLLECTION_1 = {
         "type": "FeatureCollection",
@@ -854,7 +860,7 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
     predictors: DataCube = cube_xyb.aggregate_spatial(FEATURE_COLLECTION_1, reducer="mean", target_dimension="bands")
     model: MlModel = predictors.fit_class_random_forest(target=FEATURE_COLLECTION_1, num_trees=3, seed=42)
     model: MlModel = model.save_ml_model()
-    job: BatchJob = model.create_job(title="test_random_forest_train_and_load_from_jobid-training_step")
+    job: BatchJob = model.create_job(title=auto_title + " train")
     assert job.job_id
     job.start_job()
 
@@ -925,15 +931,15 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
 
     # 2. Load the model using its job id and make predictions.
 
-    topredict_xybt = auth_connection.load_collection("PROBAV_L3_S10_TOC_333M",bands=["NDVI"],
-        spatial_extent = {"west": 4.825919, "east": 4.859629, "south": 51.259766, "north": 51.307638},
-        temporal_extent = ["2017-11-01", "2017-11-01"])
-    topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
-    predicted: DataCube = topredict_cube_xyb.predict_random_forest(
-        model=job.job_id,
-        dimension="bands"
+    topredict_xybt = auth_connection.load_collection(
+        "PROBAV_L3_S10_TOC_333M",
+        bands=["NDVI"],
+        spatial_extent={"west": 4.825919, "east": 4.859629, "south": 51.259766, "north": 51.307638},
+        temporal_extent=["2017-11-01", "2017-11-01"],
     )
-    inference_job = execute_batch_with_error_logging(predicted, out_format='GTiff', title="test_random_forest_train_and_load_from_jobid-inference_step")
+    topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension="t", reducer="mean")
+    predicted: DataCube = topredict_cube_xyb.predict_random_forest(model=job.job_id, dimension="bands")
+    inference_job = execute_batch_with_error_logging(predicted, out_format="GTiff", title=auto_title + " inference")
 
     # Check the resulting geotiff filled with predictions.
     output_file = tmp_path / "predicted.tiff"
@@ -1130,7 +1136,7 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
+def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto_title):
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
     date = "2018-08-14"
@@ -1149,8 +1155,8 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path):
 
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
-    job = execute_batch_with_error_logging(masked, out_file,title="diy_mask")
-    links = job.get_results().get_metadata()['links']
+    job = execute_batch_with_error_logging(masked, out_file, title=auto_title)
+    links = job.get_results().get_metadata()["links"]
     _log.info(f"test_advanced_cloud_masking_diy: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
     _log.info(f"test_advanced_cloud_masking_diy: {derived_from=}")
@@ -1499,7 +1505,7 @@ class TestUdp:
 
     @pytest.mark.batchjob
     @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-    def test_udp_simple_math_batch_job(self, auth_connection, tmp_path):
+    def test_udp_simple_math_batch_job(self, auth_connection, tmp_path, auto_title):
         # Use unique UDP name (for this test)
         udp_name = f"f2c_omxu38tkfdujeu3o0843"
 
@@ -1512,7 +1518,7 @@ class TestUdp:
 
         # Use UDP
         pg = process(udp_name, namespace="user", fahrenheit=50)
-        job = auth_connection.create_job(pg, title="udp_simple_math_batch_job")
+        job = auth_connection.create_job(pg, title=auto_title)
         job.run_synchronous()
         results = job.get_results()
         asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
@@ -1603,15 +1609,16 @@ def test_resolution_merge(auth_connection,tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(40 * 60)
-def test_sentinel_hub_execute_batch(auth_connection, tmp_path):
-    data_cube = (auth_connection
-                 .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"])
-                 .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
-                 .filter_temporal(extent=["2019-10-10", "2019-10-10"]))
+def test_sentinel_hub_execute_batch(auth_connection, tmp_path, auto_title):
+    data_cube = (
+        auth_connection.load_collection("SENTINEL1_GAMMA0_SENTINELHUB", bands=["VV", "VH"])
+        .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
+        .filter_temporal(extent=["2019-10-10", "2019-10-10"])
+    )
 
     output_tiff = tmp_path / "test_sentinel_hub_batch_job.tif"
 
-    job = execute_batch_with_error_logging(data_cube, output_tiff, out_format='GTiff', title="SentinelhubBatch")
+    job = execute_batch_with_error_logging(data_cube, output_tiff, out_format="GTiff", title=auto_title)
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
     job_results_metadata = job.get_results().get_metadata()
@@ -1699,16 +1706,18 @@ def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_p
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path):
+def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path, auto_title):
     # FIXME: a separate filter_bands call drops the mask and local_incidence_angle bands
-    sar_backscatter = (auth_connection
-                       .load_collection('SENTINEL1_GAMMA0_SENTINELHUB', bands=["VV", "VH"],
-                                        properties={"timeliness": lambda t: t == "NRT3h"})
-                       .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
-                       .filter_temporal(extent=["2019-10-10", "2019-10-11"])
-                       .sar_backscatter(mask=True, local_incidence_angle=True, elevation_model='COPERNICUS_30'))
+    sar_backscatter = (
+        auth_connection.load_collection(
+            "SENTINEL1_GAMMA0_SENTINELHUB", bands=["VV", "VH"], properties={"timeliness": lambda t: t == "NRT3h"}
+        )
+        .filter_bbox(west=2.59003, east=2.8949, north=51.2206, south=51.069)
+        .filter_temporal(extent=["2019-10-10", "2019-10-11"])
+        .sar_backscatter(mask=True, local_incidence_angle=True, elevation_model="COPERNICUS_30")
+    )
 
-    job = execute_batch_with_error_logging(sar_backscatter, out_format='GTiff', title="SentinelhubSarBackscatterBatch")
+    job = execute_batch_with_error_logging(sar_backscatter, out_format="GTiff", title=auto_title)
 
     assets = job.download_results(tmp_path)
     assert len(assets) > 1  # includes original tile and CARD4L metadata
@@ -1855,13 +1864,13 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_discard_result_suppresses_batch_job_output_file(auth_connection):
+def test_discard_result_suppresses_batch_job_output_file(auth_connection, auto_title):
     cube = auth_connection.load_collection("PROBAV_L3_S10_TOC_333M", bands=["NDVI"]).filter_bbox(
         5, 6, 52, 51, "EPSG:4326"
     )
     cube = cube.process("discard_result", arguments={"data": cube})
 
-    job = execute_batch_with_error_logging(cube, max_poll_interval=BATCH_JOB_POLL_INTERVAL, title="test_discard_result_suppresses_batch_job_output_file")
+    job = execute_batch_with_error_logging(cube, max_poll_interval=BATCH_JOB_POLL_INTERVAL, title=auto_title)
     assets = job.get_results().get_assets()
 
     assert len(assets) == 0, assets
@@ -2077,17 +2086,19 @@ def test_aggregate_spatial_feature_collection_heterogeneous_multiple_aggregates(
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_point_timeseries_from_batch_process(auth_connection):
+def test_point_timeseries_from_batch_process(auth_connection, auto_title):
     large_polygon = Polygon.from_bounds(2.640329849675133, 49.745440618122501, 3.297496358117944, 50.317367956014152)
     center_point = large_polygon.centroid
 
     geometries = GeometryCollection([large_polygon, center_point])
 
-    data_cube = (auth_connection.load_collection('SENTINEL2_L1C_SENTINELHUB', bands=["B04", "B03", "B02"])
-                 .filter_temporal(extent=["2019-09-26", "2019-09-27"])
-                 .aggregate_spatial(geometries, "mean"))
+    data_cube = (
+        auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB", bands=["B04", "B03", "B02"])
+        .filter_temporal(extent=["2019-09-26", "2019-09-27"])
+        .aggregate_spatial(geometries, "mean")
+    )
 
-    job = execute_batch_with_error_logging(data_cube, title="test_point_timeseries_from_batch_process")
+    job = execute_batch_with_error_logging(data_cube, title=auto_title)
 
     timeseries = job.get_results().get_assets()[0].load_json()
 
@@ -2100,7 +2111,7 @@ def test_point_timeseries_from_batch_process(auth_connection):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_load_collection_references_correct_batch_process_id(auth_connection, tmp_path):
+def test_load_collection_references_correct_batch_process_id(auth_connection, tmp_path, auto_title):
     bbox = [2.640329849675133, 49.745440618122501, 3.297496358117944, 50.317367956014152]
 
     collection = 'SENTINEL1_GRD'
@@ -2124,7 +2135,7 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
         result,
         output_tiff,
         out_format="GTiff",
-        title="test_load_collection_references_correct_batch_process_id",
+        title=auto_title,
     )
 
     assert_geotiff_basics(output_tiff, expected_band_count=4)
@@ -2224,7 +2235,7 @@ def test_half_open_temporal_interval_sentinel_hub(auth_connection):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_ndvi_weighted_composite(auth_connection, tmp_path):
+def test_ndvi_weighted_composite(auth_connection, tmp_path, auto_title):
     spatial_extent = {
         "west": 11,
         "south": 47,
@@ -2327,7 +2338,7 @@ def test_ndvi_weighted_composite(auth_connection, tmp_path):
     job = execute_batch_with_error_logging(
         composite,
         out_format="GTiff",
-        title="test_ndvi_weighted_composite",
+        title=auto_title,
     )
 
     output_tiff = tmp_path / "test_ndvi_weighted_composite.tif"
@@ -2354,7 +2365,7 @@ def test_ndvi_weighted_composite(auth_connection, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_filter_by_multiple_tile_ids(auth_connection):
+def test_filter_by_multiple_tile_ids(auth_connection, auto_title):
     """The bbox below intersects 4 Sentinel 2 tiles: 31UES, 31UET, 31UFS and 31UFT; filtering by tile ID removes
     31UET and 31UFT from the output and the "derived_from" links."""
     from openeo.processes import array_contains
@@ -2362,17 +2373,19 @@ def test_filter_by_multiple_tile_ids(auth_connection):
     tile_ids = ["31UES", "31UFS"]
     properties = {"tileId": lambda tile_id: array_contains(tile_ids, tile_id)}
 
-    data_cube = (auth_connection
-                 .load_collection("SENTINEL2_L2A", properties=properties)
-                 .filter_bbox(west=4.4158740490713804, south=51.4204485519121945, east=4.4613941769140322,
-                              north=51.4639210615473885)
-                 .filter_temporal(["2024-04-24", "2024-04-25"])
-                 .filter_bands(["B04", "B03", "B02"])
-                 .save_result("GTiff"))
+    data_cube = (
+        auth_connection.load_collection("SENTINEL2_L2A", properties=properties)
+        .filter_bbox(
+            west=4.4158740490713804, south=51.4204485519121945, east=4.4613941769140322, north=51.4639210615473885
+        )
+        .filter_temporal(["2024-04-24", "2024-04-25"])
+        .filter_bands(["B04", "B03", "B02"])
+        .save_result("GTiff")
+    )
 
-    job = execute_batch_with_error_logging(data_cube, title="test_filter_by_multiple_tile_ids")
+    job = execute_batch_with_error_logging(data_cube, title=auto_title)
 
-    links = job.get_results().get_metadata()['links']
+    links = job.get_results().get_metadata()["links"]
     _log.info(f"test_filter_by_multiple_tile_ids: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
 
