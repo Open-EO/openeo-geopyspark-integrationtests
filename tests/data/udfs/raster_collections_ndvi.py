@@ -10,7 +10,4 @@ def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
     nir = array.sel(bands="TOC-B08_10M")
     ndvi = (nir - red) / (nir + red)
 
-    import os
-    statinfo = os.stat("/data/users/Public")
-    print(statinfo)
     return XarrayDataCube(ndvi)

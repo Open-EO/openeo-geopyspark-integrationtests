@@ -272,15 +272,13 @@ def test_histogram_timeseries(auth_connection):
     "udfs/raster_collections_ndvi.py",
 ])
 def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
-    udf_code = read_data(udf_file)
-
     cube = (
         auth_connection.load_collection('TERRASCOPE_S2_TOC_V2',bands=['TOC-B04_10M','TOC-B08_10M'])
             .filter_temporal(start_date="2020-11-05", end_date="2020-11-05")
             .filter_bbox(west=761104, east=763281, south=6543830, north=6544655, crs="EPSG:3857")
     )
     # cube.download(tmp_path / "cube.tiff", format="GTIFF")
-    res = cube.reduce_bands_udf(udf_code)
+    res = cube.reduce_bands(reducer=openeo.UDF.from_file(get_path(udf_file)))
 
     out_file = tmp_path / "ndvi-udf.tiff"
     res.download(out_file, format="GTIFF")
@@ -978,6 +976,7 @@ def test_create_wtms_service(auth_connection):
     assert "<Capabilities" in get_capabilities
     assert wmts_url in get_capabilities
 
+
 @pytest.mark.skip(reason="Temporary skip to get tests through")
 @pytest.mark.parametrize("udf_file", [
     "udfs/smooth_savitsky_golay_old.py",
@@ -988,14 +987,12 @@ def test_ep3048_sentinel1_udf(auth_connection, udf_file):
     N, E, S, W = (-4.740, -55.695, -4.745, -55.7)
     polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
 
-    udf_code = read_data(udf_file)
-
     ts = (
         auth_connection.load_collection("SENTINEL1_GAMMA0_SENTINELHUB")
         .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
         .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
         .filter_bands([0])
-        .apply_dimension(udf_code, runtime="Python")
+        .apply_dimension(process=openeo.UDF.from_file(get_path(udf_file)))
         .aggregate_spatial(geometries=polygon, reducer="mean")
         .execute()
     )
@@ -1225,14 +1222,12 @@ def test_reduce_temporal_udf(auth_connection, tmp_path, udf_file):
             .filter_bbox(**bbox)
     )
 
-    udf_code = read_data(udf_file)
-    print(udf_code)
-
-    trend = cube.reduce_temporal_udf(udf_code, runtime="Python", version="latest")
+    trend = cube.reduce_temporal(reducer=openeo.UDF.from_file(get_path(udf_file)))
 
     output_file = tmp_path / "trend.tiff"
     trend.download(output_file, format="GTIFF")
     assert_geotiff_basics(output_file, expected_band_count=12,min_height=48, min_width=140)
+
 
 @pytest.mark.skip(reason="Custom processes will be tested separately")
 @pytest.mark.requires_custom_processes
