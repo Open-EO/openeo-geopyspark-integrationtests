@@ -681,7 +681,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path, auto_title):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_batch_job_signed_urls(auth_connection, tmp_path):
+def test_batch_job_signed_urls(auth_connection, tmp_path, auto_title):
     cube = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"]).filter_temporal("2017-11-01", "2017-11-22")
     timeseries = cube.aggregate_spatial(geometries=POLYGON01, reducer="median")
 
@@ -689,7 +689,7 @@ def test_batch_job_signed_urls(auth_connection, tmp_path):
         timeseries,
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
-        title = "signed-urls"
+        title=auto_title,
     )
 
     results = job.get_results()
