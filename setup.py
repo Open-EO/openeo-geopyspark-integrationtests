@@ -15,7 +15,7 @@ setup(
         "openeo>=0.18.0",
         "openeo_driver>=0.39.1a1.*",
         "pytest-xdist",
-        "xarray<2022.6.0",
+        "xarray>=2022.0.0",
         "pyproj",
         "h5netcdf",
         "geopandas",
