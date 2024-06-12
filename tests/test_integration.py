@@ -22,6 +22,7 @@ import schema
 import shapely.geometry
 import shapely.ops
 import xarray
+import numpy
 from numpy.ma.testutils import assert_array_approx_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 import pystac
@@ -1743,14 +1744,25 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path, a
         )
 
 
-# this function checks that only up to a portion of values do not match within tolerance
-# there always are few pixels with reflections, ... etc on images which is sensitive to very small changes in the code
-def compare_xarrays(xa1,xa2,max_nonmatch_ratio=0.01, tolerance=1.e-6):
-    np.testing.assert_allclose(xa1.shape,xa2.shape)
-    nmax=xa1.shape[-1]*xa1.shape[-2]*max_nonmatch_ratio
-    diff=xarray.ufuncs.fabs(xa1-xa2)>tolerance  # TODO: replace with numpy's ufuncs and uncap xarray
-    assert(diff.where(diff).count()<=nmax)
-    np.testing.assert_allclose(xa2.where(~diff), xa2.where(~diff), rtol=0., atol=tolerance, equal_nan=True)
+def compare_xarrays(
+    xa1: xarray.DataArray, xa2: xarray.DataArray, max_nonmatch_ratio: float = 0.01, tolerance: float = 1.0e-6
+):
+    """
+    this function checks that only up to a portion of values do not match within tolerance
+    there always are few pixels with reflections, ... etc on images which is sensitive to very small changes in the code
+    """
+    # TODO: this helper is duplicated in CDSE integration tests. Should be moved to a shared location.
+    assert xa1.shape == xa2.shape
+    significantly_different = numpy.abs(xa1 - 1.0 * xa2) > tolerance
+    assert significantly_different.mean().item() <= max_nonmatch_ratio
+    np.testing.assert_allclose(
+        xa2.where(~significantly_different),
+        xa2.where(~significantly_different),
+        rtol=0,
+        atol=tolerance,
+        equal_nan=True,
+    )
+
 
 @pytest.mark.skip(reason="Temporary skip to get tests through")
 def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, tmp_path):
