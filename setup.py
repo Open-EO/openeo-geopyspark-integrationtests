@@ -13,7 +13,7 @@ setup(
         "pytest-timeout",
         "shapely",
         "openeo>=0.18.0",
-        "openeo_driver>=0.39.1a1.*",
+        "openeo_driver>=0.39.1.dev",
         "pytest-xdist",
         "xarray>=2022.0.0",
         "pyproj",
