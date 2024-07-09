@@ -1756,7 +1756,7 @@ def compare_xarrays(
     significantly_different = numpy.abs(xa1 - 1.0 * xa2) > tolerance
     assert significantly_different.mean().item() <= max_nonmatch_ratio
     np.testing.assert_allclose(
-        xa2.where(~significantly_different),
+        xa1.where(~significantly_different),
         xa2.where(~significantly_different),
         rtol=0,
         atol=tolerance,
