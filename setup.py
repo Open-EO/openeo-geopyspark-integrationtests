@@ -12,7 +12,7 @@ setup(
         "schema",
         "pytest-timeout",
         "shapely",
-        "openeo>=0.18.0",
+        "openeo>=0.31.0.a2.dev",  # TODO: drop ".a2.dev" suffix once openeo 0.31.0 is released
         "openeo_driver>=0.39.1.dev",
         "pytest-xdist",
         "xarray>=2022.0.0",
@@ -21,5 +21,8 @@ setup(
         "geopandas",
         "pystac>=1.0.0",
         "hvac>=1.0.2",
+        "netCDF4",
+        "rioxarray",
+        "cftime",
     ],
 )

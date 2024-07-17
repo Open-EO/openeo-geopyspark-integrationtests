@@ -36,6 +36,7 @@ from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.job import BatchJob, JobResults
 from openeo.rest.mlmodel import MlModel
 from openeo.rest.udp import Parameter
+import openeo.testing.results
 from openeo_driver.testing import DictSubSet
 from openeo.util import guess_format
 from .cloudmask import create_advanced_mask, create_simple_mask
@@ -156,6 +157,7 @@ def auto_title(request) -> str:
     Fixture to automatically generate a (batch job) title for a test based
     on the test's file and function name.
     """
+    # TODO: internal autoincrement to automatically return different title suffix on each call (starting with second call within same test)
     title = request.node.nodeid
     if os.environ.get("BUILD_NUMBER"):
         title += f" build{os.environ.get('BUILD_NUMBER')}"
@@ -1836,17 +1838,16 @@ def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tm
     compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
 
 
-def test_atmospheric_correction_constoverridenparams(auth_connection, api_version, tmp_path):
+def test_atmospheric_correction_const_overridden_params(auth_connection, api_version, tmp_path):
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
-    bbox=(655000,5677000,660000,5685000)
+    spatial_extent = {"west": 655000, "east": 660000, "south": 5677000, "north": 5685000, "crs": 32631}
+    bands = ["B02", "B03", "B04", "B08"]
 
-    l1c = (
-        auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
-            .filter_temporal(date,date)\
-            .filter_bbox(crs="EPSG:32631", **dict(zip(["west", "south", "east", "north"], bbox)))
+    l1c = auth_connection.load_collection(
+        "SENTINEL2_L1C_SENTINELHUB", temporal_extent=date, spatial_extent=spatial_extent, bands=bands
     )
-    l2a=l1c.process(
+    l2a = l1c.process(
         process_id="atmospheric_correction",
         arguments={
             "data": THIS,
@@ -1859,19 +1860,12 @@ def test_atmospheric_correction_constoverridenparams(auth_connection, api_versio
             "cwv" : 2.0,
         }
     )
-    output = tmp_path / "icorvalidation_overriden.json"
-    l2a.download(output,format="json")
+    output = tmp_path / "result.nc"
+    l2a.download(output)
 
-    result=datacube_from_file(output,fmt="json").get_array()
-    b2ref=xarray.open_rasterio(get_path("icor/ref_overriden_B02.tif"))
-    b3ref=xarray.open_rasterio(get_path("icor/ref_overriden_B03.tif"))
-    b4ref=xarray.open_rasterio(get_path("icor/ref_overriden_B04.tif"))
-    b8ref=xarray.open_rasterio(get_path("icor/ref_overriden_B08.tif"))
-
-    compare_xarrays(result.loc[date,"B02"],b2ref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date,"B03"],b3ref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date,"B04"],b4ref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
+    openeo.testing.results.assert_xarray_allclose(
+        actual=output, expected=get_path("reference/test_atmospheric_correction_const_overridden_params.nc")
+    )
 
 
 @pytest.mark.batchjob
