@@ -1921,7 +1921,7 @@ def test_merge_cubes(auth_connection):
     # apply filters
     datacube = datacube.filter_temporal(startdate, enddate)#.filter_bbox(**extent)
     datacube.download("merged.nc", format="NetCDF", options=dict(strict_cropping=True))
-    dataset = xarray.open_dataset("merged.nc", engine="h5netcdf").drop_vars("crs")
+    dataset = xarray.open_dataset("merged.nc").drop_vars("crs")
     timeseries = dataset.mean(dim=['x', 'y'])
 
     assert_array_almost_equal([182.45325, 187.22632, np.nan], timeseries.NDVI.values, 2)
