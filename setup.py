@@ -24,6 +24,5 @@ setup(
         "netCDF4",
         "rioxarray",
         "cftime",
-        "jsonschema"
     ],
 )
