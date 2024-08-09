@@ -249,6 +249,7 @@ def test_aggregate_spatial_polygon(auth_connection):
     assert expected_schema.validate(timeseries)
 
 
+@pytest.mark.skip(reason="histogram was an experiment and is not listed in the openeo editor. Use quantiles instead.")
 def test_histogram_timeseries(auth_connection):
     probav = (
         auth_connection
