@@ -2091,6 +2091,45 @@ def test_aggregate_spatial_feature_collection_heterogeneous_multiple_aggregates(
     }
 
 
+def test_raster_to_vector_with_apply_dimension(auth_connection, tmp_path):
+    """
+    https://github.com/Open-EO/openeo-python-driver/issues/303
+    """
+    bbox = [5.0, 51.2, 5.1, 51.3]
+    temp_ext = ["2023-01-01", "2023-01-20"]
+
+    s2_bands = auth_connection.load_collection(
+        "SENTINEL2_L2A", spatial_extent=dict(zip(["west", "south", "east", "north"], bbox)), temporal_extent=temp_ext,
+        bands=["SCL"]
+    )
+
+    scl_band = s2_bands.band("SCL")
+    s2_cloudmask = (scl_band == 1) * 1.0
+
+    s2_cloudmask_vector = s2_cloudmask.raster_to_vector()
+
+    udf = textwrap.dedent(
+        """
+        from openeo.udf import UdfData, FeatureCollection
+        def process_vector_cube(udf_data: UdfData) -> UdfData:
+            [feature_collection] = udf_data.get_feature_collection_list()
+            gdf = feature_collection.data
+            gdf["geometry"] = gdf["geometry"].buffer(distance=1, resolution=2)
+            udf_data.set_feature_collection_list([
+                FeatureCollection(id="_", data=gdf),
+            ])
+        """
+    )
+    udf_callback = openeo.UDF(code=udf, runtime="Python")
+    apply_dim_result = s2_cloudmask_vector.apply_dimension(dimension="geometry", process=udf_callback)
+    output_file = tmp_path / "apply_dim_result.geojson"
+    apply_dim_result.download(output_file, format="geojson")
+    # No error should be thrown during download
+    with Path(output_file).open("r") as f:
+        data = json.load(f)
+    assert len(data["features"]) == 6
+
+
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_point_timeseries_from_batch_process(auth_connection, auto_title):
