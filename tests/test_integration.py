@@ -36,9 +36,10 @@ from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.job import BatchJob, JobResults
 from openeo.rest.mlmodel import MlModel
 from openeo.rest.udp import Parameter
+from openeo.internal.graph_building import PGNode
 import openeo.testing.results
 from openeo_driver.testing import DictSubSet
-from openeo.util import guess_format
+from openeo.util import guess_format, dict_no_none
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
 
@@ -934,7 +935,6 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
         assert metadata.get("assets", {}).get("randomforest.model.tar.gz", {}).get("href", "") == "/data/projects/OpenEO/{jobid}/randomforest.model.tar.gz".format(jobid=job.job_id)
 
     # 2. Load the model using its job id and make predictions.
-
     topredict_xybt = auth_connection.load_collection(
         "PROBAV_L3_S10_TOC_333M",
         bands=["NDVI"],
@@ -949,6 +949,80 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
     output_file = tmp_path / "predicted.tiff"
     inference_job.download_result(output_file)
     assert_geotiff_basics(output_file, min_width = 1, min_height = 1)
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_catboost_training(auth_connection: openeo.Connection, tmp_path, auto_title):
+    # 1. Train a random forest model.
+    FEATURE_COLLECTION_1 = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {"target": 3},
+                "geometry": {"type": "Polygon", "coordinates": [[[4.79, 51.26], [4.81, 51.26], [4.81, 51.30], [4.79, 51.30], [4.79, 51.26]]]}
+            },
+            {
+                "type": "Feature",
+                "properties": {"target": 5},
+                "geometry": {"type": "Polygon", "coordinates": [[[4.85, 51.26], [4.90, 51.26], [4.90, 51.30], [4.85, 51.30], [4.85, 51.26]]]}
+            },
+
+        ]
+    }
+
+    cube_xybt: DataCube = auth_connection.load_collection(
+        "PROBAV_L3_S10_TOC_333M", bands=["NDVI"],
+        spatial_extent={"west": 4.78, "east": 4.91, "south": 51.25, "north": 51.31},
+        temporal_extent=["2017-11-01", "2017-11-01"]
+    )
+    cube_xyb: DataCube = cube_xybt.reduce_dimension(dimension="t", reducer="mean")
+    predictors: DataCube = cube_xyb.aggregate_spatial(FEATURE_COLLECTION_1, reducer="mean", target_dimension="bands")
+    pgnode = PGNode(
+        process_id="fit_class_catboost",
+        arguments=dict_no_none(
+            predictors=predictors,
+            target=FEATURE_COLLECTION_1,
+            iterations=5,
+            depth=5,
+            seed=0,
+        ),
+    )
+    model = MlModel(graph=pgnode, connection=auth_connection)
+
+    model: MlModel = model.save_ml_model()
+    job: BatchJob = model.create_job(title=auto_title + " train")
+    assert job.job_id
+    job.start_job()
+
+    # Wait until job is finished
+    status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+    assert status == "finished"
+
+    # Check the job metadata.
+    collection_results = job.list_results()
+    assert collection_results.get('assets', {}).get('catboost_model.cbm.tar.gz', {}).get('href', None) is not None
+    summaries = collection_results.get('summaries', {})
+    assert summaries.get('ml-model:architecture', None) == ['catboost']
+    assert summaries.get('ml-model:learning_approach', None) == ['supervised']
+    assert summaries.get('ml-model:prediction_type', None) == ['classification']
+    links = collection_results.get('links', [])
+    ml_model_metadata_links = [link for link in links if "ml_model_metadata.json" in link.get('href', "")]
+    assert len(ml_model_metadata_links) == 1
+
+    # Check the ml_model_metadata.json file.
+    ml_model_metadata = requests.get(ml_model_metadata_links[0].get('href', "")).json()
+    ml_model_assets = ml_model_metadata.get('assets', {})
+    assert ml_model_assets.get('model', {}).get('roles', None) == ['ml-model:checkpoint']
+    assert ml_model_assets.get('model', {}).get('title', None) == 'ai.catboost.spark.CatBoostClassificationModel'
+    ml_model_properties = ml_model_metadata.get('properties', {})
+    assert ml_model_properties.get('ml-model:architecture', None) == 'catboost'
+    assert ml_model_properties.get('ml-model:learning_approach', None) == 'supervised'
+    assert ml_model_properties.get('ml-model:prediction_type', None) == 'classification'
+    assert ml_model_properties.get('ml-model:training-os', None) == 'linux'
+    assert ml_model_properties.get('ml-model:training-processor-type', None) == 'cpu'
+    assert ml_model_properties.get('ml-model:type', None) == 'ml-model'
 
 
 @pytest.mark.skip(reason="Requires proxying to work properly")
