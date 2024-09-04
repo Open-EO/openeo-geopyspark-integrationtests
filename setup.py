@@ -9,6 +9,7 @@ setup(
         "numpy",
         "scipy",
         "rasterio",
+        "rasterio<1.3.11; python_version<'3.9'",  # Avoid wheel-less rasterio releases on Python 3.8 and lower https://github.com/rasterio/rasterio/issues/3168
         "schema",
         "pytest-timeout",
         "shapely",
