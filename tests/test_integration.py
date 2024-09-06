@@ -1999,8 +1999,9 @@ def test_merge_cubes(auth_connection):
     dataset = xarray.open_dataset("merged.nc").drop_vars("crs")
     timeseries = dataset.mean(dim=['x', 'y'])
 
+    # Needs update to the referenca data when a layer has been reprocessed
     assert_array_almost_equal([182.45325, 187.22632, np.nan], timeseries.NDVI.values, 2)
-    assert_allclose([np.nan, np.nan, 0.5955337], timeseries.s2_ndvi.values, atol=0.005)
+    assert_allclose([np.nan, np.nan, 0.600626], timeseries.s2_ndvi.values, atol=0.005)
 
 
 
