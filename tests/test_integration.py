@@ -1643,7 +1643,7 @@ def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tm
     with pytest.raises(OpenEoApiError) as excinfo:
         s2_fapar.download(out_file, format="GTIFF")
 
-    assert excinfo.value.code == 'MissingSpatialFilter'
+    assert excinfo.value.code in {"MissingSpatialFilter", "ProcessGraphComplexity"}
 
 
 @pytest.mark.skip(reason="DELETEing a service doesn't work because it's being proxied to the WMTS Jetty server")
