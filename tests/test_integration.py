@@ -398,7 +398,11 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
     )
 
     load_stac_output_file = tmp_path / "load_stac.tiff"
-    cube_from_result.execute_batch(load_stac_output_file, out_format="GTiff")
+    cube_from_result.execute_batch(
+        load_stac_output_file,
+        out_format="GTiff",
+        job_options={"logging-threshold": "debug"},
+    )
 
     with rasterio.open(load_stac_output_file) as load_stac_ds:
         assert load_stac_ds.count == 1
