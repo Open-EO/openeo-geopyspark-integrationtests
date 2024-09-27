@@ -1715,7 +1715,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path, auto_title):
                         .save_result("GTiff"))
 
     load_stac_output_tiff = tmp_path / "load_stac_small.tiff"
-    cube_from_result.download(load_stac_output_tiff, format="GTiff")
+    cube_from_result.download(load_stac_output_tiff)
 
     assert_geotiff_basics(load_stac_output_tiff, expected_band_count=1)
 
