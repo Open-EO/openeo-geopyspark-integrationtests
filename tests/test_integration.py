@@ -1705,12 +1705,9 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path, auto_title):
 
     job_results_metadata = job.get_results().get_metadata()
 
-    # conveniently tacked on test for load_stac because it needs a batch job that won't be removed in the near future
-    job_results_stac: pystac.Collection = pystac.Collection.from_dict(job_results_metadata)
-    job_results_canonical_url = next(link.href for link in job_results_stac.links if link.rel == "canonical")
 
     cube_from_result = (auth_connection
-                        .load_stac(job_results_canonical_url, bands=['VV'])
+                        .load_stac_from_job(job, bands=['VV'])
                         .filter_bbox({'west': 2.69003, 'south': 51.169, 'east': 2.7949, 'north': 51.2006})
                         .save_result("GTiff"))
 
@@ -2561,8 +2558,10 @@ def test_udf_dependency_handling(auth_connection, auto_title, tmp_path):
         title=auto_title,
         outputfile=output_file,
         job_options={"logging-threshold": "debug"},
+        filename_prefix = "result"
     )
     assert job.status() == "finished"
+    assert "result.nc" in job.get_results().get_assets()[0].href
 
     ds = xarray.load_dataset(output_file)
     # Check for value 123 at (7, 13) and other values around that
