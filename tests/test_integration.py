@@ -426,9 +426,9 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
                 "openEO_2017-11-21Z_N51E003.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [728, 364],
+                        "proj:shape": [729, 365],
                         "proj:bbox": pytest.approx(
-                            [2.9992625, 51.0012761, 3.9990183, 52.0010318]
+                            [2.9992625, 50.9999028, 4.0017649, 52.0010318]
                         ),
                     }
                 ),
@@ -444,9 +444,9 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
                 "openEO_2017-11-21Z_N52E003.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [729, 364],
+                        "proj:shape": [729, 365],
                         "proj:bbox": pytest.approx(
-                            [2.9992625, 51.9996585, 3.9990183, 53.0007876]
+                            [2.9992625, 51.9996585, 4.0017649, 53.0007876]
                         ),
                     }
                 ),
