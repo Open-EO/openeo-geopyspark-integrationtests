@@ -16,7 +16,7 @@ def get_openeo_base_url(version: str = "1.1.0"):
     except Exception:
         raise RuntimeError("Environment variable 'ENDPOINT' should be set"
                            " with URL pointing to OpenEO backend to test against"
-                           " (e.g. 'http://localhost:8080/' or 'http://openeo-dev.vgt.vito.be/')")
+                           " (e.g. 'http://localhost:8080/' or 'https://openeo-dev.vito.be/')")
     return "{e}/openeo/{v}".format(e=endpoint.rstrip("/"), v=version)
 
 
