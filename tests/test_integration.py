@@ -1966,7 +1966,7 @@ def __reproject_polygon(polygon: Union[Polygon], srs, dest_srs):
     )
 
 
-def test_merge_cubes(auth_connection):
+def test_merge_cubes(auth_connection, tmp_path):
     # define ROI
     size = 10 * 128
     x = 640860.000
@@ -1996,8 +1996,8 @@ def test_merge_cubes(auth_connection):
     datacube = datacube.merge_cubes(pv_ndvi)
     # apply filters
     datacube = datacube.filter_temporal(startdate, enddate)#.filter_bbox(**extent)
-    datacube.download("tmp/merged.nc", format="NetCDF", options=dict(strict_cropping=True))
-    dataset = xarray.open_dataset("tmp/merged.nc").drop_vars("crs")
+    datacube.download(tmp_path / "merged.nc", format="NetCDF", options=dict(strict_cropping=True))
+    dataset = xarray.open_dataset(tmp_path / "merged.nc").drop_vars("crs")
     timeseries = dataset.mean(dim=['x', 'y'])
 
     # Needs update to the referenca data when a layer has been reprocessed
