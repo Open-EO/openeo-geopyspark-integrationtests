@@ -2329,7 +2329,6 @@ def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
 
-@pytest.mark.skip(reason="First needs fix.")
 def test_load_stac_from_terrascope_api(auth_connection, tmp_path):
     data_cube = (auth_connection
                  .load_stac(url="https://stac.terrascope.be/collections/sentinel-2-l2a",
