@@ -43,8 +43,14 @@ from openeo.util import guess_format, dict_no_none
 from .cloudmask import create_advanced_mask, create_simple_mask
 from .data import get_path, read_data
 
-
 _log = logging.getLogger(__name__)
+
+spatial_extent_tap = {
+    "east": 5.08,
+    "north": 51.22,
+    "south": 51.215,
+    "west": 5.07,
+}
 
 
 def _dump_process_graph(
@@ -2318,6 +2324,21 @@ def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
                  .save_result("GTiff"))
 
     output_tiff = tmp_path / "test_load_stac_from_stac_api.tif"
+
+    data_cube.download(output_tiff)
+    assert_geotiff_basics(output_tiff, expected_band_count=2)
+
+
+@pytest.mark.skip(reason="First needs fix.")
+def test_load_stac_from_terrascope_api(auth_connection, tmp_path):
+    data_cube = (auth_connection
+                 .load_stac(url="https://stac.terrascope.be/collections/sentinel-2-l2a",
+                            spatial_extent=spatial_extent_tap,
+                            temporal_extent=["2023-06-01", "2023-06-20"],
+                            bands=["B02_20m", "SCL_20m"])
+                 .save_result("GTiff"))
+
+    output_tiff = tmp_path / "test_load_stac_from_terrascope_api.tif"
 
     data_cube.download(output_tiff)
     assert_geotiff_basics(output_tiff, expected_band_count=2)
