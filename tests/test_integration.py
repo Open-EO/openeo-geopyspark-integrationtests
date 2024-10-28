@@ -2340,7 +2340,7 @@ def test_load_stac_from_terrascope_api(auth_connection, tmp_path):
     output_tiff = tmp_path / "test_load_stac_from_terrascope_api.tif"
 
     data_cube.download(output_tiff)
-    assert_geotiff_basics(output_tiff, expected_band_count=2)
+    assert_geotiff_basics(output_tiff, expected_band_count=2, min_width=4, min_height=4)
 
 
 @pytest.mark.skip(reason="rate-limited by MS Planetary Computer")
