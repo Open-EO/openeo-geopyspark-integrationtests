@@ -2334,7 +2334,7 @@ def test_load_stac_from_terrascope_api(auth_connection, tmp_path):
                  .load_stac(url="https://stac.terrascope.be/collections/sentinel-2-l2a",
                             spatial_extent=spatial_extent_tap,
                             temporal_extent=["2023-06-01", "2023-06-20"],
-                            bands=["B02_20m", "SCL_20m"])
+                            bands=["B02", "SCL_20m"])
                  .save_result("GTiff"))
 
     output_tiff = tmp_path / "test_load_stac_from_terrascope_api.tif"
