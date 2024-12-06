@@ -872,7 +872,7 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
         temporal_extent=["2017-11-01", "2017-11-01"]
     )
     cube_xyb: DataCube = cube_xybt.reduce_dimension(dimension="t", reducer="mean")
-    predictors: DataCube = cube_xyb.aggregate_spatial(FEATURE_COLLECTION_1, reducer="mean", target_dimension="bands")
+    predictors: DataCube = cube_xyb.aggregate_spatial(FEATURE_COLLECTION_1, reducer="mean")
     model: MlModel = predictors.fit_class_random_forest(target=FEATURE_COLLECTION_1, num_trees=3, seed=42)
     model: MlModel = model.save_ml_model()
     job: BatchJob = model.create_job(title=auto_title + " train")
@@ -988,7 +988,7 @@ def test_catboost_training(auth_connection: openeo.Connection, tmp_path, auto_ti
         temporal_extent=["2017-11-01", "2017-11-01"]
     )
     cube_xyb: DataCube = cube_xybt.reduce_dimension(dimension="t", reducer="mean")
-    predictors: DataCube = cube_xyb.aggregate_spatial(FEATURE_COLLECTION_1, reducer="mean", target_dimension="bands")
+    predictors: DataCube = cube_xyb.aggregate_spatial(FEATURE_COLLECTION_1, reducer="mean")
     pgnode = PGNode(
         process_id="fit_class_catboost",
         arguments=dict_no_none(
