@@ -11,12 +11,12 @@ from openeo.capabilities import ComparableVersion
 _log = logging.getLogger(__name__)
 
 def get_openeo_base_url(version: str = "1.1.0"):
-    try:
-        endpoint = os.environ["ENDPOINT"].rstrip("/")
-    except Exception:
-        raise RuntimeError("Environment variable 'ENDPOINT' should be set"
-                           " with URL pointing to OpenEO backend to test against"
-                           " (e.g. 'http://localhost:8080/' or 'https://openeo-dev.vito.be/')")
+    if "ENDPOINT" in os.environ:
+        # For example: http://localhost:8080/
+        endpoint = os.environ["ENDPOINT"]
+    else:
+        endpoint = 'https://openeo-dev.vito.be'
+        _log.warning("Environment variable 'ENDPOINT' not set, defaulting to %s", endpoint)
     return "{e}/openeo/{v}".format(e=endpoint.rstrip("/"), v=version)
 
 
