@@ -125,7 +125,7 @@ def execute_batch_with_error_logging(
         out_format = guess_format(outputfile)
 
     if out_format:
-        cube = cube.save_result(format=out_format, **format_options)
+        cube = cube.save_result(format=out_format, options=format_options)
 
     job = cube.create_job(job_options=job_options)
     result = None
