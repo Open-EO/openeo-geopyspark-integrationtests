@@ -124,7 +124,10 @@ def execute_batch_with_error_logging(
     if not out_format and outputfile:
         out_format = guess_format(outputfile)
 
-    job = cube.create_job(out_format = out_format, job_options = job_options, **format_options)
+    if out_format:
+        cube = cube.save_result(format=out_format, **format_options)
+
+    job = cube.create_job(job_options=job_options)
     result = None
     try:
         result = job.run_synchronous(
