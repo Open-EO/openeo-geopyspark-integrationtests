@@ -2363,17 +2363,21 @@ def test_load_stac_from_planetary_computer_stac_api(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=3)
 
 
-def test_half_open_temporal_interval_sentinel_hub(auth_connection):
+def test_half_open_temporal_interval_sentinel_hub(auth_connection, tmp_path):
     geometry = Polygon.from_bounds(2.7535960935391017, 51.155144424404796,
                                    2.7541402045751795, 51.15548569706354)
 
     def time_series(end_date: str) -> dict:
-        return (auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
-                .filter_bands(["B04", "B03", "B02"])
-                .filter_temporal(["2018-06-04", end_date])
-                .aggregate_spatial(geometry, reducer="mean")
-                .save_result(format="JSON")
-                .execute())
+        result = (
+            auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
+            .filter_bands(["B04", "B03", "B02"])
+            .filter_temporal(["2018-06-04", end_date])
+            .aggregate_spatial(geometry, reducer="mean")
+            .save_result(format="JSON")
+        )
+        path = tmp_path / f"timeseries-{end_date}.json"
+        result.download(path)
+        return json.loads(path.read_text())
 
     assert "2018-06-23T00:00:00Z" not in time_series(end_date="2018-06-23")
     assert "2018-06-23T00:00:00Z" in time_series(end_date="2018-06-24")
