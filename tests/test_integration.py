@@ -30,11 +30,13 @@ from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 
 import openeo
+from openeo import VectorCube
 from openeo.rest.connection import OpenEoApiError
 from openeo.rest.conversions import datacube_from_file, timeseries_json_to_pandas
 from openeo.rest.datacube import DataCube, THIS
 from openeo.rest.job import BatchJob, JobResults
 from openeo.rest.mlmodel import MlModel
+from openeo.rest.result import SaveResult
 from openeo.rest.udp import Parameter
 from openeo.internal.graph_building import PGNode
 import openeo.testing.results
@@ -110,24 +112,23 @@ def log_if_failed(job, extra_message=""):
 
 
 def execute_batch_with_error_logging(
-        cube: DataCube,
+        cube: Union[DataCube, VectorCube, MlModel, SaveResult],
+        *,
         outputfile: Optional[Union[str, pathlib.Path]] = None,
         out_format: Optional[str] = None,
-        *,
         print: typing.Callable[[str], None] = print,
         max_poll_interval: float = 60,
         connection_retry_interval: float = 30,
         job_options: Optional[dict] = None,
-        **format_options,):
-    if "format" in format_options and not out_format:
-        out_format = format_options["format"]  # align with 'download' call arg name
+        title: Optional[str] = None,
+    ):
     if not out_format and outputfile:
         out_format = guess_format(outputfile)
 
     if out_format:
-        cube = cube.save_result(format=out_format, options=format_options)
+        cube = cube.save_result(format=out_format)
 
-    job = cube.create_job(job_options=job_options)
+    job = cube.create_job(job_options=job_options, title=title)
     result = None
     try:
         result = job.run_synchronous(
@@ -370,11 +371,10 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
     )
 
     job = execute_batch_with_error_logging(
-        cube,
+        cube.save_result(format="GTIFF", options={"tile_grid": "one_degree"}),
         out_format="GTIFF",
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         job_options=batch_default_options(driverMemoryOverhead="1G", driverMemory="1800m"),
-        tile_grid="one_degree",
         title=auto_title,
     )
     _log.info(f"test_cog_execute_batch: {job=}")
@@ -683,7 +683,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path, auto_title):
     output_file = tmp_path / "ts.json"
     job = execute_batch_with_error_logging(
         timeseries,
-        output_file,
+        outputfile=output_file,
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
         title=auto_title,
@@ -1246,7 +1246,7 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
 
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
-    job = execute_batch_with_error_logging(masked, out_file, title=auto_title)
+    job = execute_batch_with_error_logging(masked, outputfile=out_file, title=auto_title)
     links = job.get_results().get_metadata()["links"]
     _log.info(f"test_advanced_cloud_masking_diy: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
@@ -1709,7 +1709,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path, auto_title):
 
     output_tiff = tmp_path / "test_sentinel_hub_batch_job.tif"
 
-    job = execute_batch_with_error_logging(data_cube, output_tiff, out_format="GTiff", title=auto_title)
+    job = execute_batch_with_error_logging(data_cube, outputfile=output_tiff, out_format="GTiff", title=auto_title)
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
     job_results_metadata = job.get_results().get_metadata()
@@ -2264,7 +2264,7 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
 
     job = execute_batch_with_error_logging(
         result,
-        output_tiff,
+        outputfile=output_tiff,
         out_format="GTiff",
         title=auto_title,
     )
