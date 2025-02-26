@@ -121,7 +121,7 @@ def execute_batch_with_error_logging(
         connection_retry_interval: float = 30,
         job_options: Optional[dict] = None,
         title: Optional[str] = None,
-    ):
+    ) -> BatchJob:
     if not out_format and outputfile:
         out_format = guess_format(outputfile)
 
@@ -129,16 +129,18 @@ def execute_batch_with_error_logging(
         cube = cube.save_result(format=out_format)
 
     job = cube.create_job(job_options=job_options, title=title)
-    result = None
     try:
-        result = job.run_synchronous(
-            outputfile=outputfile,
+        job.start_and_wait(
             print=print, max_poll_interval=max_poll_interval, connection_retry_interval=connection_retry_interval
         )
     except openeo.rest.JobFailedException as e:
         log_if_failed(job)
         raise e
-    return result
+
+    if outputfile:
+        job.download_result(outputfile)
+
+    return job
 
 
 BBOX_MOL = _parse_bboxfinder_com("http://bboxfinder.com/#51.21,5.071,51.23,5.1028")
@@ -1347,7 +1349,7 @@ def test_custom_processes_in_batch_job(auth_connection):
         }
     }
     job = auth_connection.create_job(process_graph)
-    job.run_synchronous()
+    job.start_and_wait()
     results = job.get_results()
     asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
     assert asset.load_json() == {
@@ -1610,7 +1612,7 @@ class TestUdp:
         # Use UDP
         pg = process(udp_name, namespace="user", fahrenheit=50)
         job = auth_connection.create_job(pg, title=auto_title)
-        job.run_synchronous()
+        job.start_and_wait()
         results = job.get_results()
         asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
         assert asset.load_json() == 10.0
