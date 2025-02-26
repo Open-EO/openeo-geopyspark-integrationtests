@@ -374,7 +374,6 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
 
     job = execute_batch_with_error_logging(
         cube.save_result(format="GTIFF", options={"tile_grid": "one_degree"}),
-        out_format="GTIFF",
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         job_options=batch_default_options(driverMemoryOverhead="1G", driverMemory="1800m"),
         title=auto_title,
