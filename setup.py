@@ -27,5 +27,7 @@ setup(
         "rioxarray",
         "cftime",
         "jsonschema",
+        "rio_cogeo",
+        "pydantic~=1.0",
     ],
 )

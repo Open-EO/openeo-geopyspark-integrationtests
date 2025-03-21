@@ -26,6 +26,7 @@ import numpy
 from numpy.ma.testutils import assert_array_approx_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 import pystac
+from rio_cogeo import cog_validate
 from shapely.geometry import mapping, shape, GeometryCollection, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 
@@ -1121,8 +1122,8 @@ def assert_geotiff_basics(
 
 
 def assert_cog(output_tiff: Union[str, Path]):
-    # FIXME: check if actually a COG
-    pass
+    is_valid_cog, errors, _ = cog_validate(str(output_tiff))
+    assert is_valid_cog, str(errors)
 
 
 def test_mask_polygon(auth_connection, api_version, tmp_path):
