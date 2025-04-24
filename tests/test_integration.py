@@ -2599,3 +2599,28 @@ def test_udf_dependency_handling(auth_connection, auto_title, tmp_path):
         [False, True, False],
         [False, False, False],
     ]
+
+def test_apply_metadata(auth_connection):
+    cube = auth_connection.load_collection(
+        "SENTINEL2_L2A",
+        bands=["B04", "B03"],
+        temporal_extent="2019-08-19",
+        spatial_extent={"west": 4.00, "south": 51.0, "east": 4.01, "north": 51.01},
+    )
+    udf = """
+from openeo.metadata import CollectionMetadata
+from xarray import DataArray
+
+def apply_metadata(metadata: CollectionMetadata, context: dict) -> CollectionMetadata:
+     return metadata.rename_labels(
+         dimension="bands",
+         target=["computed_band_1", "computed_band_2"]
+     )
+
+def apply_datacube(cube: DataArray, context: dict) -> DataArray:
+    return cube
+"""
+
+    result = cube.apply_dimension(code = udf, dimension="bands").dimension_labels(dimension="bands")
+    labels = result.execute()
+    assert labels == ['computed_band_1', 'computed_band_2']
