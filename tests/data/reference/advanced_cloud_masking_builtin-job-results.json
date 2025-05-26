@@ -1,0 +1,208 @@
+{
+  "assets": {
+    "openEO_2018-08-14Z.tif": {
+      "bands": [
+        {
+          "eo:center_wavelength": 0.4966,
+          "eo:common_name": "blue",
+          "name": "blue"
+        },
+        {
+          "name": "SCENECLASSIFICATION_20M"
+        }
+      ],
+      "eo:bands": [
+        {
+          "center_wavelength": 0.4966,
+          "common_name": "blue",
+          "name": "blue"
+        },
+        {
+          "name": "SCENECLASSIFICATION_20M"
+        }
+      ],
+      "file:size": 100516,
+      "href": "https://openeo-dev.vito.be/openeo/1.1.0/jobs/j-2505261457064f1e89348f9cd1cda9c6/results/assets/YzkwNzQyODYzMmI0NmNiNDA2ZWYwMmEwMWE0YTVkYzM0YWVkYWQzNzAzNjlkN2I5ZDVjMzE0YTNiNjY2ZmQwM0BlZ2kuZXU=/a4c0729907425d88836f9efd1e5d5a23/openEO_2018-08-14Z.tif?expires=1748876458",
+      "proj:bbox": [
+        639200,
+        5680510,
+        645950,
+        5683350
+      ],
+      "proj:epsg": 32631,
+      "proj:shape": [
+        284,
+        675
+      ],
+      "raster:bands": [
+        {
+          "name": "blue",
+          "statistics": {
+            "maximum": 6040,
+            "mean": 654.26354374342,
+            "minimum": 256,
+            "stddev": 305.11552178633,
+            "valid_percent": 33.23
+          }
+        },
+        {
+          "name": "SCENECLASSIFICATION_20M",
+          "statistics": {
+            "maximum": 7,
+            "mean": 4.3339037063782,
+            "minimum": 4,
+            "stddev": 0.47834814125776,
+            "valid_percent": 33.23
+          }
+        }
+      ],
+      "roles": [
+        "data"
+      ],
+      "title": "openEO_2018-08-14Z.tif",
+      "type": "image/tiff; application=geotiff"
+    }
+  },
+  "description": "Results for batch job j-2505261457064f1e89348f9cd1cda9c6",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          4.996033,
+          51.258922,
+          5.091603,
+          51.282696
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2018-08-14T00:00:00Z",
+          "2018-08-14T00:00:00Z"
+        ]
+      ]
+    }
+  },
+  "id": "j-2505261457064f1e89348f9cd1cda9c6",
+  "license": "proprietary",
+  "links": [
+    {
+      "href": "urn:eop:VITO:TERRASCOPE_S2_TOC_V2:S2B_20180814T105019_31UFS_TOC_V210",
+      "rel": "derived_from",
+      "title": "Derived from urn:eop:VITO:TERRASCOPE_S2_TOC_V2:S2B_20180814T105019_31UFS_TOC_V210",
+      "type": "application/json"
+    },
+    {
+      "href": "https://openeo-dev.vito.be/openeo/1.1.0/jobs/j-2505261457064f1e89348f9cd1cda9c6/results",
+      "rel": "self",
+      "type": "application/json"
+    },
+    {
+      "href": "https://openeo-dev.vito.be/openeo/1.1.0/jobs/j-2505261457064f1e89348f9cd1cda9c6/results/YzkwNzQyODYzMmI0NmNiNDA2ZWYwMmEwMWE0YTVkYzM0YWVkYWQzNzAzNjlkN2I5ZDVjMzE0YTNiNjY2ZmQwM0BlZ2kuZXU=/b45c074eb95583ba495bd478f9710114?expires=1748876458",
+      "rel": "canonical",
+      "type": "application/json"
+    },
+    {
+      "href": "http://ceos.org/ard/files/PFS/SR/v5.0/CARD4L_Product_Family_Specification_Surface_Reflectance-v5.0.pdf",
+      "rel": "card4l-document",
+      "type": "application/pdf"
+    },
+    {
+      "href": "https://openeo-dev.vito.be/openeo/1.1.0/jobs/j-2505261457064f1e89348f9cd1cda9c6/results/items/YzkwNzQyODYzMmI0NmNiNDA2ZWYwMmEwMWE0YTVkYzM0YWVkYWQzNzAzNjlkN2I5ZDVjMzE0YTNiNjY2ZmQwM0BlZ2kuZXU=/a4c0729907425d88836f9efd1e5d5a23/openEO_2018-08-14Z.tif?expires=1748876458",
+      "rel": "item",
+      "type": "application/geo+json"
+    }
+  ],
+  "openeo:status": "finished",
+  "providers": [
+    {
+      "description": "This data was processed on an openEO backend maintained by VITO.",
+      "name": "VITO",
+      "processing:expression": {
+        "expression": {
+          "filterbbox1": {
+            "arguments": {
+              "data": {
+                "from_node": "loadcollection1"
+              },
+              "extent": {
+                "crs": "EPSG:4326",
+                "east": 5.091603,
+                "north": 51.282696,
+                "south": 51.258922,
+                "west": 4.996033
+              }
+            },
+            "process_id": "filter_bbox"
+          },
+          "filtertemporal1": {
+            "arguments": {
+              "data": {
+                "from_node": "filterbbox1"
+              },
+              "extent": [
+                "2018-08-14",
+                "2018-08-14"
+              ]
+            },
+            "process_id": "filter_temporal"
+          },
+          "loadcollection1": {
+            "arguments": {
+              "bands": [
+                "blue",
+                "SCENECLASSIFICATION_20M"
+              ],
+              "id": "TERRASCOPE_S2_TOC_V2",
+              "spatial_extent": null,
+              "temporal_extent": null
+            },
+            "process_id": "load_collection"
+          },
+          "maskscldilation1": {
+            "arguments": {
+              "data": {
+                "from_node": "filtertemporal1"
+              },
+              "scl_band_name": "SCENECLASSIFICATION_20M"
+            },
+            "process_id": "mask_scl_dilation"
+          },
+          "saveresult1": {
+            "arguments": {
+              "data": {
+                "from_node": "maskscldilation1"
+              },
+              "format": "GTiff",
+              "options": {}
+            },
+            "process_id": "save_result",
+            "result": true
+          }
+        },
+        "format": "openeo"
+      },
+      "processing:facility": "openEO Geotrellis backend",
+      "processing:software": {
+        "Geotrellis backend": "0.66.0a3"
+      },
+      "roles": [
+        "processor"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/processing/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.1.0/schema.json"
+  ],
+  "stac_version": "1.0.0",
+  "summaries": {
+    "instruments": [
+      "MSI"
+    ]
+  },
+  "type": "Collection"
+}

@@ -107,9 +107,6 @@ ENV/
 # JetBrains
 .idea
 
-*.tif
-*.tiff
-*.geotiff
 *.aux.xml
 
 tmp
