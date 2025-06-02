@@ -2299,15 +2299,18 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
 
 
 def test_tsservice_geometry_mean(tsservice_base_url):
-    time_series = requests.post(
+    time_series_text = requests.post(
         f"{tsservice_base_url}/v1.0/ts/S2_FAPAR_FILE/geometry?startDate=2020-04-05&endDate=2020-04-05",
         json={
             "type": "Polygon",
             "coordinates": [
                 [[1.90283, 50.9579], [1.90283, 51.0034], [1.97116, 51.0034], [1.97116, 50.9579],
                  [1.90283, 50.9579]]]
-        }).json()
-
+        }).text
+    try:
+        time_series = json.loads(time_series_text)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Failed to decode JSON. Error: {e} \nFull JSON: {time_series_text} ") from e
     expected_schema = schema.Schema({'results': [{
         'date': str,
         'result': {
