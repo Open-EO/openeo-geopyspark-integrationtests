@@ -779,7 +779,7 @@ def test_batch_job_delete_job(auth_connection, auto_title):
         out_format="GTIFF",
         job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
         title=auto_title,
-        log_level="warn"
+        log_level="warning"
     )
     assert job.job_id
     job.start_job()
