@@ -185,9 +185,9 @@ def batch_default_options(driverMemoryOverhead="1G", driverMemory="2G"):
             "driver-memoryOverhead": driverMemoryOverhead,
             "driver-cores": "2",
             "executor-memory": "1G",
-            "executor-memoryOverhead": "1G",
-            "executor-cores": "1",
-            "queue": "lowlatency"
+            "python-memory": "1G",
+            "queue": "lowlatency",
+            "max-executors": 10
         }
 
 
@@ -411,8 +411,7 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
     load_stac_output_file = tmp_path / "load_stac.tiff"
     cube_from_result.execute_batch(
         load_stac_output_file,
-        out_format="GTiff",
-        job_options={"logging-threshold": "debug"},
+        out_format="GTiff"
     )
 
     with rasterio.open(load_stac_output_file) as load_stac_ds:
@@ -780,6 +779,7 @@ def test_batch_job_delete_job(auth_connection, auto_title):
         out_format="GTIFF",
         job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
         title=auto_title,
+        log_level="warn"
     )
     assert job.job_id
     job.start_job()
