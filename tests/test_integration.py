@@ -1611,7 +1611,7 @@ class TestUdp:
 
         # Use UDP
         pg = process(udp_name, namespace="user", fahrenheit=50)
-        job = auth_connection.create_job(pg, title=auto_title)
+        job = auth_connection.create_job(pg, title=auto_title, job_options=batch_default_options("128m", driverMemory="512m"))
         job.start_and_wait()
         results = job.get_results()
         asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
