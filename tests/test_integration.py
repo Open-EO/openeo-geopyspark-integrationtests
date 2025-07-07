@@ -816,12 +816,16 @@ def test_batch_job_delete_job(auth_connection, auto_title):
     job.delete_job()
     print("deleted job")
 
+    deleted_delay_s = 10
+    time.sleep(deleted_delay_s)  # TODO: optimize sleep with exponential backoff
     try:
         resp = job.describe_job()
-        raise RuntimeError(f"Expected 404 Not Found, but still got a job back: {resp}\n\n"
-                           f'If this problem persists, make sure that the ES index used by the EJR API has a mapping '
-                           f'for the "deleted" property. The EJR CLI app should not be returning batch jobs for which '
-                           f'the "deleted" property is set.')
+        raise RuntimeError(
+            f"Expected 404 Not Found, but still got a job back after {deleted_delay_s}s: {resp}\n\n"
+            f"If this problem persists, make sure that the ES index used by the EJR API has a mapping "
+            f'for the "deleted" property. The EJR CLI app should not be returning batch jobs for which '
+            f'the "deleted" property is set.'
+        )
     except OpenEoApiError as e:
         assert e.http_status_code == 404
 
