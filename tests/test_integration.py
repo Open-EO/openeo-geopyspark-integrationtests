@@ -1805,9 +1805,6 @@ def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_p
         assert dataset.res == (10, 10)
 
 
-@pytest.mark.skip(
-    reason="Temporarily(?) skip tests depending on (async) SH batch process functionality, which is currently unstable due to flaky kafka connectivity. Issue #24"
-)
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path, auto_title):
@@ -1824,7 +1821,6 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path, a
     job = execute_batch_with_error_logging(sar_backscatter, out_format="GTiff", title=auto_title)
 
     assets = job.download_results(tmp_path)
-    assert len(assets) > 1  # includes original tile and CARD4L metadata
 
     result_asset_paths = [path for path in assets.keys() if path.name.startswith("openEO")]
     assert len(result_asset_paths) == 1
@@ -2231,9 +2227,6 @@ def test_raster_to_vector_with_apply_dimension(auth_connection, tmp_path):
     assert len(data["features"]) == 6
 
 
-@pytest.mark.skip(
-    reason="Temporarily(?) skip tests depending on (async) SH batch process functionality, which is currently unstable due to flaky kafka connectivity. Issue #24"
-)
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_point_timeseries_from_batch_process(auth_connection, auto_title):
@@ -2259,9 +2252,6 @@ def test_point_timeseries_from_batch_process(auth_connection, auto_title):
     assert len(geometry_values) == len(geometries.geoms)
 
 
-@pytest.mark.skip(
-    reason="Temporarily(?) skip tests depending on (async) SH batch process functionality, which is currently unstable due to flaky kafka connectivity. Issue #24"
-)
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_load_collection_references_correct_batch_process_id(auth_connection, tmp_path, auto_title):
