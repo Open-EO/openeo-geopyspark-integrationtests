@@ -850,8 +850,7 @@ def test_random_forest_load_from_http(auth_connection: openeo.Connection, tmp_pa
         dimension="bands"
     )
     with_link_output_file = tmp_path / "predicted_with_link.tiff"
-    predicted_with_link.download(with_link_output_file, format="GTiff")
-    execute_batch_with_error_logging(
+    job = execute_batch_with_error_logging(
         predicted_with_link,
         outputfile=with_link_output_file,
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
