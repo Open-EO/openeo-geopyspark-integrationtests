@@ -832,34 +832,6 @@ def test_batch_job_delete_job(auth_connection, auto_title):
     assert not job_directory_exists(False)
 
 
-@pytest.mark.batchjob
-@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_random_forest_load_from_http_async(auth_connection: openeo.Connection, tmp_path):
-    """
-    Make predictions with the random forest model using a http link to a ml_model_metadata.json file.
-    """
-
-    topredict_xybt = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"],
-        spatial_extent = {"west": 4.785919, "east": 4.909629, "south": 51.259766, "north": 51.307638},
-        temporal_extent = ["2017-11-01", "2017-11-01"])
-    topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
-    # Make predictions with the random forest model using http link.
-    random_forest_metadata_link = "https://github.com/Open-EO/openeo-geopyspark-integrationtests/raw/master/tests/data/mlmodels/randomforest_ml_model_metadata.json"
-    predicted_with_link = topredict_cube_xyb.predict_random_forest(
-        model=random_forest_metadata_link,
-        dimension="bands"
-    )
-    with_link_output_file = tmp_path / "predicted_with_link.tiff"
-    job = execute_batch_with_error_logging(
-        predicted_with_link,
-        outputfile=with_link_output_file,
-        max_poll_interval=BATCH_JOB_POLL_INTERVAL,
-        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
-        title="test_random_forest_load_from_http",
-    )
-    assert_geotiff_basics(with_link_output_file, min_width = 15, min_height = 15)
-
-
 def test_random_forest_load_from_http_sync(auth_connection: openeo.Connection, tmp_path):
     """
     Make predictions with the random forest model using a http link to a ml_model_metadata.json file.
@@ -881,7 +853,7 @@ def test_random_forest_load_from_http_sync(auth_connection: openeo.Connection, t
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connection, tmp_path, auto_title):
+def test_random_forest_train_and_load_from_jobid_and_url(auth_connection: openeo.Connection, tmp_path, auto_title):
     # 1. Train a random forest model.
     FEATURE_COLLECTION_1 = {
         "type": "FeatureCollection",
@@ -947,16 +919,13 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
             return time.time() - start
         def directory_exists() -> bool:
             exists = (Path("/data/projects/OpenEO") / job.job_id).exists()
-
             print("job {j} directory exists ({e:.2f}s): {d}".format(j=job.job_id, e=elapsed(), d=exists))
             return exists
-
         while elapsed() < 300:
             if directory_exists() == expected:
                 return expected
             time.sleep(10)
         return directory_exists()
-
     assert job_directory_exists(True)
 
     # List files in job directory.
@@ -986,13 +955,27 @@ def test_random_forest_train_and_load_from_jobid(auth_connection: openeo.Connect
         temporal_extent=["2017-11-01", "2017-11-01"],
     )
     topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension="t", reducer="mean")
-    predicted: DataCube = topredict_cube_xyb.predict_random_forest(model=job.job_id, dimension="bands")
-    inference_job = execute_batch_with_error_logging(predicted, out_format="GTiff", title=auto_title + " inference")
+    predicted_with_jobid: DataCube = topredict_cube_xyb.predict_random_forest(model=job.job_id, dimension="bands")
+    inference_job_with_jobid = execute_batch_with_error_logging(predicted_with_jobid, out_format="GTiff", title=auto_title + " inference")
 
     # Check the resulting geotiff filled with predictions.
     output_file = tmp_path / "predicted.tiff"
-    inference_job.download_result(output_file)
+    inference_job_with_jobid.download_result(output_file)
     assert_geotiff_basics(output_file, min_width = 1, min_height = 1)
+
+    # 3. Load the model using its ml_model_metadata.json file and make predictions.
+    ml_model_metadata_hrefs = [link["href"] for link in job.get_results().get_metadata()["links"] if "ml_model_metadata.json" in link["href"]]
+    assert len(ml_model_metadata_hrefs) == 1, "Expected exactly one ml_model_metadata.json link in job results"
+    ml_model_metadata_href = ml_model_metadata_hrefs[0]
+    _log.info(f"Using ml_model_metadata.json from job results: {ml_model_metadata_href}")
+    predicted_with_metadata: DataCube = topredict_cube_xyb.predict_random_forest(model=ml_model_metadata_href, dimension="bands")
+    inference_job_with_metadata = execute_batch_with_error_logging(
+        predicted_with_metadata, out_format="GTiff", title=auto_title + " inference with metadata"
+    )
+    # Check the resulting geotiff filled with predictions.
+    output_file_with_metadata = tmp_path / "predicted_with_metadata.tiff"
+    inference_job_with_metadata.download_result(output_file_with_metadata)
+    assert_geotiff_basics(output_file_with_metadata, min_width = 1, min_height = 1)
 
 
 @pytest.mark.skip(reason="https://github.com/Open-EO/openeo-geopyspark-driver/issues/1268")
