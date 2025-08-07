@@ -834,9 +834,9 @@ def test_batch_job_delete_job(auth_connection, auto_title):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_random_forest_load_from_http(auth_connection: openeo.Connection, tmp_path):
+def test_random_forest_load_from_http_async(auth_connection: openeo.Connection, tmp_path):
     """
-    Make predictions with the random forest model using an http link to a ml_model_metadata.json file.
+    Make predictions with the random forest model using a http link to a ml_model_metadata.json file.
     """
 
     topredict_xybt = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"],
@@ -857,6 +857,25 @@ def test_random_forest_load_from_http(auth_connection: openeo.Connection, tmp_pa
         job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
         title="test_random_forest_load_from_http",
     )
+    assert_geotiff_basics(with_link_output_file, min_width = 15, min_height = 15)
+
+
+def test_random_forest_load_from_http_sync(auth_connection: openeo.Connection, tmp_path):
+    """
+    Make predictions with the random forest model using a http link to a ml_model_metadata.json file.
+    """
+    topredict_xybt = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"],
+        spatial_extent = {"west": 4.785919, "east": 4.909629, "south": 51.259766, "north": 51.307638},
+        temporal_extent = ["2017-11-01", "2017-11-01"])
+    topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension = "t", reducer = "mean")
+    # Make predictions with the random forest model using http link.
+    random_forest_metadata_link = "https://github.com/Open-EO/openeo-geopyspark-integrationtests/raw/master/tests/data/mlmodels/randomforest_ml_model_metadata.json"
+    predicted_with_link = topredict_cube_xyb.predict_random_forest(
+        model=random_forest_metadata_link,
+        dimension="bands"
+    )
+    with_link_output_file = tmp_path / "predicted_with_link.tiff"
+    predicted_with_link.download(with_link_output_file, format="GTiff")
     assert_geotiff_basics(with_link_output_file, min_width = 15, min_height = 15)
 
 
