@@ -851,6 +851,13 @@ def test_random_forest_load_from_http(auth_connection: openeo.Connection, tmp_pa
     )
     with_link_output_file = tmp_path / "predicted_with_link.tiff"
     predicted_with_link.download(with_link_output_file, format="GTiff")
+    execute_batch_with_error_logging(
+        predicted_with_link,
+        outputfile=with_link_output_file,
+        max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
+        title="test_random_forest_load_from_http",
+    )
     assert_geotiff_basics(with_link_output_file, min_width = 15, min_height = 15)
 
 
