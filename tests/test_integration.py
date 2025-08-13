@@ -8,9 +8,10 @@ import os
 import re
 import textwrap
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from pprint import pprint, pformat
-from typing import Callable, Union, Optional
+from typing import Callable, List, Union, Optional
 
 import imghdr
 import numpy as np
@@ -35,7 +36,7 @@ from openeo import VectorCube
 from openeo.rest.connection import OpenEoApiError
 from openeo.rest.conversions import datacube_from_file, timeseries_json_to_pandas
 from openeo.rest.datacube import DataCube, THIS
-from openeo.rest.job import BatchJob, JobResults
+from openeo.rest.job import BatchJob, JobResults, ResultAsset
 from openeo.rest.mlmodel import MlModel
 from openeo.rest.result import SaveResult
 from openeo.rest.udp import Parameter
@@ -76,20 +77,56 @@ def _polygon_bbox(polygon: Polygon) -> dict:
     return {"south": coords[1], "west": coords[0], "north": coords[3], "east": coords[2], "crs": "EPSG:4326"}
 
 
-def assert_batch_job(job: BatchJob, assertion: bool, extra_message: str = ""):
-    # TODO: this helper function breaks the advanced assert handling feature of pytest because
-    #       the original compared values of the condition are lost.
-    #       Its usage often also obfuscates what is actually going wrong in the test
-    #       https://github.com/Open-EO/openeo-geopyspark-integrationtests/issues/12
+@contextmanager
+def job_context(job: BatchJob):
+    """Context manager that enriches exceptions with job debugging info."""
     try:
-        assert assertion
-    except AssertionError as e:
-        message = log_if_failed(job, extra_message)
-        if job.status == "finished":
-            job_results = job.get_results()
-            message += f"Job metadata: {job_results.get_metadata()}"
-            message += f"Job assets: {job_results.get_assets()}"
-        raise AssertionError(message) from e
+        yield
+    except Exception as e:
+        # Build job debug information
+        job_info_lines = [
+            "=" * 60,
+            "JOB DEBUG INFORMATION",
+            "=" * 60,
+            f"Job ID: {job.job_id}",
+            f"Job Status: {job.status()}",
+        ]
+        
+        # Add error logs if job failed
+        if job.status().lower() != "finished":
+            try:
+                error_logs = job.logs(level='ERROR')
+                if not error_logs:
+                    error_logs = job.logs(level='INFO')
+                job_info_lines.extend([
+                    f"Job Error Logs:",
+                    *[f"  {log}" for log in error_logs[-5:]]  # Show last 5 log entries
+                ])
+            except Exception:
+                job_info_lines.append("Job Error Logs: (failed to retrieve)")
+        
+        # Add job results info if job finished successfully
+        if job.status() == "finished":
+            try:
+                job_results = job.get_results()
+                job_info_lines.extend([
+                    "Job Results:",
+                    f"  Metadata: {job_results.get_metadata()}",
+                ])
+                
+                assets: List[ResultAsset] = job_results.get_assets()
+                job_info_lines.extend([
+                    f"  Assets ({len(assets)} total):",
+                    *[f"    - {asset.name} ({asset.href})" for asset in assets]
+                ])
+            except Exception as results_error:
+                job_info_lines.append(f"Job Results: (failed to retrieve: {results_error})")
+        
+        job_info_lines.append("=" * 60)
+        debug_info = "\n" + "\n".join(job_info_lines)
+        
+        # Re-raise with enriched message while preserving original exception type and details
+        raise type(e)(f"{str(e)}{debug_info}") from e
 
 
 def log_if_failed(job, extra_message=""):
@@ -626,42 +663,41 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path, auto_title):
     status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
     log_if_failed(job)
     assert job.status() == "finished"
+    with job_context(job):
+        job_results: JobResults = job.get_results()
+        job_results_metadata: dict = job_results.get_metadata()
+        downloaded = job_results.download_files(tmp_path, include_stac_metadata=True)
+        _log.info(f"{downloaded=}")
 
+        assets = job_results.get_assets()
+        _log.info(f"{assets=}")
+    
+        assert len(assets) == 1, f"expected 1 asset, got {len(assets)}"
+        assert assets[0].name.endswith(".json"), f"Asset name should end with .json, got {assets[0].name}"
+        data = assets[0].load_json()
+        _log.info(f"{data=}")
 
-    job_results: JobResults = job.get_results()
-    job_results_metadata: dict = job_results.get_metadata()
-    downloaded = job_results.download_files(tmp_path, include_stac_metadata=True)
-    _log.info(f"{downloaded=}")
+        expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
+        expected_schema = schema.Schema({str: [[int]]})
 
-    assets = job_results.get_assets()
-    _log.info(f"{assets=}")
-    assert_batch_job(job, len(assets) == 1, extra_message=f"expected 1 asset, got {len(assets)}")
-    assert_batch_job(job, assets[0].name.endswith(".json"))
-    data = assets[0].load_json()
-    _log.info(f"{data=}")
+        assert sorted(data.keys()) == sorted(expected_dates), f"Expected dates {expected_dates}, got {sorted(data.keys())}"
+        assert expected_schema.validate(data), "Schema validation failed"
 
-    expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-    assert_batch_job(job, sorted(data.keys()) == sorted(expected_dates))
-    expected_schema = schema.Schema({str: [[int]]})
-    assert_batch_job(job, expected_schema.validate(data))
+        if api_version >= "1.1.0":
+            assert job_results_metadata["type"] == "Collection", f"Expected Collection, got {job_results_metadata['type']}"
+            job_results_stac: pystac.Collection = pystac.Collection.from_dict(job_results_metadata)
+            assert job_results_stac.extent.spatial.bboxes[0] == POLYGON01_BBOX, f"Spatial bbox mismatch"
+            assert job_results_stac.extent.temporal.to_dict()["interval"] == [
+                ["2017-11-01T00:00:00Z", "2017-11-22T00:00:00Z"]
+            ], "Temporal interval mismatch"
 
-    if api_version >= "1.1.0":
-        assert_batch_job(job, job_results_metadata["type"] == "Collection")
-        job_results_stac: pystac.Collection = pystac.Collection.from_dict(
-            job_results_metadata
-        )
-        assert_batch_job(job, job_results_stac.extent.spatial.bboxes[0] == POLYGON01_BBOX)
-        assert_batch_job(job, job_results_stac.extent.temporal.to_dict()["interval"] == [
-            ["2017-11-01T00:00:00Z", "2017-11-22T00:00:00Z"]
-        ])
-
-    elif api_version >= "1.0.0":
-        assert_batch_job(job, job_results_metadata["type"] == "Feature")
-        geometry = shape(job_results_metadata["geometry"])
-        assert_batch_job(job, geometry.equals_exact(POLYGON01, tolerance=0.0001))
-        assert_batch_job(job, job_results_metadata["bbox"] == POLYGON01_BBOX)
-        assert_batch_job(job, job_results_metadata["properties"]["start_datetime"] == "2017-11-01T00:00:00Z")
-        assert_batch_job(job, job_results_metadata["properties"]["end_datetime"] == "2017-11-22T00:00:00Z")
+        elif api_version >= "1.0.0":
+            assert job_results_metadata["type"] == "Feature", f"Expected Feature, got {job_results_metadata['type']}"
+            geometry = shape(job_results_metadata["geometry"])
+            assert geometry.equals_exact(POLYGON01, tolerance=0.0001), "Geometry mismatch"
+            assert job_results_metadata["bbox"] == POLYGON01_BBOX, "Bbox mismatch"
+            assert job_results_metadata["properties"]["start_datetime"] == "2017-11-01T00:00:00Z", "Start datetime mismatch"
+            assert job_results_metadata["properties"]["end_datetime"] == "2017-11-22T00:00:00Z", "End datetime mismatch"
 
 
 @pytest.mark.batchjob
@@ -681,12 +717,13 @@ def test_batch_job_execute_batch(auth_connection, tmp_path, auto_title):
         title=auto_title,
     )
 
-    with output_file.open("r") as f:
-        data = json.load(f)
-    expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-    assert_batch_job(job, sorted(data.keys()) == sorted(expected_dates))
-    expected_schema = schema.Schema({str: [[int]]})
-    assert_batch_job(job, expected_schema.validate(data))
+    with job_context(job):
+        with output_file.open("r") as f:
+            data = json.load(f)
+        expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
+        expected_schema = schema.Schema({str: [[int]]})
+        assert sorted(data.keys()) == sorted(expected_dates), f"Expected dates {expected_dates}, got {sorted(data.keys())}"
+        assert expected_schema.validate(data), "Schema validation failed"
 
 
 @pytest.mark.batchjob
@@ -701,27 +738,27 @@ def test_batch_job_signed_urls(auth_connection, tmp_path, auto_title):
         job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
         title=auto_title,
     )
+    with job_context(job):
+        results = job.get_results()
+        # TODO: check results metadata?
+        print("results metadata", results.get_metadata())
 
-    results = job.get_results()
-    # TODO: check results metadata?
-    print("results metadata", results.get_metadata())
-
-    assets = results.get_assets()
-    print("assets", assets)
-    assert_batch_job(job, len(assets) >= 1)
-    data = None
-    for asset in assets:
-        # Download directly without credentials
-        resp = requests.get(asset.href)
-        resp.raise_for_status()
-        assert_batch_job(job, resp.status_code == 200)
-        if asset.name.endswith(".json"):
-            assert data is None
-            data = resp.json()
-    expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-    assert_batch_job(job, sorted(data.keys()) == sorted(expected_dates))
-    expected_schema = schema.Schema({str: [[int]]})
-    assert_batch_job(job, expected_schema.validate(data))
+        assets = results.get_assets()
+        print("assets", assets)
+        assert len(assets) >= 1, f"Expected at least 1 asset, got {len(assets)}"
+        data = None
+        for asset in assets:
+            # Download directly without credentials
+            resp = requests.get(asset.href)
+            resp.raise_for_status()
+            assert resp.status_code == 200, f"Expected status 200, got {resp.status_code}"
+            if asset.name.endswith(".json"):
+                assert data is None
+                data = resp.json()
+        expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
+        expected_schema = schema.Schema({str: [[int]]})
+        assert sorted(data.keys()) == sorted(expected_dates), f"Expected dates {expected_dates}, got {sorted(data.keys())}"
+        assert expected_schema.validate(data), "Schema validation failed"
 
 
 @pytest.mark.batchjob
@@ -744,18 +781,18 @@ def test_batch_job_cancel(auth_connection, tmp_path, auto_title):
     )
     assert job.job_id
     job.start_job()
+    with job_context(job):
+        # await job running
+        status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'])
+        assert status == "running", f"Expected job status 'running', got '{status}'"
 
-    # await job running
-    status = _poll_job_status(job, until=lambda s: s in ['running', 'canceled', 'finished', 'error'])
-    assert_batch_job(job, status == "running")
+        # cancel it
+        job.stop_job()
+        print("stopped job")
 
-    # cancel it
-    job.stop_job()
-    print("stopped job")
-
-    # await job canceled
-    status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
-    assert_batch_job(job, status == "canceled")
+        # await job canceled
+        status = _poll_job_status(job, until=lambda s: s in ['canceled', 'finished', 'error'])
+        assert status == "canceled", f"Expected job status 'canceled', got '{status}'"
 
 
 @pytest.mark.batchjob
