@@ -2260,7 +2260,7 @@ def test_raster_to_vector_with_apply_dimension(auth_connection, tmp_path):
     # No error should be thrown during download
     with Path(output_file).open("r") as f:
         data = json.load(f)
-    assert len(data["features"]) == 6
+    assert len(data["features"]) == 7
 
 
 @pytest.mark.batchjob
