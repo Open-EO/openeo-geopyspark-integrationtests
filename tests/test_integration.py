@@ -1403,15 +1403,14 @@ def test_custom_processes_in_batch_job(auth_connection):
     (
             'TERRASCOPE_S2_FAPAR_V2',
             [
-                "2017-11-01T00:00:00Z",
+                "2017-11-02T00:00:00Z",
                 "2017-11-04T00:00:00Z",
-                "2017-11-06T00:00:00Z",
+                "2017-11-07T00:00:00Z",
                 "2017-11-09T00:00:00Z",
-                "2017-11-11T00:00:00Z",
+                "2017-11-12T00:00:00Z",
                 "2017-11-14T00:00:00Z",
-                "2017-11-16T00:00:00Z",
+                "2017-11-17T00:00:00Z",
                 "2017-11-19T00:00:00Z",
-                "2017-11-21T00:00:00Z",
             ],
         )
     ],
@@ -1420,7 +1419,15 @@ def test_aggregate_spatial_timeseries(
     auth_connection, tmp_path, cid, expected_dates, api_version
 ):
     expected_dates = sorted(expected_dates)
-    polygon = POLYGON01
+    polygon = (
+        Polygon(shell=[
+        [5.0761587693484875, 51.21222494794898],
+        [5.166854684377381, 51.21222494794898],
+        [5.166854684377381, 51.268936260927404],
+        [5.0761587693484875, 51.268936260927404],
+        [5.0761587693484875, 51.21222494794898],
+    ]
+))
     bbox = _polygon_bbox(polygon)
     cube = (
         auth_connection
