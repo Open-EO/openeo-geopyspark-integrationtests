@@ -1006,11 +1006,11 @@ def test_random_forest_train_and_load_from_jobid_and_url(auth_connection: openeo
     assert_geotiff_basics(output_file_with_metadata, min_width = 1, min_height = 1)
 
 
-@pytest.mark.skip(reason="https://github.com/Open-EO/openeo-geopyspark-driver/issues/1268")
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_catboost_training(auth_connection: openeo.Connection, tmp_path, auto_title):
-    # 1. Train a random forest model.
+    # TODO: This test could be flaky due to https://github.com/Open-EO/openeo-geopyspark-driver/issues/1268
+    # 1. Train a catboost model.
     FEATURE_COLLECTION_1 = {
         "type": "FeatureCollection",
         "features": [
