@@ -165,6 +165,9 @@ def execute_batch_with_error_logging(
     except openeo.rest.JobFailedException as e:
         log_if_failed(job)
         raise e
+    except Exception as e:
+        log_if_failed(job, extra_message=f"Exception during job execution: {e}")
+        raise e
 
     if outputfile:
         job.download_result(outputfile)
@@ -984,7 +987,13 @@ def test_random_forest_train_and_load_from_jobid_and_url(auth_connection: openeo
     )
     topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension="t", reducer="mean")
     predicted_with_jobid: DataCube = topredict_cube_xyb.predict_random_forest(model=job.job_id, dimension="bands")
-    inference_job_with_jobid = execute_batch_with_error_logging(predicted_with_jobid, out_format="GTiff", title=auto_title + " inference")
+    inference_job_with_jobid = execute_batch_with_error_logging(
+        predicted_with_jobid, 
+        out_format="GTiff",
+        max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
+        title=auto_title + " inference"
+    )
 
     # Check the resulting geotiff filled with predictions.
     output_file = tmp_path / "predicted.tiff"
@@ -998,8 +1007,15 @@ def test_random_forest_train_and_load_from_jobid_and_url(auth_connection: openeo
     _log.info(f"Using ml_model_metadata.json from job results: {ml_model_metadata_href}")
     predicted_with_metadata: DataCube = topredict_cube_xyb.predict_random_forest(model=ml_model_metadata_href, dimension="bands")
     inference_job_with_metadata = execute_batch_with_error_logging(
-        predicted_with_metadata, out_format="GTiff", title=auto_title + " inference with metadata"
+        predicted_with_metadata, 
+        out_format="GTiff", 
+        max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+        job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
+        title=auto_title + " inference with metadata"
     )
+    # Double check that the job finished.
+    status = _poll_job_status(inference_job_with_metadata, until=lambda s: s in ['canceled', 'finished', 'error'])
+    assert status == "finished"
     # Check the resulting geotiff filled with predictions.
     output_file_with_metadata = tmp_path / "predicted_with_metadata.tiff"
     inference_job_with_metadata.download_result(output_file_with_metadata)
