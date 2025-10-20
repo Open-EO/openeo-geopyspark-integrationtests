@@ -2391,6 +2391,19 @@ def test_tsservice_geometry_mean(tsservice_base_url):
 
     assert expected_schema.validate(time_series)
 
+    assert time_series == {
+        "results": [
+            {
+                "date": "2020-04-05",
+                "result": {
+                    "totalCount": 670232,
+                    "validCount": 669368,
+                    "average": pytest.approx(0.24494559046742598, abs=0.001),
+                }
+            }
+        ],
+    }
+
 
 def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
     data_cube = (auth_connection
