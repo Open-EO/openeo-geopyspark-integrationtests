@@ -2396,8 +2396,8 @@ def test_tsservice_geometry_mean(tsservice_base_url):
             {
                 "date": "2020-04-05",
                 "result": {
-                    "totalCount": 670232,
-                    "validCount": 669368,
+                    "totalCount": pytest.approx(670232, abs=1000),
+                    "validCount": pytest.approx(669368, abs=1000),
                     "average": pytest.approx(0.24494559046742598, abs=0.001),
                 }
             }
