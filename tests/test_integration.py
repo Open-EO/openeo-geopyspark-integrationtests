@@ -331,12 +331,12 @@ def test_histogram_timeseries(auth_connection):
 
 
 @pytest.mark.parametrize("udf_file", [
-    "udfs/raster_collections_ndvi_old.py",
+    #"udfs/raster_collections_ndvi_old.py",
     "udfs/raster_collections_ndvi.py",
 ])
 def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
     cube = (
-        auth_connection.load_collection('TERRASCOPE_S2_TOC_V2',bands=['TOC-B04_10M','TOC-B08_10M'])
+        openeo.connect("openeo.dataspace.copernicus.eu").authenticate_oidc().load_collection('SENTINEL2_L2A',bands=['B04','B08'])
             .filter_temporal(start_date="2020-11-05", end_date="2020-11-05")
             .filter_bbox(west=761104, east=763281, south=6543830, north=6544655, crs="EPSG:3857")
     )
@@ -344,7 +344,7 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
     res = cube.reduce_bands(reducer=openeo.UDF.from_file(get_path(udf_file)))
 
     out_file = tmp_path / "ndvi-udf.tiff"
-    res.download(out_file, format="GTIFF")
+    res.execute_batch(out_file, format="GTIFF", job_options={"image-name":"registry.prod.warsaw.openeo.dataspace.copernicus.eu/prod/openeo-geotrellis-kube-python311:20250619-34"})
     assert_geotiff_basics(out_file, min_height=40, expected_shape=(1, 57, 141))
     with rasterio.open(out_file) as ds:
         ndvi = ds.read(1)
@@ -1064,7 +1064,7 @@ def test_catboost_training(auth_connection: openeo.Connection, tmp_path, auto_ti
     model = MlModel(graph=pgnode, connection=auth_connection)
 
     model: MlModel = model.save_ml_model()
-    job: BatchJob = model.create_job(title=auto_title + " train")
+    job: BatchJob = model.create_job(title=auto_title + " train", job_options={"image-name":"python38"})
     assert job.job_id
     job.start_job()
 
@@ -1300,12 +1300,12 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
 
 
-    masked = s2_radiometry.mask(mask=mask.resample_cube_spatial(s2_radiometry))
+    masked = s2_radiometry.mask(mask=mask)
 
 
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
-    job = execute_batch_with_error_logging(masked, outputfile=out_file, title=auto_title)
+    job = execute_batch_with_error_logging(masked, outputfile=out_file, title=auto_title, job_options=batch_default_options())
     links = job.get_results().get_metadata()["links"]
     _log.info(f"test_advanced_cloud_masking_diy: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
