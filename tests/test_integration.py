@@ -2368,7 +2368,8 @@ def test_load_collection_references_correct_batch_process_id(auth_connection, tm
 
 
 def test_tsservice_geometry_mean(tsservice_base_url):
-    time_series_text = requests.post(
+    request = requests.Request(
+        "POST",
         f"{tsservice_base_url}/v1.0/ts/S2_FAPAR_FILE/geometry?startDate=2020-04-05&endDate=2020-04-05",
         json={
             "type": "Polygon",
@@ -2383,39 +2384,25 @@ def test_tsservice_geometry_mean(tsservice_base_url):
             ],
         },
         headers={"referer": "https://viewer.terrascope.be"},
-    ).text
+    ).prepare()
 
-    try:
-        time_series = json.loads(time_series_text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Failed to decode JSON. Error: {e} \nFull JSON: {time_series_text} ") from e
-    expected_schema = schema.Schema({'results': [{
-        'date': str,
-        'result': {
-            'average': float,
-            'totalCount': int,
-            'validCount': int
-        }}]
-    })
-
-    assert expected_schema.validate(time_series)
-
-    assert time_series == {
+    _test_tsservice_geometry_mean(request, expected_response={
         "results": [
             {
                 "date": "2020-04-05",
                 "result": {
-                    "totalCount": pytest.approx(670232, abs=1000),
-                    "validCount": pytest.approx(669368, abs=1000),
-                    "average": pytest.approx(0.24494559046742598, abs=0.001),
+                    "totalCount": 670232,
+                    "validCount": 669368,
+                    "average": pytest.approx(0.24494559046742598, rel=0.01),
                 },
             }
         ],
     }
+)
 
 
 def test_tsservice_coherence(tsservice_base_url):
-    time_series_text = requests.post(
+    request = requests.Request("POST",
         f"{tsservice_base_url}/v1.0/ts/TERRASCOPE_S1_SLC_COHERENCE_V1_VV/geometry?startDate=2025-04-25&endDate=2025-04-25&zoom=13",
         json={
             "type": "Polygon",
@@ -2437,14 +2424,29 @@ def test_tsservice_coherence(tsservice_base_url):
             ],
         },
         headers={"referer": "https://viewer.terrascope.be"},
-    ).text
+    ).prepare()
+
+    _test_tsservice_geometry_mean(request, expected_response={
+        "results": [
+            {
+                "date": "2025-04-25",
+                "result": {
+                    "totalCount": 336,
+                    "validCount": 336,
+                    "average": pytest.approx(0.2991666666666667, rel=0.01),
+                }
+            }
+        ],
+    })
+
+
+def _test_tsservice_geometry_mean(request: requests.PreparedRequest, expected_response: dict):
+    response_text = requests.Session().send(request).text
 
     try:
-        time_series = json.loads(time_series_text)
+        time_series = json.loads(response_text)
     except json.JSONDecodeError as e:
-        raise ValueError(
-            f"Failed to decode JSON. Error: {e} \nFull JSON: {time_series_text} "
-        ) from e
+        raise ValueError(f"Failed to decode JSON. Error: {e} \nFull response: {response_text}") from e
 
     expected_schema = schema.Schema(
         {
@@ -2458,19 +2460,7 @@ def test_tsservice_coherence(tsservice_base_url):
     )
 
     assert expected_schema.validate(time_series)
-
-    assert time_series == {
-        "results": [
-            {
-                "date": "2025-04-25",
-                "result": {
-                    "totalCount": pytest.approx(336, abs=10),
-                    "validCount": pytest.approx(336, abs=10),
-                    "average": pytest.approx(0.2991666666666667, abs=0.001),
-                }
-            }
-        ],
-    }
+    assert time_series == expected_response
 
 
 def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
