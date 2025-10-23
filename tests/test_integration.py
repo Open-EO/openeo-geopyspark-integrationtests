@@ -681,7 +681,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path, auto_title):
         _log.info(f"{data=}")
 
         expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-        expected_schema = schema.Schema({str: [[int]]})
+        expected_schema = schema.Schema({str: [[float]]})
 
         assert sorted(data.keys()) == sorted(expected_dates), f"Expected dates {expected_dates}, got {sorted(data.keys())}"
         assert expected_schema.validate(data), "Schema validation failed"
