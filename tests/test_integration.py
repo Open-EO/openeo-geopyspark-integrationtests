@@ -331,12 +331,12 @@ def test_histogram_timeseries(auth_connection):
 
 
 @pytest.mark.parametrize("udf_file", [
-    #"udfs/raster_collections_ndvi_old.py",
+    "udfs/raster_collections_ndvi_old.py",
     "udfs/raster_collections_ndvi.py",
 ])
 def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
     cube = (
-        openeo.connect("openeo.dataspace.copernicus.eu").authenticate_oidc().load_collection('SENTINEL2_L2A',bands=['B04','B08'])
+        auth_connection.load_collection('SENTINEL2_L2A',bands=['B04','B08'])
             .filter_temporal(start_date="2020-11-05", end_date="2020-11-05")
             .filter_bbox(west=761104, east=763281, south=6543830, north=6544655, crs="EPSG:3857")
     )
@@ -344,7 +344,7 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
     res = cube.reduce_bands(reducer=openeo.UDF.from_file(get_path(udf_file)))
 
     out_file = tmp_path / "ndvi-udf.tiff"
-    res.execute_batch(out_file, format="GTIFF", job_options={"image-name":"registry.prod.warsaw.openeo.dataspace.copernicus.eu/prod/openeo-geotrellis-kube-python311:20250619-34"})
+    res.execute_batch(out_file, format="GTIFF")
     assert_geotiff_basics(out_file, min_height=40, expected_shape=(1, 57, 141))
     with rasterio.open(out_file) as ds:
         ndvi = ds.read(1)
