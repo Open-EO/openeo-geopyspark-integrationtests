@@ -724,7 +724,7 @@ def test_batch_job_execute_batch(auth_connection, tmp_path, auto_title):
         with output_file.open("r") as f:
             data = json.load(f)
         expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-        expected_schema = schema.Schema({str: [[int]]})
+        expected_schema = schema.Schema({str: [[float]]})
         assert sorted(data.keys()) == sorted(expected_dates), f"Expected dates {expected_dates}, got {sorted(data.keys())}"
         assert expected_schema.validate(data), "Schema validation failed"
 
@@ -759,7 +759,7 @@ def test_batch_job_signed_urls(auth_connection, tmp_path, auto_title):
                 assert data is None
                 data = resp.json()
         expected_dates = ["2017-11-01T00:00:00Z", "2017-11-11T00:00:00Z", "2017-11-21T00:00:00Z"]
-        expected_schema = schema.Schema({str: [[int]]})
+        expected_schema = schema.Schema({str: [[float]]})
         assert sorted(data.keys()) == sorted(expected_dates), f"Expected dates {expected_dates}, got {sorted(data.keys())}"
         assert expected_schema.validate(data), "Schema validation failed"
 
