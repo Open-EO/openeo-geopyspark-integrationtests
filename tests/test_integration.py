@@ -1064,7 +1064,7 @@ def test_catboost_training(auth_connection: openeo.Connection, tmp_path, auto_ti
     model = MlModel(graph=pgnode, connection=auth_connection)
 
     model: MlModel = model.save_ml_model()
-    job: BatchJob = model.create_job(title=auto_title + " train", job_options={"image-name":"python38"})
+    job: BatchJob = model.create_job(title=auto_title + " train", job_options={"image-name":"python38", "executor-cores":1})
     assert job.job_id
     job.start_job()
 
