@@ -331,7 +331,6 @@ def test_histogram_timeseries(auth_connection):
 
 
 @pytest.mark.parametrize("udf_file", [
-    "udfs/raster_collections_ndvi_old.py",
     "udfs/raster_collections_ndvi.py",
 ])
 def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
@@ -344,12 +343,15 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
     res = cube.reduce_bands(reducer=openeo.UDF.from_file(get_path(udf_file)))
 
     out_file = tmp_path / "ndvi-udf.tiff"
-    res.execute_batch(out_file, format="GTIFF")
+    job = res.execute_batch(out_file, format="GTIFF")
     assert_geotiff_basics(out_file, min_height=40, expected_shape=(1, 57, 141))
     with rasterio.open(out_file) as ds:
         ndvi = ds.read(1)
         assert 0.35 < ndvi.min(axis=None)
         assert ndvi.max(axis=None) < 1.0
+
+    job_results: JobResults = job.get_results()
+    assert_projection_metadata_present(job_results.get_metadata())
 
 
 def test_ndvi_band_math(auth_connection, tmp_path, api_version):
