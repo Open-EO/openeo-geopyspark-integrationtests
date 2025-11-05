@@ -2126,17 +2126,6 @@ def test_library_availability(auth_connection, library):
 
 
 @pytest.mark.parametrize("udf_code", [
-    # Old style UDFs (based on openeo_udf imports)
-    """
-        from openeo_udf.api.udf_data import UdfData  # Old style openeo_udf API
-        from openeo_udf.api.structured_data import StructuredData   # Old style openeo_udf API
-        def transform(data: UdfData) -> UdfData:
-            res = [
-                StructuredData(description="res", data=[x * x for x in sd.data], type="list")
-                for sd in data.get_structured_data_list()
-            ]
-            data.set_structured_data_list(res)
-    """,
     # New style UDFs (based on openeo.udf imports)
     """
         from openeo.udf import UdfData, StructuredData
