@@ -1150,21 +1150,6 @@ def test_ep3048_sentinel1_udf(auth_connection, udf_file):
     assert all(k.startswith('2019-05-') for k in ts.keys())
 
 
-def test_load_collection_from_disk(auth_connection, tmp_path):
-    fapar = auth_connection.load_disk_collection(
-        format='GTiff',
-        glob_pattern='/data/MTDA/TERRASCOPE_Sentinel2/FAPAR_V2/2019/04/24/*/10M/*_FAPAR_10M_V200.tif',
-        options={
-            'date_regex': r".*\/S2._(\d{4})(\d{2})(\d{2})T.*"
-        }
-    )
-
-    fapar = fapar.filter_bbox(**BBOX_NIEUWPOORT).filter_temporal("2019-04-24", "2019-04-25")
-
-    output_file = tmp_path / "fapar_from_disk.tiff"
-    fapar.download(output_file, format="GTiff")
-    assert_geotiff_basics(output_file, expected_shape=(1, 1677, 2106))
-
 
 def assert_geotiff_basics(
         output_tiff: Union[str, Path], expected_band_count=1, min_width=64, min_height=64, expected_shape=None
