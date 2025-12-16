@@ -1297,9 +1297,9 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
     _log.info(f"test_advanced_cloud_masking_diy: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
     _log.info(f"test_advanced_cloud_masking_diy: {derived_from=}")
-    v210_links = [link for link in derived_from if "V210" in link ]
-    assert len(set(v210_links)) == 1
-    assert v210_links == derived_from
+    v220_links = [link for link in derived_from if "V220" in link ]
+    assert len(set(v220_links)) == 1
+    assert v220_links == derived_from
 
     assert_geotiff_basics(out_file, expected_shape=(1, 284, 675))
     with rasterio.open(out_file) as result_ds:
