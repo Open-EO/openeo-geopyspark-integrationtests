@@ -91,7 +91,7 @@ def job_context(job: BatchJob):
             f"Job ID: {job.job_id}",
             f"Job Status: {job.status()}",
         ]
-        
+
         # Add error logs if job failed
         if job.status().lower() != "finished":
             try:
@@ -104,7 +104,7 @@ def job_context(job: BatchJob):
                 ])
             except Exception:
                 job_info_lines.append("Job Error Logs: (failed to retrieve)")
-        
+
         # Add job results info if job finished successfully
         if job.status() == "finished":
             try:
@@ -113,7 +113,7 @@ def job_context(job: BatchJob):
                     "Job Results:",
                     f"  Metadata: {job_results.get_metadata()}",
                 ])
-                
+
                 assets: List[ResultAsset] = job_results.get_assets()
                 job_info_lines.extend([
                     f"  Assets ({len(assets)} total):",
@@ -121,10 +121,10 @@ def job_context(job: BatchJob):
                 ])
             except Exception as results_error:
                 job_info_lines.append(f"Job Results: (failed to retrieve: {results_error})")
-        
+
         job_info_lines.append("=" * 60)
         debug_info = "\n" + "\n".join(job_info_lines)
-        
+
         # Re-raise with enriched message while preserving original exception type and details
         raise type(e)(f"{str(e)}{debug_info}") from e
 
@@ -676,7 +676,7 @@ def test_batch_job_basic(auth_connection, api_version, tmp_path, auto_title):
 
         assets = job_results.get_assets()
         _log.info(f"{assets=}")
-    
+
         assert len(assets) == 1, f"expected 1 asset, got {len(assets)}"
         assert assets[0].name.endswith(".json"), f"Asset name should end with .json, got {assets[0].name}"
         data = assets[0].load_json()
@@ -990,7 +990,7 @@ def test_random_forest_train_and_load_from_jobid_and_url(auth_connection: openeo
     topredict_cube_xyb = topredict_xybt.reduce_dimension(dimension="t", reducer="mean")
     predicted_with_jobid: DataCube = topredict_cube_xyb.predict_random_forest(model=job.job_id, dimension="bands")
     inference_job_with_jobid = execute_batch_with_error_logging(
-        predicted_with_jobid, 
+        predicted_with_jobid,
         out_format="GTiff",
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
@@ -1009,8 +1009,8 @@ def test_random_forest_train_and_load_from_jobid_and_url(auth_connection: openeo
     _log.info(f"Using ml_model_metadata.json from job results: {ml_model_metadata_href}")
     predicted_with_metadata: DataCube = topredict_cube_xyb.predict_random_forest(model=ml_model_metadata_href, dimension="bands")
     inference_job_with_metadata = execute_batch_with_error_logging(
-        predicted_with_metadata, 
-        out_format="GTiff", 
+        predicted_with_metadata,
+        out_format="GTiff",
         max_poll_interval=BATCH_JOB_POLL_INTERVAL,
         job_options=batch_default_options(driverMemory="1600m", driverMemoryOverhead="1800m"),
         title=auto_title + " inference with metadata"
@@ -1297,7 +1297,7 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
     _log.info(f"test_advanced_cloud_masking_diy: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
     _log.info(f"test_advanced_cloud_masking_diy: {derived_from=}")
-    v220_links = [link for link in derived_from if "V220" in link ]
+    v220_links = [link for link in derived_from if "V220" in link]
     assert len(set(v220_links)) == 1
     assert v220_links == derived_from
 
