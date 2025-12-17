@@ -57,13 +57,12 @@ def requests_session(request) -> requests.Session:
 
 @pytest.fixture
 def connection(api_base_url, requests_session) -> openeo.Connection:
-    return openeo.connect(api_base_url, session=requests_session)
-
-
-@pytest.fixture
-def connection100(requests_session) -> openeo.Connection:
-    return openeo.connect(get_openeo_base_url("1.0.0"), session=requests_session)
-
+    con = openeo.connect(api_base_url, session=requests_session)
+    _log.info(f"Base connection {con=} {con.capabilities().get('id')=}")
+    _log.info(f"{con.capabilities().get('backend_version')=}")
+    _log.info(f"{con.capabilities().get('_backend_deploy_metadata')=}")
+    _log.info(f"{con.capabilities().get('processing:software')=}")
+    return con
 
 
 def _redact(x: Any) -> Any:
