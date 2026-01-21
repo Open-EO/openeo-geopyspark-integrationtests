@@ -2277,7 +2277,9 @@ def test_point_timeseries_from_batch_process(auth_connection, auto_title):
     )
 
     job = execute_batch_with_error_logging(data_cube, title=auto_title)
-
+    # In some cases job.get_assets() fails with `JobNotFinished` even though execute_batch finished without issues.
+    # So we sleep 1 second here to be sure.
+    time.sleep(1)
     timeseries = job.get_results().get_assets()[0].load_json()
 
     expected_schema = schema.Schema({str: [[float]]})
