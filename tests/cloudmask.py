@@ -23,11 +23,17 @@ def _add_band_dimension_workaround(cube: DataCube) -> DataCube:
     return cube.add_dimension("bands", "mask", type="bands").band("mask")
 
 
-def create_simple_mask(connection: Connection, size: int = 5, class_to_mask=3, band_math_workaround=False):
-    band = 'SCENECLASSIFICATION_20M'
+def create_simple_mask(
+    connection: Connection,
+    s2_collection_id: str,
+    size: int = 5,
+    class_to_mask=3,
+    band_math_workaround=False,
+):
+    band = "SCENECLASSIFICATION_20M"
     # TODO: drop "bands" argument after https://github.com/Open-EO/openeo-python-driver/issues/38
-    classification = connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[band]).band(band)
-    base_mask = (classification == class_to_mask)
+    classification = connection.load_collection(s2_collection_id, bands=[band]).band(band)
+    base_mask = classification == class_to_mask
     fuzzy = base_mask.apply_kernel(makekernel(size))
     if band_math_workaround:
         # TODO: avoid "add_dimension" workaround #EP-3402 #EP-3404
@@ -36,10 +42,16 @@ def create_simple_mask(connection: Connection, size: int = 5, class_to_mask=3, b
     return mask
 
 
-def create_advanced_mask(start: str, end: str, connection: Connection, band_math_workaround=False):
-    band = 'SCENECLASSIFICATION_20M'
+def create_advanced_mask(
+    start: str,
+    end: str,
+    connection: Connection,
+    s2_collection_id: str,
+    band_math_workaround=False,
+):
+    band = "SCENECLASSIFICATION_20M"
     # TODO: drop "bands" argument after https://github.com/Open-EO/openeo-python-driver/issues/38
-    classification = connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[band]).band(band)
+    classification = connection.load_collection(s2_collection_id, bands=[band]).band(band)
 
     # in openEO, 1 means mask (remove pixel) 0 means keep pixel
 

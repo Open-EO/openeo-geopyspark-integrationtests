@@ -57,6 +57,13 @@ spatial_extent_tap = {
 }
 
 
+TERRASCOPE_S2_TOC_V2_VARIANTS = [
+    "TERRASCOPE_S2_TOC_V2",
+    "TERRASCOPE_S2_TOC_V2_STAC",
+]
+
+
+
 def _dump_process_graph(
     cube: Union[DataCube], tmp_path: Path, name="process_graph.json"
 ):
@@ -354,11 +361,12 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
     assert_projection_metadata_present(job_results.get_metadata())
 
 
-def test_ndvi_band_math(auth_connection, tmp_path, api_version):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_ndvi_band_math(auth_connection, tmp_path, api_version, s2_collection_id):
     # http://bboxfinder.com/#51.20,5.00,51.23,5.05
     bbox = {"west": 5.00, "south": 51.20, "east": 5.05, "north": 51.23}
     cube = auth_connection.load_collection(
-        "TERRASCOPE_S2_TOC_V2",
+        s2_collection_id,
         temporal_extent=("2023-11-01", "2023-11-20"),
         spatial_extent=bbox,
         bands=["TOC-B04_10M", "TOC-B08_10M"],
@@ -1234,9 +1242,10 @@ def test_mask_out_all_data_int(auth_connection, api_version, tmp_path):
         assert np.all(masked_data.mask)
 
 
-def test_fuzzy_mask(auth_connection, tmp_path):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_fuzzy_mask(auth_connection, tmp_path, s2_collection_id):
     date = "2019-04-26"
-    mask = create_simple_mask(auth_connection, band_math_workaround=True)
+    mask = create_simple_mask(auth_connection, band_math_workaround=True, s2_collection_id=s2_collection_id)
     mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     _dump_process_graph(mask, tmp_path)
     output_tiff = tmp_path / "mask.tiff"
@@ -1244,14 +1253,21 @@ def test_fuzzy_mask(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=1)
 
 
-def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_simple_cloud_masking(auth_connection, api_version, tmp_path, s2_collection_id):
     date = "2019-04-26"
-    mask = create_simple_mask(auth_connection,class_to_mask=3, band_math_workaround=False)
+    mask = create_simple_mask(
+        auth_connection,
+        class_to_mask=3,
+        band_math_workaround=False,
+        s2_collection_id=s2_collection_id,
+    )
     mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
     s2_radiometry = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[ "blue" ])
-            .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
+        auth_connection.load_collection(s2_collection_id, bands=["blue"])
+        .filter_bbox(**BBOX_GENT)
+        .filter_temporal(date, date)
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
     if api_version >= "1.0.0":
@@ -1273,15 +1289,22 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path):
 
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto_title):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto_title, s2_collection_id):
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
     date = "2018-08-14"
-    mask = create_advanced_mask(start=date, end=date, connection=auth_connection, band_math_workaround=True)
+    mask = create_advanced_mask(
+        start=date,
+        end=date,
+        connection=auth_connection,
+        band_math_workaround=True,
+        s2_collection_id=s2_collection_id,
+    )
     mask = mask.filter_bbox(**bbox)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
     s2_radiometry = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["blue"])
+        auth_connection.load_collection(s2_collection_id, bands=["blue"])
             .filter_bbox(**bbox).filter_temporal(date, date)
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
@@ -1309,7 +1332,8 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
 
 
 
-def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path, s2_collection_id):
     """
     Advanced masking above got replaced with more simple builting approach
     @param auth_connection:
@@ -1322,8 +1346,9 @@ def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path):
     date = "2018-08-14"
 
     s2_radiometry = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["blue","SCENECLASSIFICATION_20M"])
-            .filter_bbox(**bbox).filter_temporal(date, date)
+        auth_connection.load_collection(s2_collection_id, bands=["blue", "SCENECLASSIFICATION_20M"])
+        .filter_bbox(**bbox)
+        .filter_temporal(date, date)
     )
 
     masked = s2_radiometry.process("mask_scl_dilation",data=s2_radiometry,scl_band_name="SCENECLASSIFICATION_20M")
@@ -1342,7 +1367,8 @@ def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path):
     "udfs/udf_temporal_slope_old.py",
     "udfs/udf_temporal_slope.py",
 ])
-def test_reduce_temporal_udf(auth_connection, tmp_path, udf_file):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_reduce_temporal_udf(auth_connection, tmp_path, udf_file, s2_collection_id):
     bbox = {
         "west": 6.8371137,
         "north": 50.5647147,
@@ -1352,9 +1378,9 @@ def test_reduce_temporal_udf(auth_connection, tmp_path, udf_file):
     }
 
     cube = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["blue", "green", "red"])
-            .filter_temporal("2020-11-01", "2020-11-20")
-            .filter_bbox(**bbox)
+        auth_connection.load_collection(s2_collection_id, bands=["blue", "green", "red"])
+        .filter_temporal("2020-11-01", "2020-11-20")
+        .filter_bbox(**bbox)
     )
 
     trend = cube.reduce_temporal(reducer=openeo.UDF.from_file(get_path(udf_file)))
@@ -1485,9 +1511,10 @@ def test_aggregate_spatial_timeseries(
                 print("VERY LITTLE DATA " + str(date) + " " + str(data[0].count()))
 
 
-def test_ndvi(auth_connection, tmp_path):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_ndvi(auth_connection, tmp_path, s2_collection_id):
     ndvi = auth_connection.load_collection(
-        "TERRASCOPE_S2_TOC_V2",
+        s2_collection_id,
         spatial_extent={"west": 5.027, "east": 5.0438, "south": 51.1974, "north": 51.2213},
         temporal_extent=["2020-04-05", "2020-04-05"],
         bands = ["nir", "red"]
@@ -1498,9 +1525,10 @@ def test_ndvi(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=1)
 
 
-def test_normalized_difference(auth_connection, tmp_path):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_normalized_difference(auth_connection, tmp_path, s2_collection_id):
     toc = auth_connection.load_collection(
-        "TERRASCOPE_S2_TOC_V2",
+        s2_collection_id,
         spatial_extent={"west": 5.027, "east": 5.0438, "south": 51.1974, "north": 51.2213},
         temporal_extent=["2020-04-05", "2020-04-05"]
     )
@@ -1531,8 +1559,8 @@ class TestUdp:
         udp.delete()
         assert udp_id not in {udp["id"] for udp in auth_connection.list_user_defined_processes()}
 
-
-    def test_udp_usage_blur(self, auth_connection, tmp_path):
+    @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+    def test_udp_usage_blur(self, auth_connection, tmp_path, s2_collection_id):
         # Store User Defined Process (UDP)
         user_defined_process_id = "blur"
         blur = {
@@ -1549,7 +1577,7 @@ class TestUdp:
         auth_connection.save_user_defined_process(user_defined_process_id, blur)
         # Use UDP
         cube = (
-            auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
+            auth_connection.load_collection(s2_collection_id)
             .filter_bands(["red", "green"])
             .filter_temporal("2020-06-26", "2020-06-27")
             .filter_bbox(**BBOX_MOL)
@@ -1560,8 +1588,8 @@ class TestUdp:
         assert_geotiff_basics(output_tiff, expected_band_count=2)
         # TODO: check resulting data?
 
-
-    def test_udp_usage_blur_parameter_default(self, auth_connection, tmp_path):
+    @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+    def test_udp_usage_blur_parameter_default(self, auth_connection, tmp_path, s2_collection_id):
         # Store User Defined Process (UDP)
         user_defined_process_id = "blur"
         blur = {
@@ -1582,7 +1610,7 @@ class TestUdp:
         )
         # Use UDP
         cube = (
-            auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
+            auth_connection.load_collection(s2_collection_id)
             .filter_bands(["red", "green"])
             .filter_temporal("2020-06-26", "2020-06-27")
             .filter_bbox(**BBOX_MOL)
@@ -1593,8 +1621,8 @@ class TestUdp:
         assert_geotiff_basics(output_tiff, expected_band_count=2)
         # TODO: check resulting data?
 
-
-    def test_udp_usage_reduce(self, auth_connection, tmp_path):
+    @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+    def test_udp_usage_reduce(self, auth_connection, tmp_path, s2_collection_id):
         # Store User Defined Process (UDP)
         flatten_bands = {
             "reduce1": {
@@ -1621,7 +1649,7 @@ class TestUdp:
         )
         # Use UDP
         cube = (
-            auth_connection.load_collection("TERRASCOPE_S2_TOC_V2")
+            auth_connection.load_collection(s2_collection_id)
             .filter_bands(["red", "green", "blue", "nir"])
             .filter_temporal("2020-06-26", "2020-06-27")
             .filter_bbox(**BBOX_MOL)
@@ -1723,7 +1751,8 @@ def test_secondary_service_without_spatial_bounds_is_accepted(auth_connection):
     auth_connection.remove_service(service_id)
 
 
-def test_simple_raster_to_vector(auth_connection, api_version, tmp_path):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_simple_raster_to_vector(auth_connection, api_version, tmp_path, s2_collection_id):
     date = "2019-04-26"
 
     # using sceneclassification that will have contiguous areas suitable for vectorization
@@ -1734,8 +1763,9 @@ def test_simple_raster_to_vector(auth_connection, api_version, tmp_path):
         "south": 51.030000,
     }
     s2_sc = (
-        auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=[ "SCENECLASSIFICATION_20M"])
-            .filter_bbox(**bbox_gent_small).filter_temporal(date, date)
+        auth_connection.load_collection(s2_collection_id, bands=["SCENECLASSIFICATION_20M"])
+        .filter_bbox(**bbox_gent_small)
+        .filter_temporal(date, date)
     )
     vectorized=s2_sc.raster_to_vector()
 
@@ -1744,13 +1774,17 @@ def test_simple_raster_to_vector(auth_connection, api_version, tmp_path):
     assert os.path.getsize(output_json) > 0
 
 
-def test_resolution_merge(auth_connection,tmp_path):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_resolution_merge(auth_connection, tmp_path, s2_collection_id):
     date = "2019-04-26"
     output_tiff = tmp_path / "highres.tif"
     lowres_output_tiff = tmp_path / "lowres.tif"
-    base = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=['TOC-B08_10M','TOC-B8A_20M'])\
-        .filter_bbox(**BBOX_GENT).filter_temporal(date, date)
-    #base.download(lowres_output_tiff)
+    base = (
+        auth_connection.load_collection(s2_collection_id, bands=["TOC-B08_10M", "TOC-B8A_20M"])
+        .filter_bbox(**BBOX_GENT)
+        .filter_temporal(date, date)
+    )
+    # base.download(lowres_output_tiff)
 
     base.resolution_merge(
     high_resolution_bands=['TOC-B08_10M'], low_resolution_bands=['TOC-B8A_20M']).download(output_tiff)
@@ -2033,7 +2067,8 @@ def __reproject_polygon(polygon: Union[Polygon], srs, dest_srs):
     )
 
 
-def test_merge_cubes(auth_connection, tmp_path):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_merge_cubes(auth_connection, tmp_path, s2_collection_id):
     # define ROI
     size = 10 * 128
     x = 640860.000
@@ -2049,7 +2084,11 @@ def test_merge_cubes(auth_connection, tmp_path):
     startdate = f"{year}-05-01"
 
     enddate = f"{year}-05-15"
-    s2_bands = auth_connection.load_collection("TERRASCOPE_S2_TOC_V2", bands=["B04", "B08", "SCENECLASSIFICATION_20M"], spatial_extent=extent)
+    s2_bands = auth_connection.load_collection(
+        s2_collection_id,
+        bands=["B04", "B08", "SCENECLASSIFICATION_20M"],
+        spatial_extent=extent,
+    )
     s2_bands = s2_bands.process("mask_scl_dilation", data=s2_bands, scl_band_name="SCENECLASSIFICATION_20M")
     b4_band = s2_bands.band("B04")
     b8_band = s2_bands.band("B08")
@@ -2142,11 +2181,12 @@ def test_udf_support_structured_data(auth_connection, udf_code):
 
 
 
-def test_validation_missing_product(connection):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_validation_missing_product(connection, s2_collection_id):
     """
     EP-4012, https://github.com/openEOPlatform/architecture-docs/issues/85
     """
-    cube = connection.load_collection("TERRASCOPE_S2_TOC_V2")
+    cube = connection.load_collection(s2_collection_id)
     cube = cube.filter_temporal("2021-02-01", "2021-02-10")
     cube = cube.filter_bbox(west=90, south=60, east=90.1, north=60.1)
     errors = cube.validate()
@@ -2155,9 +2195,10 @@ def test_validation_missing_product(connection):
     assert "MissingProduct" in {e["code"] for e in errors}
 
 
-def test_aggregate_spatial_point_handling(auth_connection):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_aggregate_spatial_point_handling(auth_connection, s2_collection_id):
     data_cube = auth_connection.load_collection(
-        "TERRASCOPE_S2_TOC_V2",
+        s2_collection_id,
         bands=["B04", "B03", "B02"],
         temporal_extent=["2019-09-25", "2019-09-30"],
     )
@@ -2185,11 +2226,10 @@ def as_feature_collection(*geometries: BaseGeometry) -> dict:
     }
 
 
-def test_aggregate_spatial_feature_collection_heterogeneous_multiple_aggregates(
-    auth_connection,
-):
+@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+def test_aggregate_spatial_feature_collection_heterogeneous_multiple_aggregates(auth_connection, s2_collection_id):
     data_cube = auth_connection.load_collection(
-        "TERRASCOPE_S2_TOC_V2",
+        s2_collection_id,
         bands=["B04", "B03", "B02"],
         temporal_extent=["2019-09-25", "2019-09-30"],
     )
