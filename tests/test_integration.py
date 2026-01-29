@@ -1181,8 +1181,8 @@ def assert_cog(output_tiff: Union[str, Path]):
 def test_mask_polygon(auth_connection, api_version, tmp_path):
     bbox = {"west": 7.0, "south": 51.28, "east": 7.1, "north": 51.4, "crs": "EPSG:4326"}
     date = "2017-11-01"
-    collection_id = 'PROBAV_L3_S10_TOC_333M'
-    cube = auth_connection.load_collection(collection_id,bands=["NDVI"]).filter_bbox(**bbox).filter_temporal(date, date)
+    collection_id = "PROBAV_L3_S10_TOC_333M"
+    cube = auth_connection.load_collection(collection_id, bands=["NDVI"], spatial_extent=bbox, temporal_extent=date)
     if api_version >= "1.0.0":
         masked = cube.mask_polygon(POLYGON01)
     else:
@@ -1196,8 +1196,8 @@ def test_mask_polygon(auth_connection, api_version, tmp_path):
 def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
     bbox = {"west": 5, "south": 51, "east": 5.08, "north": 51.1, "crs": "EPSG:4326"}
     date = "2017-12-21"
-    collection_id = 'PROBAV_L3_S10_TOC_333M'
-    probav = auth_connection.load_collection(collection_id,bands=["NDVI"]).filter_temporal(date, date).filter_bbox(**bbox)
+    collection_id = "PROBAV_L3_S10_TOC_333M"
+    probav = auth_connection.load_collection(collection_id, bands=["NDVI"], temporal_extent=date, spatial_extent=bbox)
     opaque_mask = probav.band("NDVI") != 255  # all ones
     # Mask the data (and make sure it is float data)
     probav_masked = probav.apply(lambda x: x * 0.5).mask(mask=opaque_mask)
@@ -1221,8 +1221,8 @@ def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
 def test_mask_out_all_data_int(auth_connection, api_version, tmp_path):
     bbox = {"west": 5, "south": 51, "east": 5.08, "north": 51.1, "crs": "EPSG:4326"}
     date = "2017-12-21"
-    collection_id = 'PROBAV_L3_S10_TOC_333M'
-    probav = auth_connection.load_collection(collection_id,bands=["NDVI"]).filter_temporal(date, date).filter_bbox(**bbox)
+    collection_id = "PROBAV_L3_S10_TOC_333M"
+    probav = auth_connection.load_collection(collection_id, bands=["NDVI"], temporal_extent=date, spatial_extent=bbox)
     opaque_mask = probav.band("NDVI") != 255  # all ones
     probav_masked = probav.mask(mask=opaque_mask)
     _dump_process_graph(probav_masked, tmp_path=tmp_path, name="probav_masked.json")
@@ -1246,7 +1246,7 @@ def test_mask_out_all_data_int(auth_connection, api_version, tmp_path):
 def test_fuzzy_mask(auth_connection, tmp_path, s2_collection_id):
     date = "2019-04-26"
     mask = create_simple_mask(auth_connection, band_math_workaround=True, s2_collection_id=s2_collection_id)
-    mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
+    mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(extent=date)
     _dump_process_graph(mask, tmp_path)
     output_tiff = tmp_path / "mask.tiff"
     mask.download(output_tiff, format='GTIFF')
@@ -1262,12 +1262,13 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path, s2_collect
         band_math_workaround=False,
         s2_collection_id=s2_collection_id,
     )
-    mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(date, date)
+    mask = mask.filter_bbox(**BBOX_GENT).filter_temporal(extent=date)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
-    s2_radiometry = (
-        auth_connection.load_collection(s2_collection_id, bands=["blue"])
-        .filter_bbox(**BBOX_GENT)
-        .filter_temporal(date, date)
+    s2_radiometry = auth_connection.load_collection(
+        s2_collection_id,
+        bands=["blue"],
+        spatial_extent=BBOX_GENT,
+        temporal_extent=date,
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
     if api_version >= "1.0.0":
@@ -1303,10 +1304,13 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
     )
     mask = mask.filter_bbox(**bbox)
     # mask.download(tmp_path / "mask.tiff", format='GTIFF')
-    s2_radiometry = (
-        auth_connection.load_collection(s2_collection_id, bands=["blue"])
-            .filter_bbox(**bbox).filter_temporal(date, date)
+    s2_radiometry = auth_connection.load_collection(
+        s2_collection_id,
+        bands=["blue"],
+        spatial_extent=bbox,
+        temporal_extent=date,
     )
+
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
 
 
@@ -1345,10 +1349,11 @@ def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path, 
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
     date = "2018-08-14"
 
-    s2_radiometry = (
-        auth_connection.load_collection(s2_collection_id, bands=["blue", "SCENECLASSIFICATION_20M"])
-        .filter_bbox(**bbox)
-        .filter_temporal(date, date)
+    s2_radiometry = auth_connection.load_collection(
+        s2_collection_id,
+        bands=["blue", "SCENECLASSIFICATION_20M"],
+        spatial_extent=bbox,
+        temporal_extent=date,
     )
 
     masked = s2_radiometry.process("mask_scl_dilation",data=s2_radiometry,scl_band_name="SCENECLASSIFICATION_20M")
@@ -1487,7 +1492,7 @@ def test_aggregate_spatial_timeseries(
     for date in expected_dates[::max(1, len(expected_dates) // 5)]:
         output_file = tmp_path / "ts_{d}.tiff".format(d=re.sub(r'[^0-9]', '', date))
         print("Evaluating date {d}, downloading to {p}".format(d=date, p=output_file))
-        date_cube = auth_connection.load_collection(cid).filter_temporal(date, date).filter_bbox(**bbox)
+        date_cube = auth_connection.load_collection(cid, temporal_extent=date, spatial_extent=bbox)
         if api_version.at_least("1.0.0"):
             date_cube = date_cube.mask_polygon(polygon)
         else:
@@ -1765,7 +1770,7 @@ def test_simple_raster_to_vector(auth_connection, api_version, tmp_path, s2_coll
     s2_sc = (
         auth_connection.load_collection(s2_collection_id, bands=["SCENECLASSIFICATION_20M"])
         .filter_bbox(**bbox_gent_small)
-        .filter_temporal(date, date)
+        .filter_temporal(extent=date)
     )
     vectorized=s2_sc.raster_to_vector()
 
@@ -1782,7 +1787,7 @@ def test_resolution_merge(auth_connection, tmp_path, s2_collection_id):
     base = (
         auth_connection.load_collection(s2_collection_id, bands=["TOC-B08_10M", "TOC-B8A_20M"])
         .filter_bbox(**BBOX_GENT)
-        .filter_temporal(date, date)
+        .filter_temporal(extent=date)
     )
     # base.download(lowres_output_tiff)
 
