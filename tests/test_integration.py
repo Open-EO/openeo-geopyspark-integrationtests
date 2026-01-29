@@ -1294,10 +1294,10 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path, s2_collect
 def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto_title, s2_collection_id):
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
-    date = "2018-08-14"
+    start_date, end_date = ("2018-08-14", "2018-08-15")
     mask = create_advanced_mask(
-        start=date,
-        end=date,
+        start=start_date,
+        end=end_date,
         connection=auth_connection,
         band_math_workaround=True,
         s2_collection_id=s2_collection_id,
@@ -1308,7 +1308,7 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
         s2_collection_id,
         bands=["blue"],
         spatial_extent=bbox,
-        temporal_extent=date,
+        temporal_extent=(start_date, end_date),
     )
 
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
