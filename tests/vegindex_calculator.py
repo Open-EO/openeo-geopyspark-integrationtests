@@ -11,7 +11,7 @@ import pytest, rasterio
 
 TERRASCOPE_S2_TOC_V2_VARIANTS = [
     "TERRASCOPE_S2_TOC_V2",
-    "TERRASCOPE_S2_TOC_V2_STAC",
+    "_TERRASCOPE_S2_TOC_V2_STAC",
 ]
 
 

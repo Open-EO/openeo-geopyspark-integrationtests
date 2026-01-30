@@ -59,7 +59,7 @@ spatial_extent_tap = {
 
 TERRASCOPE_S2_TOC_V2_VARIANTS = [
     "TERRASCOPE_S2_TOC_V2",
-    "TERRASCOPE_S2_TOC_V2_STAC",
+    "_TERRASCOPE_S2_TOC_V2_STAC",
 ]
 
 
@@ -259,23 +259,39 @@ class TestGeneral:
         assert me["user_id"] == "f689e77d-f188-40ca-b12b-3e278f0ad68f"
 
 
-def test_terrascope_download_latlon(auth_connection, tmp_path):
-    s2_fapar = (
-        auth_connection.load_collection("TERRASCOPE_S2_NDVI_V2",bands=["NDVI_10M"])
-            # bounding box: http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
-            .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
-            .filter_bbox(west=5.027, east=5.0438, south=51.1974, north=51.2213, crs="EPSG:4326")
+@pytest.mark.parametrize(
+    ["collection_id", "bands"],
+    [
+        ("TERRASCOPE_S2_NDVI_V2", ["NDVI_10M"]),
+        ("_TERRASCOPE_S2_NDVI_V2_STAC", ["NDVI_10M"]),
+    ],
+)
+def test_terrascope_download_latlon(auth_connection, tmp_path, collection_id, bands):
+    s2_fapar = auth_connection.load_collection(
+        collection_id,
+        bands=bands,
+        temporal_extent="2018-08-06",
+        # bounding box: http://bboxfinder.com/#51.197400,5.027000,51.221300,5.043800
+        spatial_extent=dict(west=5.027, east=5.0438, south=51.1974, north=51.2213, crs="EPSG:4326"),
     )
     out_file = tmp_path / "result.tiff"
     s2_fapar.download(out_file, format="GTIFF")
     assert_geotiff_basics(out_file, expected_shape=(1, 270, 126))
 
 
-def test_terrascope_download_webmerc(auth_connection, tmp_path):
-    s2_fapar = (
-        auth_connection.load_collection("TERRASCOPE_S2_NDVI_V2",bands=["NDVI_10M"])
-            .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
-            .filter_bbox(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857")
+@pytest.mark.parametrize(
+    ["collection_id", "bands"],
+    [
+        ("TERRASCOPE_S2_NDVI_V2", ["NDVI_10M"]),
+        ("_TERRASCOPE_S2_NDVI_V2_STAC", ["NDVI_10M"]),
+    ],
+)
+def test_terrascope_download_webmerc(auth_connection, tmp_path, collection_id, bands):
+    s2_fapar = auth_connection.load_collection(
+        collection_id,
+        bands=bands,
+        temporal_extent="2018-08-06",
+        spatial_extent=dict(west=561864.7084, east=568853, south=6657846, north=6661080, crs="EPSG:3857"),
     )
     out_file = tmp_path / "result.tiff"
     s2_fapar.download(out_file, format="GTIFF")
@@ -1433,9 +1449,11 @@ def test_custom_processes_in_batch_job(auth_connection):
     }
 
 
-@pytest.mark.parametrize(["cid", "expected_dates"], [
-    (
-            'TERRASCOPE_S2_FAPAR_V2',
+@pytest.mark.parametrize(
+    ["collection_id", "expected_dates"],
+    [
+        (
+            "TERRASCOPE_S2_FAPAR_V2",
             [
                 "2017-11-02T00:00:00Z",
                 "2017-11-04T00:00:00Z",
@@ -1446,12 +1464,23 @@ def test_custom_processes_in_batch_job(auth_connection):
                 "2017-11-17T00:00:00Z",
                 "2017-11-19T00:00:00Z",
             ],
-        )
+        ),
+        (
+            "_TERRASCOPE_S2_FAPAR_V2_STAC",
+            [
+                "2017-11-02T00:00:00Z",
+                "2017-11-04T00:00:00Z",
+                "2017-11-07T00:00:00Z",
+                "2017-11-09T00:00:00Z",
+                "2017-11-12T00:00:00Z",
+                "2017-11-14T00:00:00Z",
+                "2017-11-17T00:00:00Z",
+                "2017-11-19T00:00:00Z",
+            ],
+        ),
     ],
 )
-def test_aggregate_spatial_timeseries(
-    auth_connection, tmp_path, cid, expected_dates, api_version
-):
+def test_aggregate_spatial_timeseries(auth_connection, tmp_path, collection_id, expected_dates, api_version):
     expected_dates = sorted(expected_dates)
     polygon = (
         Polygon(shell=[
@@ -1463,11 +1492,10 @@ def test_aggregate_spatial_timeseries(
     ]
 ))
     bbox = _polygon_bbox(polygon)
-    cube = (
-        auth_connection
-            .load_collection(cid)
-            .filter_temporal("2017-11-01", "2017-11-22")
-            .filter_bbox(**bbox)
+    cube = auth_connection.load_collection(
+        collection_id,
+        temporal_extent=("2017-11-01", "2017-11-22"),
+        spatial_extent=bbox,
     )
     ts_mean = cube.aggregate_spatial(geometries=polygon, reducer="mean").execute()
     print("mean", ts_mean)
@@ -1492,7 +1520,7 @@ def test_aggregate_spatial_timeseries(
     for date in expected_dates[::max(1, len(expected_dates) // 5)]:
         output_file = tmp_path / "ts_{d}.tiff".format(d=re.sub(r'[^0-9]', '', date))
         print("Evaluating date {d}, downloading to {p}".format(d=date, p=output_file))
-        date_cube = auth_connection.load_collection(cid, temporal_extent=date, spatial_extent=bbox)
+        date_cube = auth_connection.load_collection(collection_id, temporal_extent=date, spatial_extent=bbox)
         if api_version.at_least("1.0.0"):
             date_cube = date_cube.mask_polygon(polygon)
         else:
