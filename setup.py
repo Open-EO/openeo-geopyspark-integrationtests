@@ -13,6 +13,7 @@ setup(
         "rasterio<1.3.11; python_version<'3.9'",
         "schema",
         "pytest-timeout",
+        "pytest-html",
         "shapely",
         "openeo>=0.39.0",
         "openeo_driver>=0.39.1.dev",
