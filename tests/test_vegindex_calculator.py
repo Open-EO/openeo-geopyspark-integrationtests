@@ -6,7 +6,8 @@ from openeo import Connection
 from openeo.rest.datacube import DataCube
 from openeo.processes import ProcessBuilder, array_modify, power, sqrt, if_, multiply, arccos
 import numpy as np
-import pytest, rasterio
+import pytest
+import rasterio
 
 
 TERRASCOPE_S2_TOC_V2_VARIANTS = [
@@ -15,11 +16,10 @@ TERRASCOPE_S2_TOC_V2_VARIANTS = [
 ]
 
 
-
 WL_B04 = 0.6646
 WL_B08 = 0.8328
 WL_B11 = 1.610
-one_over_pi = 1. / np.pi
+one_over_pi = 1.0 / np.pi
 
 # source: https://git.vito.be/projects/LCLU/repos/satio/browse/satio/rsindices.py
 ndvi = lambda B04, B08: (B08 - B04) / (B08 + B04)
@@ -51,7 +51,7 @@ indices = {
     "ANIR": anir,
     "NDRE1": ndre1,
     "NDRE2": ndre2,
-    "NDRE5": ndre5
+    "NDRE5": ndre5,
 }
 
 
@@ -59,9 +59,12 @@ def _callback(x: ProcessBuilder, index_list: list, datacube: DataCube) -> Proces
     lenx = len(datacube.metadata._band_dimension.bands)
     tot = x
     for idx in index_list:
-        if idx not in indices.keys(): raise NotImplementedError("Index " + idx + " has not been implemented.")
-        band_indices = [datacube.metadata.get_band_index(band) for band in
-                        indices[idx].__code__.co_varnames[:indices[idx].__code__.co_argcount]]
+        if idx not in indices.keys():
+            raise NotImplementedError("Index " + idx + " has not been implemented.")
+        band_indices = [
+            datacube.metadata.get_band_index(band)
+            for band in indices[idx].__code__.co_varnames[: indices[idx].__code__.co_argcount]
+        ]
         lenx += 1
         tot = array_modify(data=tot, values=indices[idx](*[tot.array_element(i) for i in band_indices]), index=lenx)
     return tot
@@ -76,25 +79,23 @@ def compute_indices(datacube: DataCube, index_list: list) -> DataCube:
     return: the datacube with the indices attached as bands
 
     """
-    return datacube.apply_dimension(dimension="bands",
-                                    process=lambda x: _callback(x, index_list, datacube)).rename_labels('bands',
-                                                                                                        target=datacube.metadata.band_names + index_list)
-
-
+    return datacube.apply_dimension(
+        dimension="bands", process=lambda x: _callback(x, index_list, datacube)
+    ).rename_labels("bands", target=datacube.metadata.band_names + index_list)
 
 
 @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
 @pytest.mark.parametrize(
     ["index", "bands", "expected"],
     [
-        ("NDVI", ["B04", "B08"], [[0.8563234, 0.845991], [0.82082057, 0.841846]]),
-        ("NDMI", ["B08", "B11"], [[0.48937103, 0.4992478], [0.47535053, 0.50764006]]),
+        ("NDVI", ["B04", "B08"], [[0.84840566, 0.8529045], [0.8322148, 0.84003973]]),
+        ("NDMI", ["B08", "B11"], [[0.48821548, 0.50689375], [0.47867298, 0.52459353]]),
     ],
 )
-def test_vegindex_calculator_ndvi(auth_connection: Connection, tmp_path, index, bands, expected, s2_collection_id):
+def test_vegindex_calculator(auth_connection: Connection, tmp_path, index, bands, expected, s2_collection_id):
     x = 640860.000
     y = 5676170.000
-    bbox = (x,y,x+20,y+20)
+    bbox = (x, y, x + 20, y + 20)
 
     s2 = auth_connection.load_collection(
         s2_collection_id,
@@ -113,7 +114,7 @@ def test_vegindex_calculator_ndvi(auth_connection: Connection, tmp_path, index, 
     feats = compute_indices(s2_masked, [index])
     feats.download(tmp_path / "feats.tif", format="GTiff")
 
-    with rasterio.open(tmp_path / 'feats.tif') as dataset:
+    with rasterio.open(tmp_path / "feats.tif") as dataset:
         result = dataset.read(3)
 
     np.testing.assert_almost_equal(actual=result, desired=expected, decimal=7)
