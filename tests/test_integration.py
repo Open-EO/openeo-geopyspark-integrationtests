@@ -2212,9 +2212,18 @@ def test_udf_support_structured_data(auth_connection, udf_code):
     assert res == [1, 4, 9, 25, 64]
 
 
-
-
-@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
+@pytest.mark.parametrize(
+    "s2_collection_id",
+    [
+        "TERRASCOPE_S2_TOC_V2",
+        pytest.param(
+            "_TERRASCOPE_S2_TOC_V2_STAC",
+            marks=pytest.mark.skip(
+                reason="Unsure if possible to implement this feature for load_stac based collections: https://github.com/Open-EO/openeo-geopyspark-driver/issues/1542"
+            ),
+        ),
+    ],
+)
 def test_validation_missing_product(connection, s2_collection_id):
     """
     EP-4012, https://github.com/openEOPlatform/architecture-docs/issues/85
