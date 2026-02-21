@@ -11,9 +11,9 @@ import rasterio
 
 
 TERRASCOPE_S2_TOC_V2_VARIANTS = [
-    "TERRASCOPE_S2_TOC_V2",
+    "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
     pytest.param(
-        "_TERRASCOPE_S2_TOC_V2_STAC",
+        "TERRASCOPE_S2_TOC_V2",
         marks=pytest.mark.skip(
             reason="mask_scl_dilation doesn't work with load_stac based SENTINEL2_L2A collections:"
             " https://github.com/Open-EO/openeo-geopyspark-driver/issues/1541"
