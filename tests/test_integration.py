@@ -58,8 +58,8 @@ spatial_extent_tap = {
 
 
 TERRASCOPE_S2_TOC_V2_VARIANTS = [
+    "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
     "TERRASCOPE_S2_TOC_V2",
-    "_TERRASCOPE_S2_TOC_V2_STAC",
 ]
 
 
@@ -262,8 +262,8 @@ class TestGeneral:
 @pytest.mark.parametrize(
     ["collection_id", "bands"],
     [
+        ("_TERRASCOPE_S2_NDVI_V2_OPENSEARCH", ["NDVI_10M"]),
         ("TERRASCOPE_S2_NDVI_V2", ["NDVI_10M"]),
-        ("_TERRASCOPE_S2_NDVI_V2_STAC", ["NDVI_10M"]),
     ],
 )
 def test_terrascope_download_latlon(auth_connection, tmp_path, collection_id, bands):
@@ -282,8 +282,8 @@ def test_terrascope_download_latlon(auth_connection, tmp_path, collection_id, ba
 @pytest.mark.parametrize(
     ["collection_id", "bands"],
     [
+        ("_TERRASCOPE_S2_NDVI_V2_OPENSEARCH", ["NDVI_10M"]),
         ("TERRASCOPE_S2_NDVI_V2", ["NDVI_10M"]),
-        ("_TERRASCOPE_S2_NDVI_V2_STAC", ["NDVI_10M"]),
     ],
 )
 def test_terrascope_download_webmerc(auth_connection, tmp_path, collection_id, bands):
@@ -1355,9 +1355,9 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
 @pytest.mark.parametrize(
     "s2_collection_id",
     [
-        "TERRASCOPE_S2_TOC_V2",
+        "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
         pytest.param(
-            "_TERRASCOPE_S2_TOC_V2_STAC",
+            "TERRASCOPE_S2_TOC_V2",
             marks=pytest.mark.skip(
                 reason="mask_scl_dilation doesn't work with load_stac based SENTINEL2_L2A collections:"
                 " https://github.com/Open-EO/openeo-geopyspark-driver/issues/1541"
@@ -1465,7 +1465,7 @@ def test_custom_processes_in_batch_job(auth_connection):
     ["collection_id", "expected_dates"],
     [
         (
-            "TERRASCOPE_S2_FAPAR_V2",
+            "_TERRASCOPE_S2_FAPAR_V2_OPENSEARCH",
             [
                 "2017-11-02T00:00:00Z",
                 "2017-11-04T00:00:00Z",
@@ -1478,7 +1478,7 @@ def test_custom_processes_in_batch_job(auth_connection):
             ],
         ),
         (
-            "_TERRASCOPE_S2_FAPAR_V2_STAC",
+            "TERRASCOPE_S2_FAPAR_V2",
             [
                 "2017-11-02T00:00:00Z",
                 "2017-11-04T00:00:00Z",
@@ -2115,9 +2115,9 @@ def __reproject_polygon(polygon: Union[Polygon], srs, dest_srs):
 @pytest.mark.parametrize(
     "s2_collection_id",
     [
-        "TERRASCOPE_S2_TOC_V2",
+        "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
         pytest.param(
-            "_TERRASCOPE_S2_TOC_V2_STAC",
+            "TERRASCOPE_S2_TOC_V2",
             marks=pytest.mark.skip(
                 reason="mask_scl_dilation doesn't work with load_stac based SENTINEL2_L2A collections:"
                 " https://github.com/Open-EO/openeo-geopyspark-driver/issues/1541"
@@ -2239,9 +2239,9 @@ def test_udf_support_structured_data(auth_connection, udf_code):
 @pytest.mark.parametrize(
     "s2_collection_id",
     [
-        "TERRASCOPE_S2_TOC_V2",
+        "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
         pytest.param(
-            "_TERRASCOPE_S2_TOC_V2_STAC",
+            "TERRASCOPE_S2_TOC_V2",
             marks=pytest.mark.skip(
                 reason="Unsure if possible to implement this feature for load_stac based collections: https://github.com/Open-EO/openeo-geopyspark-driver/issues/1542"
             ),
