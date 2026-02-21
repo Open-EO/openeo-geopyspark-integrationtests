@@ -1073,7 +1073,7 @@ def test_catboost_training(auth_connection: openeo.Connection, tmp_path, auto_ti
     cube_xybt: DataCube = auth_connection.load_collection(
         "_PROBAV_L3_S10_TOC_333M_OPENSEARCH", bands=["NDVI"],
         spatial_extent={"west": 4.78, "east": 4.91, "south": 51.25, "north": 51.31},
-        temporal_extent=["2017-11-01", "2017-11-01"]
+        temporal_extent=["2017-11-01T00:00:00Z", "2017-11-02T00:00:00Z"]
     )
     cube_xyb: DataCube = cube_xybt.reduce_dimension(dimension="t", reducer="mean")
     predictors: DataCube = cube_xyb.aggregate_spatial(FEATURE_COLLECTION_1, reducer="mean")
