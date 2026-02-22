@@ -359,7 +359,7 @@ def test_histogram_timeseries(auth_connection):
 def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
     cube = (
         auth_connection.load_collection('SENTINEL2_L2A',bands=['B04','B08'])
-            .filter_temporal(start_date="2020-11-05", end_date="2020-11-05")
+            .filter_temporal(start_date="2020-11-05T00:00:00Z", end_date="2020-11-06T00:00:00Z")
             .filter_bbox(west=761104, east=763281, south=6543830, north=6544655, crs="EPSG:3857")
     )
     # cube.download(tmp_path / "cube.tiff", format="GTIFF")
