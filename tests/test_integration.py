@@ -2153,7 +2153,7 @@ def test_merge_cubes(auth_connection, tmp_path, s2_collection_id):
     s2_ndvi = s2_ndvi.add_dimension("bands", "s2_ndvi", type="bands")
 
     datacube = s2_ndvi
-    pv_ndvi = auth_connection.load_collection('PROBAV_L3_S10_TOC_333M', bands=['NDVI'], spatial_extent=extent)
+    pv_ndvi = auth_connection.load_collection('_PROBAV_L3_S10_TOC_333M_OPENSEARCH', bands=['NDVI'], spatial_extent=extent)
     pv_ndvi = pv_ndvi.resample_cube_spatial(s2_ndvi)
     pv_ndvi = pv_ndvi.mask_polygon(poly)
     datacube = datacube.merge_cubes(pv_ndvi)
