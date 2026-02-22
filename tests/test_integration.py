@@ -2329,6 +2329,7 @@ def test_aggregate_spatial_feature_collection_heterogeneous_multiple_aggregates(
     }
 
 
+@pytest.mark.skip(reason="SCL band raster_to_vector is broken https://github.com/Open-EO/openeo-geopyspark-driver/issues/1541")
 def test_raster_to_vector_with_apply_dimension(auth_connection, tmp_path):
     """
     https://github.com/Open-EO/openeo-python-driver/issues/303
