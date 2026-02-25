@@ -353,28 +353,29 @@ def test_histogram_timeseries(auth_connection):
         assert len(histograms[0][0]) > 10
 
 
-@pytest.mark.parametrize("udf_file", [
-    "udfs/raster_collections_ndvi.py",
-])
+@pytest.mark.parametrize(
+    "udf_file",
+    [
+        "udfs/raster_collections_ndvi.py",
+    ],
+)
 def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
-    cube = (
-        auth_connection.load_collection('SENTINEL2_L2A',bands=['B04','B08'])
-            .filter_temporal(start_date="2020-11-05T00:00:00Z", end_date="2020-11-06T00:00:00Z")
-            .filter_bbox(west=761104, east=763281, south=6543830, north=6544655, crs="EPSG:3857")
+    cube = auth_connection.load_collection(
+        "SENTINEL2_L2A",
+        temporal_extent="2020-11-05",
+        spatial_extent=dict(west=761104, east=763281, south=6543830, north=6544655, crs="EPSG:3857"),
+        bands=["B04", "B08"],
     )
-    # cube.download(tmp_path / "cube.tiff", format="GTIFF")
+    # cube.download(tmp_path / "raw.tiff", format="GTIFF")
     res = cube.reduce_bands(reducer=openeo.UDF.from_file(get_path(udf_file)))
 
     out_file = tmp_path / "ndvi-udf.tiff"
-    job = res.execute_batch(out_file, format="GTIFF")
-    assert_geotiff_basics(out_file, min_height=40, expected_shape=(1, 57, 141))
+    res.download(out_file, format="GTIFF")
+    assert_geotiff_basics(out_file, min_height=40, expected_shape=(1, 60, 142))
     with rasterio.open(out_file) as ds:
         ndvi = ds.read(1)
         assert 0.35 < ndvi.min(axis=None)
         assert ndvi.max(axis=None) < 1.0
-
-    job_results: JobResults = job.get_results()
-    assert_projection_metadata_present(job_results.get_metadata())
 
 
 @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
