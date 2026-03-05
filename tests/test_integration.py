@@ -2240,7 +2240,12 @@ def test_udf_support_structured_data(auth_connection, udf_code):
 @pytest.mark.parametrize(
     "s2_collection_id",
     [
-        "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
+        pytest.param(
+            "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
+            marks=pytest.mark.skip(
+                reason="Depends on CDSE OpenSearch catalog, which is now decommissioned: https://github.com/Open-EO/openeo-geopyspark-driver/issues/1572"
+            ),
+        ),
         pytest.param(
             "TERRASCOPE_S2_TOC_V2",
             marks=pytest.mark.skip(
