@@ -1357,13 +1357,7 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
     "s2_collection_id",
     [
         "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
-        pytest.param(
-            "TERRASCOPE_S2_TOC_V2",
-            marks=pytest.mark.skip(
-                reason="mask_scl_dilation doesn't work with load_stac based SENTINEL2_L2A collections:"
-                " https://github.com/Open-EO/openeo-geopyspark-driver/issues/1541"
-            ),
-        ),
+        "TERRASCOPE_S2_TOC_V2",
     ],
 )
 def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path, s2_collection_id):
@@ -2117,13 +2111,7 @@ def __reproject_polygon(polygon: Union[Polygon], srs, dest_srs):
     "s2_collection_id",
     [
         "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
-        pytest.param(
-            "TERRASCOPE_S2_TOC_V2",
-            marks=pytest.mark.skip(
-                reason="mask_scl_dilation doesn't work with load_stac based SENTINEL2_L2A collections:"
-                " https://github.com/Open-EO/openeo-geopyspark-driver/issues/1541"
-            ),
-        ),
+        "TERRASCOPE_S2_TOC_V2",
     ],
 )
 def test_merge_cubes(auth_connection, tmp_path, s2_collection_id):
