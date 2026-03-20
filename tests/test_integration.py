@@ -2225,36 +2225,6 @@ def test_udf_support_structured_data(auth_connection, udf_code):
     assert res == [1, 4, 9, 25, 64]
 
 
-@pytest.mark.parametrize(
-    "s2_collection_id",
-    [
-        pytest.param(
-            "_TERRASCOPE_S2_TOC_V2_OPENSEARCH",
-            marks=pytest.mark.skip(
-                reason="Depends on CDSE OpenSearch catalog, which is now decommissioned: https://github.com/Open-EO/openeo-geopyspark-driver/issues/1572"
-            ),
-        ),
-        pytest.param(
-            "TERRASCOPE_S2_TOC_V2",
-            marks=pytest.mark.skip(
-                reason="Unsure if possible to implement this feature for load_stac based collections: https://github.com/Open-EO/openeo-geopyspark-driver/issues/1542"
-            ),
-        ),
-    ],
-)
-def test_validation_missing_product(connection, s2_collection_id):
-    """
-    EP-4012, https://github.com/openEOPlatform/architecture-docs/issues/85
-    """
-    cube = connection.load_collection(s2_collection_id)
-    cube = cube.filter_temporal("2021-02-01", "2021-02-10")
-    cube = cube.filter_bbox(west=90, south=60, east=90.1, north=60.1)
-    errors = cube.validate()
-    print(errors)
-    assert len(errors) > 0
-    assert "MissingProduct" in {e["code"] for e in errors}
-
-
 @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
 def test_aggregate_spatial_point_handling(auth_connection, s2_collection_id):
     data_cube = auth_connection.load_collection(
