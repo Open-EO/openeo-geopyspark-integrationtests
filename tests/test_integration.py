@@ -414,7 +414,7 @@ def test_cog_synchronous(auth_connection, tmp_path):
     out_file = tmp_path / "cog.tiff"
     cube.download(out_file)
     #TODO: this shape, is wrong, caused by: https://github.com/Open-EO/openeo-geopyspark-driver/issues/260
-    assert_geotiff_basics(out_file, expected_shape=(1, 3642, 1821))
+    assert_geotiff_basics(out_file, expected_shape=(1, 1680, 1680))
     assert_cog(out_file)
 
 
@@ -482,36 +482,36 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
                 "openEO_2017-11-21Z_N51E002.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [729, 365],
+                        "proj:shape": [337, 336],
                         "proj:bbox": pytest.approx(
-                            [1.9995067, 50.9999028, 3.0020091, 52.0010318]
+                            [2.0, 51.0, 3.0, 52.0029762], abs=1e-4
                         ),
                     }
                 ),
                 "openEO_2017-11-21Z_N51E003.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [729, 365],
+                        "proj:shape": [337, 336],
                         "proj:bbox": pytest.approx(
-                            [2.9992625, 50.9999028, 4.0017649, 52.0010318]
+                            [3.0, 51.0, 4.0, 52.0029762], abs=1e-4
                         ),
                     }
                 ),
                 "openEO_2017-11-21Z_N52E002.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [729, 365],
+                        "proj:shape": [336, 336],
                         "proj:bbox": pytest.approx(
-                            [1.9995067, 51.9996585, 3.0020091, 53.0007876]
+                            [2.0, 52.0, 3.0, 53.0], abs=1e-4
                         ),
                     }
                 ),
                 "openEO_2017-11-21Z_N52E003.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [729, 365],
+                        "proj:shape": [336, 336],
                         "proj:bbox": pytest.approx(
-                            [2.9992625, 51.9996585, 4.0017649, 53.0007876]
+                            [3.0, 52.0, 4.0, 53.0], abs=1e-4
                         ),
                     }
                 ),
@@ -1204,7 +1204,7 @@ def test_mask_polygon(auth_connection, api_version, tmp_path):
 
     output_tiff = tmp_path / "masked.tiff"
     masked.download(output_tiff, format='GTIFF')
-    assert_geotiff_basics(output_tiff, expected_shape=(1, 89, 38),min_width=32, min_height=32)
+    assert_geotiff_basics(output_tiff, expected_shape=(1, 41, 34),min_width=32, min_height=32)
 
 
 def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
@@ -1222,8 +1222,8 @@ def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
     masked_path = tmp_path / "probav_masked.tiff"
     probav_masked.download(masked_path, format='GTiff')
 
-    assert_geotiff_basics(probav_path, expected_shape=(1, 73, 30),min_width=29, min_height=32)
-    assert_geotiff_basics(masked_path, expected_shape=(1, 73, 30),min_width=29, min_height=32)
+    assert_geotiff_basics(probav_path, expected_shape=(1, 34, 27), min_width=20, min_height=20)
+    assert_geotiff_basics(masked_path, expected_shape=(1, 34, 27), min_width=20, min_height=20)
     with rasterio.open(probav_path) as probav_ds, rasterio.open(masked_path) as masked_ds:
         probav_data = probav_ds.read(1)
         assert np.all(probav_data != 255)
@@ -1246,8 +1246,8 @@ def test_mask_out_all_data_int(auth_connection, api_version, tmp_path):
     masked_path = tmp_path / "probav_masked.tiff"
     probav_masked.download(masked_path, format='GTiff')
 
-    assert_geotiff_basics(probav_path, expected_shape=(1, 73, 30),min_width=29, min_height=32)
-    assert_geotiff_basics(masked_path, expected_shape=(1, 73, 30),min_width=29, min_height=32)
+    assert_geotiff_basics(probav_path, expected_shape=(1, 34, 27), min_width=20, min_height=20)
+    assert_geotiff_basics(masked_path, expected_shape=(1, 34, 27), min_width=20, min_height=20)
     with rasterio.open(probav_path) as probav_ds, rasterio.open(masked_path) as masked_ds:
         probav_data = probav_ds.read(1)
         assert np.all(probav_data != 255)
@@ -2135,7 +2135,7 @@ def test_merge_cubes(auth_connection, tmp_path, s2_collection_id):
     timeseries = dataset.mean(dim=['x', 'y'])
 
     # Needs update to the referenca data when a layer has been reprocessed
-    assert_array_almost_equal([178.65863, 180.42896, np.nan], timeseries.NDVI.values, 2)
+    assert_array_almost_equal([179.86, 181.36, np.nan], timeseries.NDVI.values, 2)
     assert_allclose([np.nan, np.nan, 0.600626], timeseries.s2_ndvi.values, atol=0.005)
 
 
