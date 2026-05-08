@@ -131,8 +131,8 @@ def job_context(job: BatchJob):
         job_info_lines.append("=" * 60)
         debug_info = "\n" + "\n".join(job_info_lines)
 
-        # Re-raise with enriched message while preserving original exception type and details
-        raise type(e)(f"{str(e)}{debug_info}") from e
+        e.args = (f"{e}{debug_info}",) + e.args[1:]
+        raise
 
 
 def log_if_failed(job, extra_message=""):
