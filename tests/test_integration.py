@@ -1813,7 +1813,7 @@ def test_resolution_merge(auth_connection, tmp_path, s2_collection_id):
     high_resolution_bands=['TOC-B08_10M'], low_resolution_bands=['TOC-B8A_20M']).download(output_tiff)
     assert_geotiff_basics(output_tiff, expected_band_count=2)
 
-
+@pytest.mark.skip(reason="Sentinelhub batch no longer supported")
 @pytest.mark.batchjob
 @pytest.mark.timeout(40 * 60)
 def test_sentinel_hub_execute_batch(auth_connection, tmp_path, auto_title):
@@ -1907,7 +1907,7 @@ def test_sentinel_hub_default_sar_backscatter_synchronous(auth_connection, tmp_p
         assert dataset.crs == "EPSG:32631"
         assert dataset.res == (10, 10)
 
-
+@pytest.mark.skip(reason="Sentinelhub batch no longer supported")
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path, auto_title):
@@ -2323,7 +2323,7 @@ def test_point_timeseries_from_batch_process(auth_connection, auto_title):
     geometries = GeometryCollection([large_polygon, center_point])
 
     data_cube = (
-        auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB", bands=["B04", "B03", "B02"])
+        auth_connection.load_collection("SENTINEL2_L1C", bands=["B04", "B03", "B02"])
         .filter_temporal(extent=["2019-09-26", "2019-09-27"])
         .aggregate_spatial(geometries, "mean")
     )
