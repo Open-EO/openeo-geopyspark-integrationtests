@@ -2037,7 +2037,7 @@ def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tm
     compare_xarrays(result.loc[date,"B04"],b4ref[0].transpose("x","y"))
     compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
 
-
+@pytest.mark.skip(reason="Atmospheric correction requires L1C on terrascope, which is no longer there")
 def test_atmospheric_correction_const_overridden_params(auth_connection, api_version, tmp_path):
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
@@ -2323,7 +2323,7 @@ def test_point_timeseries_from_batch_process(auth_connection, auto_title):
     geometries = GeometryCollection([large_polygon, center_point])
 
     data_cube = (
-        auth_connection.load_collection("SENTINEL2_L1C", bands=["B04", "B03", "B02"])
+        auth_connection.load_collection("SENTINEL2_L2A", bands=["B04", "B03", "B02"])
         .filter_temporal(extent=["2019-09-26", "2019-09-27"])
         .aggregate_spatial(geometries, "mean")
     )
@@ -2543,7 +2543,7 @@ def test_half_open_temporal_interval_sentinel_hub(auth_connection, tmp_path):
 
     def time_series(end_date: str) -> dict:
         result = (
-            auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
+            auth_connection.load_collection("SENTINEL2_L2A_SENTINELHUB")
             .filter_bands(["B04", "B03", "B02"])
             .filter_temporal(["2018-06-04", end_date])
             .aggregate_spatial(geometry, reducer="mean")
