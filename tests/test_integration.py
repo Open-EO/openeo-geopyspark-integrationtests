@@ -1699,7 +1699,7 @@ class TestUdp:
         assert res == 10.0
 
     @pytest.mark.batchjob
-    @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+    @pytest.mark.timeout(10 * 60)
     def test_udp_simple_math_batch_job(self, auth_connection, tmp_path, auto_title):
         # Use unique UDP name (for this test)
         udp_name = f"f2c_omxu38tkfdujeu3o0843"
