@@ -83,6 +83,12 @@ def _polygon_bbox(polygon: Polygon) -> dict:
     return {"south": coords[1], "west": coords[0], "north": coords[3], "east": coords[2], "crs": "EPSG:4326"}
 
 
+class JobDebugInfoException(Exception):
+    """Custom exception to include job debugging info when a batch job related error occurs."""
+
+    pass
+
+
 @contextmanager
 def job_context(job: BatchJob):
     """Context manager that enriches exceptions with job debugging info."""
@@ -131,8 +137,7 @@ def job_context(job: BatchJob):
         job_info_lines.append("=" * 60)
         debug_info = "\n" + "\n".join(job_info_lines)
 
-        e.args = (f"{e}{debug_info}",) + e.args[1:]
-        raise
+        raise JobDebugInfoException(debug_info) from e
 
 
 def log_if_failed(job, extra_message=""):
