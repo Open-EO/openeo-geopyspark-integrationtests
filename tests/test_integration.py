@@ -2322,7 +2322,7 @@ def test_raster_to_vector_with_apply_dimension(auth_connection, tmp_path):
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_point_timeseries_from_batch_process(auth_connection, auto_title):
-    large_polygon = Polygon.from_bounds(2.640329849675133, 49.745440618122501, 3.297496358117944, 50.317367956014152)
+    large_polygon = Polygon.from_bounds(2.640329849675133, 50.445440618122501, 3.297496358117944, 51.017367956014152)
     center_point = large_polygon.centroid
 
     geometries = GeometryCollection([large_polygon, center_point])
