@@ -2498,6 +2498,93 @@ def _test_tsservice_geometry_mean(request: requests.PreparedRequest, expected_re
     assert time_series == expected_response
 
 
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_cropsar2d(auth_connection, tmp_path, auto_title):
+    aoi = {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [5.179324150085449, 51.2498689148547],
+                [5.178744792938232, 51.24672597710759],
+                [5.185289382934569, 51.24504696935156],
+                [5.18676996231079, 51.245342479161295],
+                [5.187370777130127, 51.24918393390799],
+                [5.179324150085449, 51.2498689148547],
+            ]
+        ],
+    }
+    biopar = "FAPAR"
+    startdate = "2021-10-01"
+    enddate = "2021-10-10"
+
+    cropsar = auth_connection.datacube_from_process(
+        "cropsar2d",
+        namespace="vito",
+        geometry=aoi,
+        startdate=startdate,
+        enddate=enddate,
+        output=biopar,
+    )
+
+    output_file = tmp_path / "result.nc"
+    job = execute_batch_with_error_logging(
+        cropsar,
+        outputfile=output_file,
+        max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+        job_options={
+            "udf-dependency-archives": [
+                "https://s3.waw3-1.cloudferro.com/swift/v1/project_dependencies/onnx_deps_python311.zip#onnx_deps",
+            ]
+        },
+        title=auto_title,
+    )
+    assert job.status() == "finished"
+
+
+@pytest.mark.batchjob
+@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
+def test_cropsar1d(auth_connection, tmp_path, auto_title):
+    aoi = {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [5.179324150085449, 51.2498689148547],
+                [5.178744792938232, 51.24672597710759],
+                [5.185289382934569, 51.24504696935156],
+                [5.18676996231079, 51.245342479161295],
+                [5.187370777130127, 51.24918393390799],
+                [5.179324150085449, 51.2498689148547],
+            ]
+        ],
+    }
+    date = "2021-10-01", "2021-10-10"
+    biopar = "FAPAR"
+
+    cropsar = auth_connection.datacube_from_process(
+        process_id="cropsar1d",
+        namespace="vito",
+        geometry=aoi,
+        startdate=date[0],
+        enddate=date[1],
+        output=biopar,
+    )
+
+    output_file = tmp_path / "result.nc"
+    job = execute_batch_with_error_logging(
+        cropsar,
+        outputfile=output_file,
+        max_poll_interval=BATCH_JOB_POLL_INTERVAL,
+        job_options={
+            "udf-dependency-archives": [
+                "https://artifactory.vgt.vito.be/artifactory/auxdata-public/marketplace/cropsar1d_dependencies.zip#cropsar_onnx",
+            ]
+        },
+        title=auto_title,
+    )
+    assert job.status() == "finished"
+
+
 def test_load_stac_from_element84_stac_api(auth_connection, tmp_path):
     data_cube = (auth_connection
                  .load_stac(url="https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a",
