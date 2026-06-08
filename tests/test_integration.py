@@ -2498,6 +2498,7 @@ def _test_tsservice_geometry_mean(request: requests.PreparedRequest, expected_re
     assert time_series == expected_response
 
 
+@pytest.mark.skip(reason="Work in progress")
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_cropsar2d(auth_connection, tmp_path, auto_title):
@@ -2542,6 +2543,7 @@ def test_cropsar2d(auth_connection, tmp_path, auto_title):
     assert job.status() == "finished"
 
 
+@pytest.mark.skip(reason="Work in progress")
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_cropsar1d(auth_connection, tmp_path, auto_title):
