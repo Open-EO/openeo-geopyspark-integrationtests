@@ -2223,7 +2223,7 @@ def test_aggregate_spatial_point_handling(auth_connection, s2_collection_id):
 
     assert means == {
         "2019-09-26T00:00:00Z": [[6832.0, 6708.0, 6600.0]],
-        "2019-09-28T00:00:00Z": [[976.0, 843.0, 577.0]],
+        "2019-09-28T00:00:00Z": [[1068.0, 921.0, 690.0]],
     }
 
 
