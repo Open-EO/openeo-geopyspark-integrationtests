@@ -30,5 +30,6 @@ setup(
         "jsonschema",
         "rio_cogeo",
         "pydantic~=1.0",
+        "dirty-equals",
     ],
 )

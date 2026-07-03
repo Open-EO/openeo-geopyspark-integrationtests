@@ -13,6 +13,7 @@ from pathlib import Path
 from pprint import pprint, pformat
 from typing import Callable, List, Union, Optional
 
+import dirty_equals
 import imghdr
 import numpy as np
 import pyproj
@@ -2890,4 +2891,91 @@ def apply_datacube(cube: DataArray, context: dict) -> DataArray:
 
     result = cube.apply_dimension(code = udf, dimension="bands").dimension_labels(dimension="bands")
     labels = result.execute()
-    assert labels == ['computed_band_1', 'computed_band_2']
+    assert labels == ["computed_band_1", "computed_band_2"]
+
+
+def test_load_stac_derived_from_with_linked_doc(auth_connection, auto_title):
+    """
+    https://github.com/Open-EO/openeo-geopyspark-driver/issues/1618
+    """
+    cube = auth_connection.load_collection(
+        "TERRASCOPE_S2_TOC_V2",
+        temporal_extent=["2023-04-01", "2023-04-10"],
+        spatial_extent={"west": 3.1, "south": 51.1, "east": 3.11, "north": 51.11},
+        bands=["B02", "B03"],
+    )
+    job = cube.save_result("netCDF").create_job(
+        title=auto_title,
+        job_options={
+            "stac-version": "1.1",
+        },
+    )
+    job.start_and_wait()
+    results = job.get_results()
+    results_metadata = results.get_metadata()
+
+    def check_derived_from_links(derived_from_links):
+        expected_derived_from_link_object = {
+            "href": dirty_equals.IsStr(regex=r".*/stac-item-collection-loadcollection1\.json\?.*"),
+            "rel": "derived_from",
+            "type": "application/geo+json",
+        }
+        assert derived_from_links == [expected_derived_from_link_object]
+        _check_derived_from_href(
+            derived_from_links[0]["href"],
+            expected_id=dirty_equals.IsStr(regex="S2[AB]_.*TOC.*"),
+            expected_collection="terrascope-s2-toc-v2",
+        )
+
+    # Check job result metadata
+    derived_from_links = get_links_by_rel(results_metadata, rel="derived_from")
+    check_derived_from_links(derived_from_links)
+
+    # Also check derived_from link in items
+    item_links = get_links_by_rel(results_metadata, rel="item")
+    assert len(item_links) > 0
+    for item_link in item_links:
+        item_href = item_link["href"]
+        _log.info(f"{item_href=}")
+        item_data = requests.get(item_href).json()
+        derived_from_links = get_links_by_rel(item_data, rel="derived_from")
+        check_derived_from_links(derived_from_links)
+
+
+def get_links_by_rel(metadata_or_links: Union[List[dict], dict], *, rel: str) -> List[dict]:
+    """
+    Helper to extract links with given rel type
+    from a list or links or a metadata object with a "links" key.
+    """
+    if isinstance(metadata_or_links, list):
+        links = metadata_or_links
+    elif isinstance(metadata_or_links, dict):
+        links = metadata_or_links["links"]
+    else:
+        raise TypeError(f"{metadata_or_links=}")
+
+    return [link for link in links if link["rel"] == rel]
+
+
+def _check_derived_from_href(
+    derived_from_href: str,
+    *,
+    expected_id: Union[str, dirty_equals.IsStr] = dirty_equals.IsStr(),
+    expected_collection: Union[str, dirty_equals.IsStr] = dirty_equals.IsStr(),
+):
+    _log.info(f"{derived_from_href=}")
+    derived_from_data = requests.get(derived_from_href).json()
+    assert derived_from_data == {
+        "type": "FeatureCollection",
+        "features": dirty_equals.IsList(length=(2, ...)),
+    }
+    for feature in derived_from_data["features"]:
+        assert feature == dirty_equals.IsPartialDict(
+            {
+                "type": "Feature",
+                "bbox": dirty_equals.IsList(length=4),
+                "geometry": dirty_equals.IsPartialDict(),
+                "id": expected_id,
+                "collection": expected_collection,
+            }
+        )
