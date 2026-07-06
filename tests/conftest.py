@@ -94,7 +94,12 @@ def auth_connection(connection, capfd) -> openeo.Connection:
         # to alleviate the default impression that the test seem to hang
         # because of the OIDC device code poll loop.
         max_poll_time = int(os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 30)
-        connection.authenticate_oidc(max_poll_time=max_poll_time)
+
+        if connection.root_url.startswith("http://127.0.0.1") or connection.root_url.startswith("http://localhost"):
+            # Avoid oidc auth for localhost. Used for local debugging.
+            connection.authenticate_basic("openeo", "openeo")
+        else:
+            connection.authenticate_oidc(max_poll_time=max_poll_time)
     return connection
 
 
