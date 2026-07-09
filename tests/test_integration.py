@@ -2330,7 +2330,7 @@ def test_point_timeseries_from_batch_process(auth_connection, auto_title):
 
     data_cube = (
         auth_connection.load_collection("SENTINEL2_L2A", bands=["B04", "B03", "B02"])
-        .filter_temporal(extent=["2019-09-26", "2019-09-27"])
+        .filter_temporal(extent=["2026-07-08", "2026-07-09"])
         .aggregate_spatial(geometries, "mean")
     )
 
