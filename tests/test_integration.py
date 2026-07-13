@@ -2649,13 +2649,13 @@ def test_half_open_temporal_interval_sentinel_hub(auth_connection, tmp_path):
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 def test_ndvi_weighted_composite(auth_connection, tmp_path, auto_title):
     spatial_extent = {
-        "west": 11,
-        "south": 47,
-        "east": 11.025,
-        "north": 47.025,
+        "west": 4.0,
+        "south": 51.0,
+        "east": 4.025,
+        "north": 51.025,
         "crs": "epsg:4326",
     }
-    temporal_extent = ["2020-07-01", "2020-07-31"]
+    temporal_extent = ["2020-08-01", "2020-08-31"]
 
     # Calculate the distance weight
     scl = auth_connection.load_collection(
@@ -2756,22 +2756,22 @@ def test_ndvi_weighted_composite(auth_connection, tmp_path, auto_title):
     output_tiff = tmp_path / "test_ndvi_weighted_composite.tif"
     job.download_result(output_tiff)
 
-    assert_geotiff_basics(output_tiff, expected_shape=(3, 142, 100))
+    assert_geotiff_basics(output_tiff, expected_shape=(3, 141, 91))
 
     with rasterio.open(output_tiff) as result_ds:
         b02 = result_ds.read(1)
-        assert np.nanmedian(b02, axis=None) == pytest.approx(316.2, rel=0.05)
-        assert np.nanmean(b02, axis=None) == pytest.approx(394.7, rel=0.05)
+        assert np.nanmedian(b02, axis=None) == pytest.approx(587.9, rel=0.05)
+        assert np.nanmean(b02, axis=None) == pytest.approx(647.0, rel=0.05)
         assert np.isnan(b02).sum(axis=None) == 0
 
         b03 = result_ds.read(2)
-        assert np.nanmedian(b03, axis=None) == pytest.approx(591.2, rel=0.05)
-        assert np.nanmean(b03, axis=None) == pytest.approx(656.5, rel=0.05)
+        assert np.nanmedian(b03, axis=None) == pytest.approx(818.9, rel=0.05)
+        assert np.nanmean(b03, axis=None) == pytest.approx(855.3, rel=0.05)
         assert np.isnan(b03).sum(axis=None) == 0
 
         b04 = result_ds.read(3)
-        assert np.nanmedian(b04, axis=None) == pytest.approx(367.4, rel=0.05)
-        assert np.nanmean(b04, axis=None) == pytest.approx(472.9, rel=0.05)
+        assert np.nanmedian(b04, axis=None) == pytest.approx(825.5, rel=0.05)
+        assert np.nanmean(b04, axis=None) == pytest.approx(864.3, rel=0.05)
         assert np.isnan(b04).sum(axis=None) == 0
 
 
