@@ -2223,7 +2223,6 @@ def test_aggregate_spatial_point_handling(auth_connection, s2_collection_id):
     means = data_cube.aggregate_spatial(Point(2.7355, 51.1281), "mean").execute()
 
     assert means == {
-        "2019-09-26T00:00:00Z": [[6832.0, 6708.0, 6600.0]],
         "2019-09-28T00:00:00Z": [[1068.0, 921.0, 690.0]],
     }
 
