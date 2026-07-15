@@ -15,7 +15,7 @@ setup(
         "pytest-timeout",
         "pytest-html",
         "shapely",
-        "openeo>=0.39.0",
+        "openeo>=0.51.0a3.dev",
         "openeo_driver>=0.39.1.dev",
         "pytest-xdist",
         "xarray>=2022.0.0",
