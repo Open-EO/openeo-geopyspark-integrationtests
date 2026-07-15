@@ -320,41 +320,6 @@ def test_aggregate_spatial_polygon(auth_connection):
     assert expected_schema.validate(timeseries)
 
 
-@pytest.mark.skip(reason="histogram was an experiment and is not listed in the openeo editor. Use quantiles instead.")
-def test_histogram_timeseries(auth_connection):
-    probav = (
-        auth_connection
-            .load_collection('PROBAV_L3_S10_TOC_333M',bands=["NDVI"])
-            .filter_bbox(5, 6, 52, 51, 'EPSG:4326')
-            .filter_temporal(['2017-11-21', '2017-12-21'])
-    )
-    polygon = shape(
-        {
-            "type": "Polygon",
-            "coordinates": [
-                [
-                    [5.0761587693484875, 51.21222494794898],
-                    [5.166854684377381, 51.21222494794898],
-                    [5.166854684377381, 51.268936260927404],
-                    [5.0761587693484875, 51.268936260927404],
-                    [5.0761587693484875, 51.21222494794898],
-                ]
-            ],
-        }
-    )
-    timeseries = probav.aggregate_spatial(
-        geometries=polygon, reducer="histogram"
-    ).execute()
-    print(timeseries)
-
-    expected_schema = schema.Schema({str: [[{str: int}]]})
-    assert expected_schema.validate(timeseries)
-
-    for date, histograms in timeseries.items():
-        assert len(histograms) == 1
-        assert len(histograms[0]) == 1
-        assert len(histograms[0][0]) > 10
-
 
 @pytest.mark.parametrize(
     "udf_file",
@@ -1127,57 +1092,6 @@ def test_catboost_training(auth_connection: openeo.Connection, tmp_path, auto_ti
     assert ml_model_properties.get('ml-model:type', None) == 'ml-model'
 
 
-@pytest.mark.skip(reason="Requires proxying to work properly")
-def test_create_wtms_service(auth_connection):
-    s2_fapar = (
-        auth_connection
-            .load_collection('S2_FAPAR_V102_WEBMERCATOR2')
-            .filter_bbox(west=0, south=50, east=5, north=55, crs='EPSG:4326')
-            .filter_temporal(start_date="2019-04-01", end_date="2019-04-01")
-    )
-    res = s2_fapar.tiled_viewing_service(type='WMTS')
-    print("created service", res)
-    assert "service_id" in res
-    assert "url" in res
-    service_id = res["service_id"]
-    service_url = res["url"]
-    assert '/services/{s}'.format(s=service_id) in service_url
-
-    wmts_metadata = auth_connection.get(service_url).json()
-    print("wmts metadata", wmts_metadata)
-    assert "url" in wmts_metadata
-    wmts_url = wmts_metadata["url"]
-    time.sleep(5)  # seems to take a while before the service is proxied
-    get_capabilities = requests.get(wmts_url + '?REQUEST=getcapabilities').text
-    print("getcapabilities", get_capabilities)
-    # the capabilities document should advertise the proxied URL
-    assert "<Capabilities" in get_capabilities
-    assert wmts_url in get_capabilities
-
-
-@pytest.mark.skip(reason="Temporary skip to get tests through")
-@pytest.mark.parametrize("udf_file", [
-    "udfs/smooth_savitsky_golay_old.py",
-    "udfs/smooth_savitsky_golay.py",
-])
-def test_ep3048_sentinel1_udf(auth_connection, udf_file):
-    # http://bboxfinder.com/#-4.745000,-55.700000,-4.740000,-55.695000
-    N, E, S, W = (-4.740, -55.695, -4.745, -55.7)
-    polygon = Polygon(shell=[[W, N], [E, N], [E, S], [W, S]])
-
-    ts = (
-        auth_connection.load_collection("SENTINEL1_GAMMA0_SENTINELHUB")
-        .filter_temporal(["2019-05-24T00:00:00Z", "2019-05-30T00:00:00Z"])
-        .filter_bbox(north=N, east=E, south=S, west=W, crs="EPSG:4326")
-        .filter_bands([0])
-        .apply_dimension(process=openeo.UDF.from_file(get_path(udf_file)))
-        .aggregate_spatial(geometries=polygon, reducer="mean")
-        .execute()
-    )
-    assert isinstance(ts, dict)
-    assert all(k.startswith('2019-05-') for k in ts.keys())
-
-
 
 def assert_geotiff_basics(
         output_tiff: Union[str, Path], expected_band_count=1, min_width=64, min_height=64, expected_shape=None
@@ -1392,70 +1306,6 @@ def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path, 
             assert_array_approx_equal(ref_ds.read(1,masked=False), result_ds.read(1,masked=False))
 
 
-@pytest.mark.skip(reason="Temporary skip to get tests through")
-@pytest.mark.parametrize("udf_file", [
-    "udfs/udf_temporal_slope_old.py",
-    "udfs/udf_temporal_slope.py",
-])
-@pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
-def test_reduce_temporal_udf(auth_connection, tmp_path, udf_file, s2_collection_id):
-    bbox = {
-        "west": 6.8371137,
-        "north": 50.5647147,
-        "east": 6.8566699,
-        "south": 50.560007,
-        "crs": "EPSG:4326"
-    }
-
-    cube = (
-        auth_connection.load_collection(s2_collection_id, bands=["blue", "green", "red"])
-        .filter_temporal("2020-11-01", "2020-11-20")
-        .filter_bbox(**bbox)
-    )
-
-    trend = cube.reduce_temporal(reducer=openeo.UDF.from_file(get_path(udf_file)))
-
-    output_file = tmp_path / "trend.tiff"
-    trend.download(output_file, format="GTIFF")
-    assert_geotiff_basics(output_file, expected_band_count=12,min_height=48, min_width=140)
-
-
-@pytest.mark.skip(reason="Custom processes will be tested separately")
-@pytest.mark.requires_custom_processes
-def test_custom_processes(auth_connection):
-    process_graph = {
-        "foobar1": {
-            "process_id": "foobar",
-            "arguments": {"size": 123, "color": "green"},
-            "result": True,
-        }
-    }
-    res = auth_connection.execute(process_graph)
-    assert res == {
-        "args": ["color", "size"],
-        "msg": "hello world",
-    }
-
-@pytest.mark.skip(reason="Custom processes will be tested separately")
-@pytest.mark.batchjob
-@pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-@pytest.mark.requires_custom_processes
-def test_custom_processes_in_batch_job(auth_connection):
-    process_graph = {
-        "foobar1": {
-            "process_id": "foobar",
-            "arguments": {"size": 123, "color": "green"},
-            "result": True,
-        }
-    }
-    job = auth_connection.create_job(process_graph)
-    job.start_and_wait()
-    results = job.get_results()
-    asset = next(a for a in results.get_assets() if a.metadata.get("type") == "application/json")
-    assert asset.load_json() == {
-        "args": ["color", "size"],
-        "msg": "hello world",
-    }
 
 
 @pytest.mark.parametrize(
@@ -1769,16 +1619,6 @@ def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tm
     assert excinfo.value.code in {"MissingSpatialFilter", "ProcessGraphComplexity"}
 
 
-@pytest.mark.skip(reason="DELETEing a service doesn't work because it's being proxied to the WMTS Jetty server")
-def test_secondary_service_without_spatial_bounds_is_accepted(auth_connection):
-    s2_fapar = (
-        auth_connection.load_collection("PROBAV_L3_S10_TOC_NDVI_333M")
-            .filter_temporal(["2018-08-06T00:00:00Z", "2018-08-06T00:00:00Z"])
-    )
-
-    service_id = s2_fapar.tiled_viewing_service(type="WMTS")["service_id"]
-    auth_connection.remove_service(service_id)
-
 
 @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
 def test_simple_raster_to_vector(auth_connection, api_version, tmp_path, s2_collection_id):
@@ -1972,76 +1812,8 @@ def compare_xarrays(
     )
 
 
-@pytest.mark.skip(reason="Temporary skip to get tests through")
-def test_atmospheric_correction_inputsarecorrect(auth_connection, api_version, tmp_path):
-    # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
-    date = "2019-04-11"
-    bbox=(655000,5677000,660000,5685000)
 
-    l1c = (
-        auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
-            .filter_temporal(date,date)\
-            .filter_bbox(crs="EPSG:32631", **dict(zip(["west", "south", "east", "north"], bbox)))
-    )
-    l2a=l1c.process(
-        process_id="atmospheric_correction",
-        arguments={
-            "data": THIS,
-            # "missionId": "SENTINEL2", this is the default
-           "appendDebugBands" : 1
-        }
-    )
-    output = tmp_path / "icorvalidation_inputcheck.json"
-    l2a.download(output,format="json")
 
-    result=datacube_from_file(output,fmt="json").get_array()
-
-    # note that debug bands are multiplied by 100 to store meaningful values as integers
-    szaref=xarray.open_rasterio(get_path("icor/ref_inputcheck_SZA.tif"))
-    vzaref=xarray.open_rasterio(get_path("icor/ref_inputcheck_VZA.tif"))
-    raaref=xarray.open_rasterio(get_path("icor/ref_inputcheck_RAA.tif"))
-    demref=xarray.open_rasterio(get_path("icor/ref_inputcheck_DEM.tif"))
-    aotref=xarray.open_rasterio(get_path("icor/ref_inputcheck_AOT.tif"))
-    cwvref=xarray.open_rasterio(get_path("icor/ref_inputcheck_CWV.tif"))
-
-    compare_xarrays(result.loc[date][-6],szaref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date][-5],vzaref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date][-4],raaref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date][-3],demref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date][-2],aotref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date][-1],cwvref[0].transpose("x","y"))
-
-@pytest.mark.skip(reason="Temporary skip to get tests through")
-def test_atmospheric_correction_defaultbehavior(auth_connection, api_version, tmp_path):
-    # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
-    date = "2019-04-11"
-    bbox=(655000,5677000,660000,5685000)
-
-    l1c = (
-        auth_connection.load_collection("SENTINEL2_L1C_SENTINELHUB")
-            .filter_temporal(date,date)\
-            .filter_bbox(crs="EPSG:32631", **dict(zip(["west", "south", "east", "north"], bbox)))
-    )
-    l2a=l1c.process(
-        process_id="atmospheric_correction",
-        arguments={
-            "data": THIS,
-            # "missionId": "SENTINEL2", this is the default
-        }
-    )
-    output = tmp_path / "icorvalidation_default.json"
-    l2a.download(output,format="json")
-
-    result=datacube_from_file(output,fmt="json").get_array()
-    b2ref=xarray.open_rasterio(get_path("icor/ref_default_B02.tif"))
-    b3ref=xarray.open_rasterio(get_path("icor/ref_default_B03.tif"))
-    b4ref=xarray.open_rasterio(get_path("icor/ref_default_B04.tif"))
-    b8ref=xarray.open_rasterio(get_path("icor/ref_default_B08.tif"))
-
-    compare_xarrays(result.loc[date,"B02"],b2ref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date,"B03"],b3ref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date,"B04"],b4ref[0].transpose("x","y"))
-    compare_xarrays(result.loc[date,"B08"],b8ref[0].transpose("x","y"))
 
 @pytest.mark.skip(reason="Atmospheric correction requires L1C on terrascope, which is no longer there")
 def test_atmospheric_correction_const_overridden_params(auth_connection, api_version, tmp_path):
@@ -2609,20 +2381,6 @@ def test_load_stac_from_terrascope_api(auth_connection, tmp_path):
     assert_geotiff_basics(output_tiff, expected_band_count=2, min_width=4, min_height=4)
 
 
-@pytest.mark.skip(reason="rate-limited by MS Planetary Computer")
-def test_load_stac_from_planetary_computer_stac_api(auth_connection, tmp_path):
-    data_cube = (auth_connection
-                 .load_stac("https://planetarycomputer.microsoft.com/api/stac/v1/collections/landsat-c2-l2")
-                 .filter_bbox(west=3.143622080824514, south=51.30768529127022, east=3.272047105221418,
-                              north=51.365902618479595)
-                 .filter_temporal(["2010-04-06", "2010-04-07"])
-                 .filter_bands(["TM_B3", "TM_B2", "TM_B1"])
-                 .save_result("GTiff"))
-
-    output_tiff = tmp_path / "test_load_stac_from_stac_api.tif"
-
-    data_cube.download(output_tiff)
-    assert_geotiff_basics(output_tiff, expected_band_count=3)
 
 
 def test_half_open_temporal_interval_sentinel_hub(auth_connection, tmp_path):
