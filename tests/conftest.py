@@ -15,7 +15,7 @@ def get_openeo_base_url(version: str = "1.1.0"):
         # For example: http://localhost:8080/
         endpoint = os.environ["ENDPOINT"]
     else:
-        endpoint = 'https://openeo-dev.vito.be'
+        endpoint = "https://openeo-staging.terrascope.be/"
         _log.warning("Environment variable 'ENDPOINT' not set, defaulting to %s", endpoint)
     return "{e}/openeo/{v}".format(e=endpoint.rstrip("/"), v=version)
 
