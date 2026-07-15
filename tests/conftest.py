@@ -45,13 +45,24 @@ def requests_session(request) -> requests.Session:
     return session
 
 
+JOB_ID_HISTORY_KEY = pytest.StashKey[str]()
+
+
 @pytest.fixture
-def connection(api_base_url, requests_session) -> openeo.Connection:
+def connection(api_base_url, requests_session, request) -> openeo.Connection:
     con = openeo.connect(api_base_url, session=requests_session)
     _log.info(f"Base connection {con=} {con.capabilities().get('id')=}")
     _log.info(f"{con.capabilities().get('backend_version')=}")
     _log.info(f"{con.capabilities().get('_backend_deploy_metadata')=}")
     _log.info(f"{con.capabilities().get('processing:software')=}")
+
+    if hasattr(con, "events"):
+
+        @con.events.on("job.create")
+        def on_job_create(**kwargs):
+            if job_id := kwargs.get("job_id"):
+                request.node.stash.setdefault(JOB_ID_HISTORY_KEY, []).append(job_id)
+
     return con
 
 
@@ -91,3 +102,22 @@ def auth_connection(connection, capfd) -> openeo.Connection:
         else:
             connection.authenticate_oidc(max_poll_time=max_poll_time)
     return connection
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+
+    if job_id_history := item.stash.get(JOB_ID_HISTORY_KEY, []):
+        title = "Jobs created during this test"
+        listing = "\n".join(job_id_history)
+        report.sections.append((title, listing))
+        if report.failed:
+            if hasattr(report.longrepr, "addsection"):
+                report.longrepr.addsection(title, listing)
+            # TODO: this is a poorly-documented junitxml-specific hack
+            #       to customize the error message
+            #       Unclear if there is a cleaner way to do this.
+            if hasattr(report.longrepr, "reprcrash"):
+                report.longrepr.reprcrash.message = f"{report.longrepr.reprcrash.message}\n\n{title}:\n{listing}"
