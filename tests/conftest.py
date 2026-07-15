@@ -58,7 +58,7 @@ def connection(api_base_url, requests_session, request) -> openeo.Connection:
 
     if hasattr(con, "events"):
 
-        @con.events.on("job.create")
+        @con.events.on("job.created")
         def on_job_create(**kwargs):
             if job_id := kwargs.get("job_id"):
                 request.node.stash.setdefault(JOB_ID_HISTORY_KEY, []).append(job_id)
