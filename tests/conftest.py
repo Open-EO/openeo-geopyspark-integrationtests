@@ -20,16 +20,6 @@ def get_openeo_base_url(version: str = "1.1.0"):
     return "{e}/openeo/{v}".format(e=endpoint.rstrip("/"), v=version)
 
 
-def get_tsservice_base_url():
-    tsservice_endpoint = os.environ.get("TSSERVICE_ENDPOINT")
-
-    if not tsservice_endpoint:
-        raise RuntimeError("Environment variable 'TSSERVICE_ENDPOINT' should be set"
-                           " with URL pointing to OpenEO/tsservice backend to test against"
-                           " (e.g. 'http://localhost:8155/')")
-
-    return tsservice_endpoint
-
 
 @pytest.fixture(params=[
     "1.1.0",
@@ -101,9 +91,3 @@ def auth_connection(connection, capfd) -> openeo.Connection:
         else:
             connection.authenticate_oidc(max_poll_time=max_poll_time)
     return connection
-
-
-
-@pytest.fixture
-def tsservice_base_url():
-    return get_tsservice_base_url()
