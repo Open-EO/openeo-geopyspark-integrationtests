@@ -1225,7 +1225,16 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path, s2_collect
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
 @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
-def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto_title, s2_collection_id):
+@pytest.mark.parametrize(
+    ["job_options", "expected_derived_from_link_style"],
+    [
+        ({}, "legacy"),
+        ({"stac-version": "1.1"}, "stac-item-collection"),
+    ],
+)
+def test_advanced_cloud_masking_diy(
+    auth_connection, api_version, tmp_path, auto_title, s2_collection_id, job_options, expected_derived_from_link_style
+):
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
     start_date, end_date = ("2018-08-14", "2018-08-15")
@@ -1253,14 +1262,37 @@ def test_advanced_cloud_masking_diy(auth_connection, api_version, tmp_path, auto
 
     _dump_process_graph(masked, tmp_path)
     out_file = tmp_path / "masked_result.tiff"
-    job = execute_batch_with_error_logging(masked, outputfile=out_file, title=auto_title, job_options=batch_default_options())
+    job = execute_batch_with_error_logging(
+        masked,
+        outputfile=out_file,
+        title=auto_title,
+        job_options={**batch_default_options(), **job_options},
+    )
+
     links = job.get_results().get_metadata()["links"]
-    _log.info(f"test_advanced_cloud_masking_diy: {links=}")
+    _log.info(f"{auto_title}: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
-    _log.info(f"test_advanced_cloud_masking_diy: {derived_from=}")
-    v220_links = [link for link in derived_from if "V220" in link]
-    assert len(set(v220_links)) == 1
-    assert v220_links == derived_from
+    _log.info(f"{auto_title}: {derived_from=}")
+
+    if expected_derived_from_link_style == "legacy":
+        assert derived_from == [
+            "S2B_20180814T105019_31UFS_TOC_V220",
+            "S2B_20180814T105019_31UFS_TOC_V220",
+        ]
+    elif expected_derived_from_link_style == "stac-item-collection":
+        assert derived_from == [
+            dirty_equals.IsStr(regex=r"https?://.*/stac-item-collection-loadcollection\d+\.json\?.*"),
+            dirty_equals.IsStr(regex=r"https?://.*/stac-item-collection-loadcollection\d+\.json\?.*"),
+        ]
+        for href in derived_from:
+            item_ids = _check_derived_from_href(
+                href,
+                expected_feature_count=1,
+                expected_collection_id="terrascope-s2-toc-v2",
+            )
+            assert item_ids == ["S2B_20180814T105019_31UFS_TOC_V220"]
+    else:
+        raise ValueError(f"{expected_derived_from_link_style=}")
 
     assert_geotiff_basics(out_file, expected_shape=(1, 284, 675))
     with rasterio.open(out_file) as result_ds:
@@ -2439,7 +2471,7 @@ def test_ndvi_weighted_composite(auth_connection, tmp_path, auto_title):
 
 
 @pytest.mark.parametrize(
-    ["job_options", "expected_link_style"],
+    ["job_options", "expected_derived_from_link_style"],
     [
         ({}, "legacy"),
         ({"stac-version": "1.1"}, "stac-item-collection"),
@@ -2447,7 +2479,7 @@ def test_ndvi_weighted_composite(auth_connection, tmp_path, auto_title):
 )
 @pytest.mark.batchjob
 @pytest.mark.timeout(BATCH_JOB_TIMEOUT)
-def test_filter_by_multiple_tile_ids(auth_connection, auto_title, job_options, expected_link_style):
+def test_filter_by_multiple_tile_ids(auth_connection, auto_title, job_options, expected_derived_from_link_style):
     """The bbox below intersects 4 Sentinel 2 tiles: 31UES, 31UET, 31UFS and 31UFT; filtering by tile ID removes
     31UET and 31UFT from the output and the "derived_from" links."""
 
@@ -2472,25 +2504,24 @@ def test_filter_by_multiple_tile_ids(auth_connection, auto_title, job_options, e
     _log.info(f"test_filter_by_multiple_tile_ids: {links=}")
     derived_from = [link["href"] for link in links if link["rel"] == "derived_from"]
 
-    if expected_link_style == "legacy":
-        assert derived_from == [
-            "S2B_20240424T104619_31UFS_TOC_V220",
-            "S2B_20240424T104619_31UES_TOC_V220",
-        ]
-    elif expected_link_style == "stac-item-collection":
+    expected_derived_from_item_ids = [
+        "S2B_20240424T104619_31UFS_TOC_V220",
+        "S2B_20240424T104619_31UES_TOC_V220",
+    ]
+
+    if expected_derived_from_link_style == "legacy":
+        assert derived_from == expected_derived_from_item_ids
+    elif expected_derived_from_link_style == "stac-item-collection":
         assert derived_from == [
             dirty_equals.IsStr(regex=r"https?://.*/stac-item-collection-loadcollection1\.json\?.*"),
         ]
         item_ids = _check_derived_from_href(
             derived_from[0],
-            expected_collection="terrascope-s2-toc-v2",
+            expected_collection_id="terrascope-s2-toc-v2",
         )
-        assert item_ids == [
-            "S2B_20240424T104619_31UFS_TOC_V220",
-            "S2B_20240424T104619_31UES_TOC_V220",
-        ]
+        assert item_ids == expected_derived_from_item_ids
     else:
-        raise ValueError(f"{expected_link_style=}")
+        raise ValueError(f"{expected_derived_from_link_style=}")
 
 
 
@@ -2603,7 +2634,7 @@ def test_load_stac_derived_from_with_linked_doc(auth_connection, auto_title):
         _check_derived_from_href(
             derived_from_links[0]["href"],
             expected_id=dirty_equals.IsStr(regex="S2[AB]_.*TOC.*"),
-            expected_collection="terrascope-s2-toc-v2",
+            expected_collection_id="terrascope-s2-toc-v2",
         )
 
     # Check job result metadata
@@ -2640,14 +2671,15 @@ def _check_derived_from_href(
     derived_from_href: str,
     *,
     expected_id: Union[str, dirty_equals.IsStr] = dirty_equals.IsStr(),
-    expected_collection: Union[str, dirty_equals.IsStr] = dirty_equals.IsStr(),
+    expected_collection_id: Union[str, dirty_equals.IsStr] = dirty_equals.IsStr(),
+    expected_feature_count: Union[int, tuple] = (2, ...),
 ) -> List[str]:
     """Check the STAC item-collection at given href and return the list of item IDs."""
     _log.info(f"{derived_from_href=}")
     derived_from_data = requests.get(derived_from_href).json()
     assert derived_from_data == {
         "type": "FeatureCollection",
-        "features": dirty_equals.IsList(length=(2, ...)),
+        "features": dirty_equals.IsList(length=expected_feature_count),
     }
     for feature in derived_from_data["features"]:
         assert feature == dirty_equals.IsPartialDict(
@@ -2656,7 +2688,7 @@ def _check_derived_from_href(
                 "bbox": dirty_equals.IsList(length=4),
                 "geometry": dirty_equals.IsPartialDict(),
                 "id": expected_id,
-                "collection": expected_collection,
+                "collection": expected_collection_id,
             }
         )
     return [f["id"] for f in derived_from_data["features"]]
