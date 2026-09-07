@@ -60,6 +60,42 @@ def test_tsservice_geometry_mean(tsservice_base_url):
     )
 
 
+def test_tsservice_hdp2_hdfs(tsservice_base_url):
+    request = requests.Request(
+        "POST",
+        f"{tsservice_base_url}/v1.0/ts/S2_CLOUDCOVER_GLOBAL/geometry?startDate=2020-04-13&endDate=2020-04-13",
+        json={
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [1.90283, 50.9579],
+                    [1.90283, 51.0034],
+                    [1.97116, 51.0034],
+                    [1.97116, 50.9579],
+                    [1.90283, 50.9579],
+                ]
+            ],
+        },
+        headers={"referer": "https://viewer.terrascope.be"},
+    ).prepare()
+
+    _test_tsservice_geometry_mean(
+        request,
+        expected_response={
+            "results": [
+                {
+                    "date": "2020-04-13",
+                    "result": {
+                        "totalCount": 48,
+                        "validCount": 48,
+                        "average": pytest.approx(0.9125, rel=0.01),
+                    },
+                }
+            ],
+        },
+    )
+
+
 def test_tsservice_coherence(tsservice_base_url):
     request = requests.Request(
         "POST",
