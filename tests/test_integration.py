@@ -969,7 +969,7 @@ def test_random_forest_train_and_load_from_jobid_and_url(auth_connection: openeo
         metadata = json.load(f)
         assert metadata["geometry"] == {
             "type": "Polygon",
-            "coordinates": [[[4.79, 51.26], [4.79, 51.30], [4.90, 51.30], [4.90, 51.26], [4.79, 51.26]]],
+            "coordinates": [[[4.90, 51.26], [4.90, 51.30], [4.79, 51.30], [4.79, 51.26], [4.90, 51.26]]],
         }
         assert metadata.get("assets", {}).get("randomforest.model.tar.gz", {}).get("href", "") == "/data/projects/OpenEO/{jobid}/randomforest.model.tar.gz".format(jobid=job.job_id)
 
