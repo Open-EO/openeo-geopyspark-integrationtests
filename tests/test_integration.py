@@ -967,11 +967,12 @@ def test_random_forest_train_and_load_from_jobid_and_url(auth_connection: openeo
     # Check job_metadata.json.
     with open(metadataPath, "r") as f:
         metadata = json.load(f)
-        assert metadata["geometry"] == {
-            "type": "Polygon",
-            "coordinates": [[[4.90, 51.26], [4.90, 51.30], [4.79, 51.30], [4.79, 51.26], [4.90, 51.26]]],
-        }
-        assert metadata.get("assets", {}).get("randomforest.model.tar.gz", {}).get("href", "") == "/data/projects/OpenEO/{jobid}/randomforest.model.tar.gz".format(jobid=job.job_id)
+    assert (
+        shape(metadata["geometry"]).normalize().equals_exact(Polygon.from_bounds(4.79, 51.26, 4.90, 51.30).normalize())
+    )
+    assert metadata.get("assets", {}).get("randomforest.model.tar.gz", {}).get(
+        "href", ""
+    ) == "/data/projects/OpenEO/{jobid}/randomforest.model.tar.gz".format(jobid=job.job_id)
 
     # 2. Load the model using its job id and make predictions.
     topredict_xybt = auth_connection.load_collection(
