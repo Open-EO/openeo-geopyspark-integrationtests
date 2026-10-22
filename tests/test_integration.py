@@ -347,7 +347,7 @@ def test_ndvi_udf_reduce_bands_udf(auth_connection, tmp_path, udf_file):
 
 
 @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
-def test_ndvi_band_math(auth_connection, tmp_path, api_version, s2_collection_id):
+def test_ndvi_band_math(auth_connection, tmp_path, s2_collection_id):
     # http://bboxfinder.com/#51.20,5.00,51.23,5.05
     bbox = {"west": 5.00, "south": 51.20, "east": 5.05, "north": 51.23}
     cube = auth_connection.load_collection(
@@ -1113,22 +1113,19 @@ def assert_cog(output_tiff: Union[str, Path]):
     assert is_valid_cog, str(errors)
 
 
-def test_mask_polygon(auth_connection, api_version, tmp_path):
+def test_mask_polygon(auth_connection, tmp_path):
     bbox = {"west": 7.0, "south": 51.28, "east": 7.1, "north": 51.4, "crs": "EPSG:4326"}
     date = "2017-11-01"
     collection_id = "PROBAV_L3_S10_TOC_333M"
     cube = auth_connection.load_collection(collection_id, bands=["NDVI"], spatial_extent=bbox, temporal_extent=date)
-    if api_version >= "1.0.0":
-        masked = cube.mask_polygon(POLYGON01)
-    else:
-        masked = cube.mask(polygon=POLYGON01)
+    masked = cube.mask_polygon(POLYGON01)
 
     output_tiff = tmp_path / "masked.tiff"
     masked.download(output_tiff, format='GTIFF')
     assert_geotiff_basics(output_tiff, expected_shape=(1, 41, 34),min_width=32, min_height=32)
 
 
-def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
+def test_mask_out_all_data_float(auth_connection, tmp_path):
     bbox = {"west": 5, "south": 51, "east": 5.08, "north": 51.1, "crs": "EPSG:4326"}
     date = "2017-12-21"
     collection_id = "PROBAV_L3_S10_TOC_333M"
@@ -1153,7 +1150,7 @@ def test_mask_out_all_data_float(auth_connection, api_version, tmp_path):
         assert np.all(np.isnan(masked_data))
 
 
-def test_mask_out_all_data_int(auth_connection, api_version, tmp_path):
+def test_mask_out_all_data_int(auth_connection, tmp_path):
     bbox = {"west": 5, "south": 51, "east": 5.08, "north": 51.1, "crs": "EPSG:4326"}
     date = "2017-12-21"
     collection_id = "PROBAV_L3_S10_TOC_333M"
@@ -1189,7 +1186,7 @@ def test_fuzzy_mask(auth_connection, tmp_path, s2_collection_id):
 
 
 @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
-def test_simple_cloud_masking(auth_connection, api_version, tmp_path, s2_collection_id):
+def test_simple_cloud_masking(auth_connection, tmp_path, s2_collection_id):
     date = "2019-04-26"
     mask = create_simple_mask(
         auth_connection,
@@ -1206,10 +1203,7 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path, s2_collect
         temporal_extent=date,
     )
     # s2_radiometry.download(tmp_path / "s2.tiff", format="GTIFF")
-    if api_version >= "1.0.0":
-        masked = s2_radiometry.mask(mask=mask)
-    else:
-        masked = s2_radiometry.mask(rastermask=mask)
+    masked = s2_radiometry.mask(mask=mask)
 
     _dump_process_graph(masked, tmp_path)
     output_tiff = tmp_path / "masked_result.tiff"
@@ -1234,7 +1228,7 @@ def test_simple_cloud_masking(auth_connection, api_version, tmp_path, s2_collect
     ],
 )
 def test_advanced_cloud_masking_diy(
-    auth_connection, api_version, tmp_path, auto_title, s2_collection_id, job_options, expected_derived_from_link_style
+    auth_connection, tmp_path, auto_title, s2_collection_id, job_options, expected_derived_from_link_style
 ):
     # Retie
     bbox = {"west": 4.996033, "south": 51.258922, "east": 5.091603, "north": 51.282696, "crs": "EPSG:4326"}
@@ -1309,11 +1303,10 @@ def test_advanced_cloud_masking_diy(
         "TERRASCOPE_S2_TOC_V2",
     ],
 )
-def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path, s2_collection_id):
+def test_advanced_cloud_masking_builtin(auth_connection, tmp_path, s2_collection_id):
     """
     Advanced masking above got replaced with more simple builting approach
     @param auth_connection:
-    @param api_version:
     @param tmp_path:
     @return:
     """
@@ -1359,7 +1352,7 @@ def test_advanced_cloud_masking_builtin(auth_connection, api_version, tmp_path, 
         ),
     ],
 )
-def test_aggregate_spatial_timeseries(auth_connection, tmp_path, collection_id, expected_dates, api_version):
+def test_aggregate_spatial_timeseries(auth_connection, tmp_path, collection_id, expected_dates):
     expected_dates = sorted(expected_dates)
     polygon = (
         Polygon(shell=[
@@ -1400,10 +1393,7 @@ def test_aggregate_spatial_timeseries(auth_connection, tmp_path, collection_id, 
         output_file = tmp_path / "ts_{d}.tiff".format(d=re.sub(r'[^0-9]', '', date))
         print("Evaluating date {d}, downloading to {p}".format(d=date, p=output_file))
         date_cube = auth_connection.load_collection(collection_id, temporal_extent=date, spatial_extent=bbox)
-        if api_version.at_least("1.0.0"):
-            date_cube = date_cube.mask_polygon(polygon)
-        else:
-            date_cube = date_cube.mask(polygon=polygon)
+        date_cube = date_cube.mask_polygon(polygon)
         date_cube.download(output_file, format="GTIFF")
         with rasterio.open(output_file) as ds:
             data = ds.read(masked=True)
@@ -1654,7 +1644,7 @@ def test_synchronous_call_without_spatial_bounds_is_rejected(auth_connection, tm
 
 
 @pytest.mark.parametrize("s2_collection_id", TERRASCOPE_S2_TOC_V2_VARIANTS)
-def test_simple_raster_to_vector(auth_connection, api_version, tmp_path, s2_collection_id):
+def test_simple_raster_to_vector(auth_connection, tmp_path, s2_collection_id):
     date = "2019-04-26"
 
     # using sceneclassification that will have contiguous areas suitable for vectorization
@@ -1849,7 +1839,7 @@ def compare_xarrays(
 
 
 @pytest.mark.skip(reason="Atmospheric correction requires L1C on terrascope, which is no longer there")
-def test_atmospheric_correction_const_overridden_params(auth_connection, api_version, tmp_path):
+def test_atmospheric_correction_const_overridden_params(auth_connection, tmp_path):
     # source product is  S2B_MSIL1C_20190411T105029_N0207_R051_T31UFS_20190411T130806
     date = "2019-04-11"
     spatial_extent = {"west": 655000, "east": 660000, "south": 5677000, "north": 5685000, "crs": 32631}
