@@ -12,12 +12,13 @@ TODO
 ## Usage
 
 To run the test suite against a certain OpenEO backend:
-specify the backend base URL in environment variable `ENDPOINT`
+specify the backend base URL in environment variable `OPENEO_BACKEND_URL`
 and run the tests.
 For example:
 
-    export ENDPOINT=http://localhost:8080/
+    export OPENEO_BACKEND_URL=http://localhost:8080/
     pytest
+
 
 ### Authentication
 

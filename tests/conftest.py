@@ -14,27 +14,25 @@ pytest_plugins = ["openeo.extra.pytest.auto_list_job_ids"]
 
 _log = logging.getLogger(__name__)
 
-def get_openeo_base_url(version: str = "1.1.0"):
-    if "ENDPOINT" in os.environ:
+
+def get_openeo_base_url():
+    if "OPENEO_BACKEND_URL" in os.environ:
         # For example: http://localhost:8080/
-        endpoint = os.environ["ENDPOINT"]
+        url = os.environ["OPENEO_BACKEND_URL"]
+        _log.info(f"Using backend URL {url!r} from env var `OPENEO_BACKEND_URL`")
+    elif "ENDPOINT" in os.environ:
+        # Legacy env var
+        url = os.environ["ENDPOINT"]
+        _log.warning(f"Using backend URL {url!r} from legacy env var `ENDPOINT`")
     else:
-        endpoint = "https://openeo-staging.terrascope.be/"
-        _log.warning("Environment variable 'ENDPOINT' not set, defaulting to %s", endpoint)
-    return "{e}/openeo/{v}".format(e=endpoint.rstrip("/"), v=version)
-
-
-
-@pytest.fixture(params=[
-    "1.1.0",
-])
-def api_version(request) -> ComparableVersion:
-    return ComparableVersion(request.param)
+        url = "https://openeo-staging.terrascope.be/"
+        _log.warning(f"Environment variable `OPENEO_BACKEND_URL` not set, defaulting to {url!r}")
+    return url.rstrip("/")
 
 
 @pytest.fixture
-def api_base_url(api_version):
-    return get_openeo_base_url(str(api_version))
+def api_base_url():
+    return get_openeo_base_url()
 
 
 @pytest.fixture
@@ -64,6 +62,11 @@ def connection(api_base_url, requests_session, request, auto_list_job_ids) -> op
     auto_list_job_ids(con)
 
     return con
+
+
+@pytest.fixture
+def api_version(connection) -> ComparableVersion:
+    return connection.capabilities().api_version_check
 
 
 def _redact(x: Any) -> Any:
