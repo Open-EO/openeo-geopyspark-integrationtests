@@ -160,3 +160,9 @@ def _test_tsservice_geometry_mean(request: requests.PreparedRequest, expected_re
 
     assert expected_schema.validate(time_series)
     assert time_series == expected_response
+
+
+def test_quick_traefik_health_check(tsservice_base_url):
+    with requests.get(f"{tsservice_base_url}/apidocs/") as response:
+        assert response.status_code == 200
+        assert "<title>TimeSeriesServices</title>" in response.text
