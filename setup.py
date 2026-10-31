@@ -16,7 +16,7 @@ setup(
         "pytest-html",
         "shapely",
         "openeo>=0.51.0",
-        "openeo_driver>=0.39.1.dev",
+        "openeo_driver>=0.142.0a3",
         "pytest-xdist",
         "xarray>=2022.0.0",
         "pyproj",
