@@ -453,18 +453,18 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
                 "openEO_2017-11-21Z_N51E002.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [337, 336],
+                        "proj:shape": [336, 336],
                         "proj:bbox": pytest.approx(
-                            [2.0, 51.0, 3.0, 52.0029762], abs=1e-4
+                            [2.0, 51.0, 3.0, 52.0], abs=1e-4
                         ),
                     }
                 ),
                 "openEO_2017-11-21Z_N51E003.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
-                        "proj:shape": [337, 336],
+                        "proj:shape": [336, 336],
                         "proj:bbox": pytest.approx(
-                            [3.0, 51.0, 4.0, 52.0029762], abs=1e-4
+                            [3.0, 51.0, 4.0, 52.0], abs=1e-4
                         ),
                     }
                 ),
