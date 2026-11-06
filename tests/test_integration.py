@@ -450,7 +450,7 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
     assert job_results_metadata == DictSubSet(
         {
             "assets": {
-                "openEO_2017-11-21Z_N51E002.tif": DictSubSet(
+                "saveresult1_2017-11-21Z_N51E002.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
                         "proj:shape": [336, 336],
@@ -459,7 +459,7 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
                         ),
                     }
                 ),
-                "openEO_2017-11-21Z_N51E003.tif": DictSubSet(
+                "saveresult1_2017-11-21Z_N51E003.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
                         "proj:shape": [336, 336],
@@ -468,7 +468,7 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
                         ),
                     }
                 ),
-                "openEO_2017-11-21Z_N52E002.tif": DictSubSet(
+                "saveresult1_2017-11-21Z_N52E002.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
                         "proj:shape": [336, 336],
@@ -477,7 +477,7 @@ def test_cog_execute_batch(auth_connection, tmp_path, auto_title):
                         ),
                     }
                 ),
-                "openEO_2017-11-21Z_N52E003.tif": DictSubSet(
+                "saveresult1_2017-11-21Z_N52E003.tif": DictSubSet(
                     {
                         "proj:epsg": 4326,
                         "proj:shape": [336, 336],
@@ -1742,7 +1742,7 @@ def test_sentinel_hub_execute_batch(auth_connection, tmp_path, auto_title):
         assert job_results_metadata == DictSubSet(
             {
                 "assets": {
-                    "openEO_2019-10-10Z.tif": DictSubSet(
+                    "saveresult1_2019-10-10Z.tif": DictSubSet(
                         {
                             "proj:epsg": 32631,
                             "proj:shape": [1694, 2140],
@@ -1794,7 +1794,7 @@ def test_sentinel_hub_sar_backscatter_batch_process(auth_connection, tmp_path, a
 
     assets = job.download_results(tmp_path)
 
-    result_asset_paths = [path for path in assets.keys() if path.name.startswith("openEO")]
+    result_asset_paths = [path for path in assets.keys() if path.name.startswith("saveresult1")]
     assert len(result_asset_paths) == 1
 
     output_tiff = result_asset_paths[0]
