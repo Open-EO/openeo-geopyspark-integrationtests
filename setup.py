@@ -6,11 +6,9 @@ setup(
     install_requires=[
         "requests",
         "pytest",
-        "numpy",
+        "numpy>=2.0.0",
         "scipy",
-        # Avoid wheel-less rasterio releases on Python 3.8 and lower https://github.com/rasterio/rasterio/issues/3168
-        "rasterio; python_version>='3.9'",
-        "rasterio<1.3.11; python_version<'3.9'",
+        "rasterio",
         "schema",
         "pytest-timeout",
         "pytest-html",
@@ -29,7 +27,7 @@ setup(
         "cftime",
         "jsonschema",
         "rio_cogeo",
-        "pydantic~=1.0",
+        "pydantic<2.0.0",
         "dirty-equals",
     ],
 )
